@@ -183,9 +183,15 @@ export const PremiumAnalystInterface = () => {
   const formatSymbolDisplay = (sym: string): string => {
     if (!sym) return '';
     
-    // For crypto pairs ending in USD/USDT
+    // For crypto pairs ending in USDT
+    if (sym.includes('USDT')) {
+      const base = sym.replace('USDT', '');
+      return `${base}/USDT`;
+    }
+    
+    // For crypto pairs ending in USD
     if (sym.includes('USD')) {
-      const base = sym.replace('USD', '').replace('T', '');
+      const base = sym.replace('USD', '');
       return `${base}/USD`;
     }
     
