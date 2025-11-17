@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { createChart, IChartApi, ISeriesApi, LineStyle } from 'lightweight-charts';
+import { 
+  createChart, 
+  IChartApi, 
+  ISeriesApi,
+  CandlestickSeries,
+  LineSeries,
+  HistogramSeries,
+  createSeriesMarkers,
+  LineStyle 
+} from 'lightweight-charts';
 import { useProfessionalChartData } from '@/hooks/useProfessionalChartData';
 import { calculateTradeSignal, ChartDataForSignal } from '@/lib/signalEngine';
 import { Skeleton } from './ui/skeleton';
@@ -14,10 +23,10 @@ type Timeframe = '1H' | '15M' | '5M' | '1M';
 export const ProfessionalTradingChart = ({ symbol }: ProfessionalTradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const emaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
-  const rsiSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const candleSeriesRef = useRef<ISeriesApi<any> | null>(null);
+  const emaSeriesRef = useRef<ISeriesApi<any> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<any> | null>(null);
+  const rsiSeriesRef = useRef<ISeriesApi<any> | null>(null);
   
   const [activeTimeframe, setActiveTimeframe] = useState<Timeframe>('1H');
   const { chartData, isLoading, error } = useProfessionalChartData(symbol);
@@ -54,7 +63,7 @@ export const ProfessionalTradingChart = ({ symbol }: ProfessionalTradingChartPro
     });
     
     // Main candlestick series
-    const candleSeries = chart.addSeries('Candlestick', {
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#00ff88',
       downColor: '#ff0055',
       borderUpColor: '#00ff88',
@@ -66,7 +75,7 @@ export const ProfessionalTradingChart = ({ symbol }: ProfessionalTradingChartPro
     });
     
     // 50 EMA line
-    const emaSeries = chart.addSeries('Line', {
+    const emaSeries = chart.addSeries(LineSeries, {
       color: '#ffa500',
       lineWidth: 3,
       title: '50 EMA',
@@ -75,12 +84,16 @@ export const ProfessionalTradingChart = ({ symbol }: ProfessionalTradingChartPro
     });
     
     // Volume histogram
-    const volumeSeries = chart.addSeries('Histogram', {
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       color: '#26a69a',
       priceFormat: {
         type: 'volume',
       },
       priceScaleId: 'volume',
+    });
+    
+    // Apply volume scale margins using priceScale API
+    volumeSeries.priceScale().applyOptions({
       scaleMargins: {
         top: 0.7,
         bottom: 0,
@@ -88,10 +101,14 @@ export const ProfessionalTradingChart = ({ symbol }: ProfessionalTradingChartPro
     });
     
     // RSI indicator (separate pane)
-    const rsiSeries = chart.addSeries('Line', {
+    const rsiSeries = chart.addSeries(LineSeries, {
       color: '#2962ff',
       lineWidth: 2,
       priceScaleId: 'rsi',
+    });
+    
+    // Apply RSI scale margins using priceScale API
+    rsiSeries.priceScale().applyOptions({
       scaleMargins: {
         top: 0.85,
         bottom: 0.05,
@@ -189,16 +206,17 @@ export const ProfessionalTradingChart = ({ symbol }: ProfessionalTradingChartPro
         });
       });
       
-      // Add liquidity sweep markers
-      const markers = chartData.liquiditySweeps.map(sweep => ({
-        time: sweep.time as any,
-        position: (sweep.type === 'high' ? 'aboveBar' : 'belowBar') as any,
-        color: '#ffeb3b',
-        shape: 'circle' as any,
-        text: 'L',
-        size: 2 as any,
-      }));
-      candleSeriesRef.current.setMarkers(markers);
+      // Add liquidity sweep markers using createSeriesMarkers
+      if (chartData.liquiditySweeps.length > 0) {
+        const markers = chartData.liquiditySweeps.map(sweep => ({
+          time: sweep.time as any,
+          position: (sweep.type === 'high' ? 'aboveBar' : 'belowBar') as any,
+          color: '#ffeb3b',
+          shape: 'circle' as any,
+          text: 'L',
+        }));
+        createSeriesMarkers(candleSeriesRef.current, markers);
+      }
     }
     
     // Calculate trade signal for current timeframe
