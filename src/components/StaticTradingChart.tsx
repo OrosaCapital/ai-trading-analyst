@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { createChart, ColorType, IChartApi } from 'lightweight-charts';
+import { createChart, ColorType, IChartApi, CandlestickSeries } from 'lightweight-charts';
 import { MockCandle } from '@/data/mockCandles';
 import { MockSignal } from '@/data/mockSignals';
 
@@ -33,7 +33,7 @@ export const StaticTradingChart = ({ candles, signals }: StaticTradingChartProps
       },
     });
 
-    const candleSeries = (chart as any).addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: 'hsl(var(--chart-green))',
       downColor: 'hsl(var(--chart-red))',
       borderUpColor: 'hsl(var(--chart-green))',
