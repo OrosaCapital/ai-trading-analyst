@@ -21,6 +21,8 @@ interface MultiTimeframeData {
     validSignals: number;
     invalidSignals: number;
     entryPoints: number;
+    dataSource?: string;
+    assetType?: 'crypto' | 'stock';
   };
 }
 
@@ -191,6 +193,15 @@ export const PremiumAnalystInterface = () => {
           </div>
           
           <div className="flex items-center gap-4">
+            {chartData?.metadata?.dataSource && (
+              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                chartData.metadata.dataSource === 'coinglass' 
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                  : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+              }`}>
+                {chartData.metadata.dataSource === 'coinglass' ? '🟢 LIVE DATA' : '🟡 DEMO DATA'}
+              </span>
+            )}
             <div className="flex items-center gap-2 text-xs">
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse-glow"></div>
               <span className="text-muted-foreground">LIVE</span>
@@ -299,7 +310,10 @@ export const PremiumAnalystInterface = () => {
         {/* Enhanced Market Metrics */}
         {symbol && (
           <div className="animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
-            <EnhancedMarketMetrics symbol={symbol} />
+            <EnhancedMarketMetrics 
+              symbol={symbol} 
+              assetType={chartData?.metadata?.assetType as 'crypto' | 'stock' | undefined}
+            />
           </div>
         )}
 

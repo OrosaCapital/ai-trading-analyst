@@ -6,6 +6,7 @@ import { Card } from "./ui/card";
 
 interface EnhancedMarketMetricsProps {
   symbol: string;
+  assetType?: 'crypto' | 'stock';
 }
 
 interface LongShortData {
@@ -35,7 +36,7 @@ interface CVDData {
   mock?: boolean;
 }
 
-export const EnhancedMarketMetrics = ({ symbol }: EnhancedMarketMetricsProps) => {
+export const EnhancedMarketMetrics = ({ symbol, assetType = 'crypto' }: EnhancedMarketMetricsProps) => {
   const [longShortData, setLongShortData] = useState<LongShortData | null>(null);
   const [cvdData, setCvdData] = useState<CVDData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,6 +82,11 @@ export const EnhancedMarketMetrics = ({ symbol }: EnhancedMarketMetricsProps) =>
         </div>
       </div>
     );
+  }
+
+  // Only show metrics for crypto assets
+  if (assetType !== 'crypto') {
+    return null;
   }
 
   return (
