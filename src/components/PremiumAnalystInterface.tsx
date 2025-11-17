@@ -92,6 +92,7 @@ export const PremiumAnalystInterface = () => {
   const [isLoadingChart, setIsLoadingChart] = useState(false);
   const [streamingEnabled, setStreamingEnabled] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [tatumPrice, setTatumPrice] = useState<number | null>(null);
 
   // Real-time price streaming
   const { priceData, connectionStatus, isConnected, lastUpdateTime, isPolling } = useRealtimePriceStream(
@@ -208,6 +209,11 @@ export const PremiumAnalystInterface = () => {
         return lastCandle.close;
       }
     }
+
+    // Priority 3: Tatum fallback price
+    if (tatumPrice && tatumPrice > 0) {
+      return tatumPrice;
+    }
     
     return 0;
   };
@@ -254,6 +260,31 @@ export const PremiumAnalystInterface = () => {
     setInput(sym);
     handleAnalyze(fullSymbol);
   };
+
+  // Fetch Tatum price as immediate fallback
+  useEffect(() => {
+    const fetchTatumPrice = async () => {
+      if (!symbol) return;
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('fetch-tatum-price', {
+          body: { symbol }
+        });
+        
+        if (!error && data?.price && !data.unavailable) {
+          setTatumPrice(data.price);
+          console.log('✅ Tatum fallback price available:', data.price);
+        } else {
+          setTatumPrice(null);
+        }
+      } catch (error) {
+        console.error('Error fetching Tatum price:', error);
+        setTatumPrice(null);
+      }
+    };
+
+    fetchTatumPrice();
+  }, [symbol]);
 
   // Fetch chart data when symbol changes
   useEffect(() => {
