@@ -562,24 +562,26 @@ async function fetchCoinGlassOHLC(
     
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
     
-    // CoinGlass API v4 correct endpoint for OHLC data
-    const url = `https://open-api-v4.coinglass.com/api/futures/price/history?exchange=Binance&symbol=${cleanSymbol}&interval=${interval}&limit=1000`;
-    console.log(`Fetching from CoinGlass: ${url}`);
+    // Import shared client function
+    const { fetchFromCoinglassV2 } = await import('./_shared/coinglassClient.ts');
     
-    const response = await fetch(url, {
-      headers: {
-        'accept': 'application/json',
-        'CG-API-KEY': apiKey
-      }
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ CoinGlass API error ${response.status}: ${errorText}`);
+    // Use database lookup for endpoint
+    let data;
+    try {
+      data = await fetchFromCoinglassV2(
+        'price_history',
+        {
+          exchange: 'Binance',
+          symbol: cleanSymbol,
+          interval: interval,
+          limit: '1000'
+        },
+        apiKey
+      );
+    } catch (error) {
+      console.error(`❌ CoinGlass API error:`, error);
       return null;
     }
-
-    const data = await response.json();
     
     if (data.code !== '0' || !data.data || data.data.length === 0) {
       console.error('CoinGlass error details:', {

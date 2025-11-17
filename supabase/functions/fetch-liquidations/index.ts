@@ -13,24 +13,20 @@ async function fetchLiquidationsFromCoinglass(symbol: string, apiKey: string) {
     // Convert symbol to USDT pair format
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
     
-    // CoinGlass API v4 endpoint for liquidation history
-    // Hobbyist plan requires >=4h interval
-    const url = `https://open-api-v4.coinglass.com/api/futures/liquidation/history?exchange=Binance&symbol=${cleanSymbol}&interval=4h&limit=24`;
+    // Import shared client function
+    const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
     
-    const response = await fetch(url, {
-      headers: {
-        'accept': 'application/json',
-        'CG-API-KEY': apiKey,
+    // Use database lookup for endpoint
+    const data = await fetchFromCoinglassV2(
+      'liquidations',
+      {
+        exchange: 'Binance',
+        symbol: cleanSymbol,
+        interval: '4h',
+        limit: '24'
       },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Coinglass API error: ${response.status} - ${errorText}`);
-      throw new Error(`Coinglass API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+      apiKey
+    );
 
     if (data.code !== '0' || !data.data || data.data.length === 0) {
       console.error('Invalid Coinglass response:', data);

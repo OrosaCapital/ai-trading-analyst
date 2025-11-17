@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
-import { fetchFromCoinglass } from '../_shared/coinglassClient.ts';
+import { fetchFromCoinglassV2 } from '../_shared/coinglassClient.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,9 +13,15 @@ async function fetchTakerVolumeFromCoinglass(symbol: string, apiKey: string) {
     // Convert symbol to USDT pair format
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
     
-    // Use v4 API endpoint - Hobbyist plan requires >=4h interval
-    const data = await fetchFromCoinglass(
-      `/api/futures/taker-buy-sell-volume/history?exchange=Binance&symbol=${cleanSymbol}&interval=4h&limit=24`,
+    // Use database lookup for endpoint - Hobbyist plan requires >=4h interval
+    const data = await fetchFromCoinglassV2(
+      'taker_volume',
+      {
+        exchange: 'Binance',
+        symbol: cleanSymbol,
+        interval: '4h',
+        limit: '24'
+      },
       apiKey
     );
     console.log('Coinglass taker volume data received:', data);

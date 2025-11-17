@@ -18,27 +18,20 @@ async function fetchFundingRateFromCoinglass(symbol: string, interval: string, a
     // Convert symbol to USDT pair format
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
     
-    // CoinGlass API v4 endpoint for funding rate
-    const url = `https://open-api-v4.coinglass.com/api/futures/funding-rate/history?exchange=Binance&symbol=${cleanSymbol}&interval=${interval}&limit=24`;
+    // Import shared client function
+    const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
     
-    const response = await fetch(url, {
-      headers: {
-        'accept': 'application/json',
-        'CG-API-KEY': apiKey,
+    // Use database lookup for endpoint
+    const data = await fetchFromCoinglassV2(
+      'funding_rate',
+      {
+        exchange: 'Binance',
+        symbol: cleanSymbol,
+        interval: interval,
+        limit: '24'
       },
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.error('⚠️ Coinglass rate limit exceeded');
-        throw new Error('RATE_LIMIT');
-      }
-      const errorText = await response.text();
-      console.error(`Coinglass API error: ${response.status} - ${errorText}`);
-      throw new Error(`Coinglass API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+      apiKey
+    );
     
     if (data.code !== '0' || !data.data) {
       console.error('Invalid Coinglass response:', data);

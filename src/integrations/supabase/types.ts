@@ -95,6 +95,48 @@ export type Database = {
         }
         Relationships: []
       }
+      coinglass_api_endpoints: {
+        Row: {
+          base_url: string
+          created_at: string | null
+          description: string | null
+          endpoint_key: string
+          endpoint_path: string
+          id: string
+          is_active: boolean | null
+          min_interval: string | null
+          optional_params: Json | null
+          required_params: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          base_url?: string
+          created_at?: string | null
+          description?: string | null
+          endpoint_key: string
+          endpoint_path: string
+          id?: string
+          is_active?: boolean | null
+          min_interval?: string | null
+          optional_params?: Json | null
+          required_params?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          base_url?: string
+          created_at?: string | null
+          description?: string | null
+          endpoint_key?: string
+          endpoint_path?: string
+          id?: string
+          is_active?: boolean | null
+          min_interval?: string | null
+          optional_params?: Json | null
+          required_params?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       coinglass_metrics_cache: {
         Row: {
           cached_at: string | null
