@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.fetch-market-overview]
 verify_jwt = false
+
+[functions.fetch-chart-data]
+verify_jwt = false
