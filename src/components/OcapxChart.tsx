@@ -290,10 +290,17 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
     }[activeTimeframe];
 
     if (candleData.length > 0) {
-      const from = Math.max(0, candleData.length - visibleBars);
+      // Calculate center position
+      const midPoint = Math.floor(candleData.length / 2);
+      const halfVisible = Math.floor(visibleBars / 2);
+      
+      // Center the view around the midpoint
+      const from = Math.max(0, midPoint - halfVisible);
+      const to = Math.min(candleData.length - 1, midPoint + halfVisible);
+      
       chart.timeScale().setVisibleLogicalRange({
         from: from,
-        to: candleData.length - 1
+        to: to
       });
     }
 
