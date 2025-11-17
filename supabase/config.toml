@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.fetch-chart-data]
 verify_jwt = false
+
+[functions.fetch-long-short-ratio]
+verify_jwt = false
+
+[functions.fetch-taker-volume]
+verify_jwt = false
