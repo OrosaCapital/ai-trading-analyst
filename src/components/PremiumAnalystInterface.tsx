@@ -165,6 +165,7 @@ export const PremiumAnalystInterface = () => {
       "ETH": "ETHUSD", "ETHEREUM": "ETHUSD",
       "SOL": "SOLUSD", "SOLANA": "SOLUSD",
       "XRP": "XRPUSD", "RIPPLE": "XRPUSD",
+      "XLM": "XLMUSD", "STELLAR": "XLMUSD",
     };
 
     for (const [key, value] of Object.entries(cryptoMap)) {
