@@ -58,39 +58,60 @@ function generateMockOpenInterest(symbol: string) {
 // Fetch real open interest from Coinglass
 async function fetchOpenInterestFromCoinglass(symbol: string, apiKey: string) {
   try {
-    const historyUrl = `https://open-api-v3.coinglass.com/api/openInterest/ohlc-history?symbol=${symbol}&interval=h1&limit=24`;
-    const exchangeUrl = `https://open-api-v3.coinglass.com/api/openInterest/exchange-history?symbol=${symbol}&interval=0`;
+    // Convert symbol to USDT pair format
+    const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
+    
+    // CoinGlass API v4 endpoints
+    const historyUrl = `https://open-api-v4.coinglass.com/api/futures/open-interest-ohlc/history?exchange=Binance&symbol=${cleanSymbol}&interval=1h&limit=24`;
+    const exchangeUrl = `https://open-api-v4.coinglass.com/api/futures/open-interest/list?symbol=${cleanSymbol.replace('USDT', '')}`;
 
     const [historyRes, exchangeRes] = await Promise.all([
-      fetch(historyUrl, { headers: { 'coinglassSecret': apiKey } }),
-      fetch(exchangeUrl, { headers: { 'coinglassSecret': apiKey } })
+      fetch(historyUrl, { headers: { 'accept': 'application/json', 'CG-API-KEY': apiKey } }),
+      fetch(exchangeUrl, { headers: { 'accept': 'application/json', 'CG-API-KEY': apiKey } })
     ]);
 
     if (!historyRes.ok || !exchangeRes.ok) {
+      const historyError = await historyRes.text();
+      const exchangeError = await exchangeRes.text();
+      console.error('Coinglass API errors:', { historyError, exchangeError });
       throw new Error('Coinglass API error');
     }
 
     const historyData = await historyRes.json();
     const exchangeData = await exchangeRes.json();
 
+    if (historyData.code !== '0' || !historyData.data || historyData.data.length === 0) {
+      throw new Error('Invalid history data from Coinglass');
+    }
+
     const latestOI = historyData.data[historyData.data.length - 1];
-    const change24hValue = ((latestOI.close - historyData.data[0].open) / historyData.data[0].open * 100);
+    const firstOI = historyData.data[0];
+    const change24hValue = ((parseFloat(latestOI.close) - parseFloat(firstOI.open)) / parseFloat(firstOI.open) * 100);
     const change24h = change24hValue.toFixed(2);
+
+    const byExchange = exchangeData.code === '0' && exchangeData.data ? 
+      exchangeData.data.map((ex: any) => ({
+        exchange: ex.exchange || ex.exchangeName || 'Unknown',
+        value: `${(parseFloat(ex.open_interest || ex.openInterest) / 1000000000).toFixed(2)}B`,
+        valueRaw: parseFloat(ex.open_interest || ex.openInterest),
+        percentage: ex.percentage || ((parseFloat(ex.open_interest || ex.openInterest) / parseFloat(latestOI.close)) * 100).toFixed(2)
+      })) : [];
 
     return {
       total: {
-        value: `${(latestOI.close / 1000000000).toFixed(2)}B`,
-        valueRaw: latestOI.close,
+        value: `${(parseFloat(latestOI.close) / 1000000000).toFixed(2)}B`,
+        valueRaw: parseFloat(latestOI.close),
         change24h: `${change24hValue > 0 ? '+' : ''}${change24h}%`,
         sentiment: change24hValue > 0 ? 'INCREASING' : 'DECREASING'
       },
-      byExchange: exchangeData.data.map((ex: any) => ({
-        exchange: ex.exchangeName,
-        value: `${(ex.openInterest / 1000000000).toFixed(2)}B`,
-        valueRaw: ex.openInterest,
-        percentage: ex.percentage
+      byExchange,
+      history: historyData.data.map((item: any) => ({
+        time: item.time,
+        open: parseFloat(item.open),
+        high: parseFloat(item.high),
+        low: parseFloat(item.low),
+        close: parseFloat(item.close)
       })),
-      history: historyData.data,
       isMockData: false
     };
   } catch (error) {
