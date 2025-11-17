@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { createChart, IChartApi } from "lightweight-charts";
+import { createChart, IChartApi, CandlestickSeries, LineSeries } from "lightweight-charts";
 
 interface Candle {
   time: number;
@@ -109,8 +109,8 @@ export const OcapxChart = ({ symbol = "BTCUSD", data, isLoading }: OcapxChartPro
       };
     });
 
-    // Add candlestick series using addSeries
-    const candlestickSeries = (chart as any).addSeries('candlestick', {
+    // Add candlestick series using v5 API
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: 'rgba(152, 255, 246, 0.9)',
       downColor: 'rgba(255, 71, 133, 0.9)',
       borderVisible: true,
@@ -125,7 +125,7 @@ export const OcapxChart = ({ symbol = "BTCUSD", data, isLoading }: OcapxChartPro
       value: point.value,
     }));
     
-    const ema50Series = (chart as any).addSeries('line', {
+    const ema50Series = chart.addSeries(LineSeries, {
       color: 'rgba(76, 175, 80, 0.8)',
       lineWidth: 2,
       title: 'EMA 50',
@@ -138,7 +138,7 @@ export const OcapxChart = ({ symbol = "BTCUSD", data, isLoading }: OcapxChartPro
       value: point.value,
     }));
     
-    const ema200Series = (chart as any).addSeries('line', {
+    const ema200Series = chart.addSeries(LineSeries, {
       color: 'rgba(255, 255, 255, 0.6)',
       lineWidth: 2,
       title: 'EMA 200',
