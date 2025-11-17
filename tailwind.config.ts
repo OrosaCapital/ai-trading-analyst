@@ -47,6 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        robin: {
+          teal: "hsl(var(--robin-teal))",
+          neon: "hsl(var(--robin-neon))",
+          coral: "hsl(var(--robin-coral))",
+          black: "hsl(var(--robin-black))",
+          white: "hsl(var(--robin-white))",
+        },
         sentiment: {
           euphoria: "hsl(var(--sentiment-euphoria))",
           "extreme-greed": "hsl(var(--sentiment-extreme-greed))",

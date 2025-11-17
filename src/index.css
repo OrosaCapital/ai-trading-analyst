@@ -8,81 +8,84 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Premium Deep Backgrounds */
-    --background: 217 35% 8%;
-    --foreground: 210 20% 98%;
+    /* Robinhood-Inspired Black/White Foundation */
+    --background: 0 0% 5%;
+    --foreground: 0 0% 98%;
 
-    --card: 217 30% 12% / 0.7;
-    --card-foreground: 210 20% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 217 30% 12% / 0.95;
-    --popover-foreground: 210 20% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 152 100% 55%;
-    --primary-foreground: 217 25% 10%;
-    --primary-glow: 152 100% 65%;
+    /* Robinhood Teal Primary */
+    --primary: 197 100% 44%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 197 100% 54%;
 
-    --secondary: 217 25% 20%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217 25% 16%;
-    --muted-foreground: 215 15% 65%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 327 85% 70%;
-    --accent-foreground: 210 20% 98%;
+    /* Robin Neon Yellow-Green Accent */
+    --accent: 75 100% 50%;
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 20% 98%;
+    /* Coral Red for Negative/Destructive */
+    --destructive: 5 85% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217 25% 25% / 0.3;
-    --input: 217 25% 22% / 0.5;
-    --ring: 152 100% 55%;
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 197 100% 44%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Neon accent colors */
-    --neon-green: 152 100% 55%;
-    --neon-pink: 327 85% 70%;
-    --neon-blue: 210 100% 60%;
-    --neon-purple: 270 100% 65%;
+    /* Robinhood Brand Colors */
+    --robin-teal: 197 100% 44%;
+    --robin-neon: 75 100% 50%;
+    --robin-coral: 5 85% 60%;
+    --robin-black: 0 0% 5%;
+    --robin-white: 0 0% 98%;
 
-    /* Trading sentiment colors */
-    --sentiment-euphoria: 351 66% 73%;
-    --sentiment-extreme-greed: 0 64% 51%;
-    --sentiment-high-greed: 22 65% 54%;
-    --sentiment-greed: 42 65% 54%;
-    --sentiment-mild-greed: 60 65% 54%;
-    --sentiment-neutral: 64 65% 54%;
-    --sentiment-mild-caution: 262 62% 55%;
-    --sentiment-caution: 230 100% 43%;
-    --sentiment-concern: 173 48% 43%;
-    --sentiment-fear: 187 64% 53%;
-    --sentiment-max-fear: 152 100% 50%;
+    /* Trading sentiment colors - adjusted for new scheme */
+    --sentiment-euphoria: 5 85% 60%;
+    --sentiment-extreme-greed: 10 85% 58%;
+    --sentiment-high-greed: 20 85% 56%;
+    --sentiment-greed: 35 85% 54%;
+    --sentiment-mild-greed: 50 85% 52%;
+    --sentiment-neutral: 60 10% 60%;
+    --sentiment-mild-caution: 180 50% 50%;
+    --sentiment-caution: 190 60% 48%;
+    --sentiment-concern: 195 70% 46%;
+    --sentiment-fear: 197 85% 44%;
+    --sentiment-max-fear: 75 100% 50%;
 
-    /* Chart colors */
-    --chart-green: 152 100% 55%;
-    --chart-red: 0 72% 51%;
-    --chart-grid: 217 25% 20%;
+    /* Chart colors - Robinhood style */
+    --chart-green: 75 100% 50%;
+    --chart-red: 5 85% 60%;
+    --chart-grid: 0 0% 15%;
 
-    /* Premium Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(152 100% 55%), hsl(152 80% 65%));
-    --gradient-mesh: radial-gradient(at 40% 20%, hsl(152 100% 55% / 0.15) 0px, transparent 50%),
-                     radial-gradient(at 80% 0%, hsl(327 85% 70% / 0.15) 0px, transparent 50%),
-                     radial-gradient(at 0% 50%, hsl(210 100% 60% / 0.1) 0px, transparent 50%);
-    --gradient-glass: linear-gradient(135deg, hsl(217 30% 12% / 0.8), hsl(217 30% 12% / 0.4));
+    /* Minimal Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(197 100% 44%), hsl(197 100% 54%));
+    --gradient-mesh: radial-gradient(at 50% 0%, hsl(197 100% 44% / 0.08) 0px, transparent 50%),
+                     radial-gradient(at 0% 100%, hsl(75 100% 50% / 0.05) 0px, transparent 50%);
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 10% / 0.9), hsl(0 0% 10% / 0.6));
     
-    /* Premium Effects */
-    --glow-primary: 0 0 40px hsl(152 100% 55% / 0.4);
-    --glow-accent: 0 0 30px hsl(327 85% 70% / 0.4);
-    --glow-success: 0 0 25px hsl(152 100% 55% / 0.5);
-    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    --shadow-elevated: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
-    --shadow-floating: 0 10px 40px -5px rgba(0, 0, 0, 0.4);
+    /* Clean Effects */
+    --glow-primary: 0 0 30px hsl(197 100% 44% / 0.3);
+    --glow-accent: 0 0 25px hsl(75 100% 50% / 0.3);
+    --glow-success: 0 0 20px hsl(75 100% 50% / 0.4);
+    --shadow-glass: 0 4px 16px rgba(0, 0, 0, 0.6);
+    --shadow-elevated: 0 8px 32px -8px rgba(0, 0, 0, 0.8);
+    --shadow-floating: 0 4px 24px -4px rgba(0, 0, 0, 0.6);
     
-    /* Glassmorphism */
-    --glass-bg: hsl(217 30% 12% / 0.7);
-    --glass-border: hsl(217 25% 25% / 0.3);
-    --blur-amount: 16px;
+    /* Subtle Glass */
+    --glass-bg: hsl(0 0% 10% / 0.8);
+    --glass-border: hsl(0 0% 20% / 0.3);
+    --blur-amount: 12px;
   }
 }
 
@@ -122,9 +125,9 @@ All colors MUST be HSL.
   }
 
   .glass-strong {
-    background: hsl(217 30% 12% / 0.9);
-    backdrop-filter: blur(20px);
-    border: 1px solid hsl(217 25% 25% / 0.4);
+    background: hsl(0 0% 10% / 0.95);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(0 0% 20% / 0.4);
     box-shadow: var(--shadow-glass);
   }
 
@@ -163,7 +166,7 @@ All colors MUST be HSL.
 
   /* Shimmer effect for loading */
   .shimmer {
-    background: linear-gradient(90deg, transparent, hsl(217 30% 20% / 0.5), transparent);
+    background: linear-gradient(90deg, transparent, hsl(0 0% 20% / 0.5), transparent);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
