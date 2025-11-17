@@ -362,27 +362,42 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
       </div>
 
 
-      {/* Multi-Timeframe Chart Tabs */}
-      <Tabs value={activeTimeframe} onValueChange={(v) => setActiveTimeframe(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="1h" className="flex flex-col gap-1">
-            <span>1H Chart</span>
+      {/* Timeframe Selector */}
+      <div className="mb-4 flex gap-2">
+        <button
+          onClick={() => setActiveTimeframe('1h')}
+          className={`px-6 py-3 rounded-lg border transition-all ${
+            activeTimeframe === '1h'
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-card border-border hover:border-primary/50'
+          }`}
+        >
+          <div className="flex flex-col gap-1">
+            <span className="font-medium">1H Chart</span>
             <TrendBadge trend={data.metadata.trend1h} size="sm" />
-          </TabsTrigger>
-          <TabsTrigger value="15m" className="flex flex-col gap-1">
-            <span>15M Chart</span>
+          </div>
+        </button>
+        
+        <button
+          onClick={() => setActiveTimeframe('15m')}
+          className={`px-6 py-3 rounded-lg border transition-all ${
+            activeTimeframe === '15m'
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-card border-border hover:border-primary/50'
+          }`}
+        >
+          <div className="flex flex-col gap-1">
+            <span className="font-medium">15M Chart</span>
             <span className="text-xs text-[hsl(var(--chart-green))]">{validSignals.length} Valid</span>
-          </TabsTrigger>
-        </TabsList>
+          </div>
+        </button>
+      </div>
 
-        <TabsContent value="1h">
-          <div ref={chartContainerRef} className="w-full h-[680px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm" />
-        </TabsContent>
-
-        <TabsContent value="15m">
-          <div ref={chartContainerRef} className="w-full h-[680px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm" />
-        </TabsContent>
-      </Tabs>
+      {/* Single Chart Container */}
+      <div 
+        ref={chartContainerRef} 
+        className="w-full h-[680px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm" 
+      />
 
       {/* Zoom Controls Hint */}
       <div className="text-xs text-muted-foreground text-center mt-2">
