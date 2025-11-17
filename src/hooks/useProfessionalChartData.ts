@@ -31,7 +31,7 @@ export interface ChartData {
   
   coinglass: {
     fundingRate: number;
-    fundingSentiment: 'bullish' | 'bearish';
+    fundingSentiment: 'bullish' | 'bearish' | 'neutral';
     openInterest: number;
     oiChange: number;
     liquidations: { longs: number; shorts: number };
@@ -132,24 +132,36 @@ export function useProfessionalChartData(symbol: string | null) {
           overallSentiment: 'neutral',
         };
         
-        if (!coinglassError && coinglassData?.metrics) {
-          const metrics = coinglassData.metrics;
-          const fundingRate = parseFloat(metrics.fundingRate?.current || '0');
-          const oiChange = parseFloat(metrics.openInterest?.change24h?.replace('%', '') || '0');
+        if (!coinglassError && coinglassData) {
+          console.log('Coinglass raw data:', coinglassData);
+          
+          // Handle different response structures from the API
+          const data = coinglassData.data || coinglassData;
+          
+          const fundingRate = parseFloat(data.fundingRate || data.funding_rate || '0') / 100;
+          const openInterest = parseFloat(data.openInterest || data.open_interest || '0');
+          const oiChange = parseFloat(data.openInterestChange || data.oi_change_24h || data.oiChange24h || '0');
+          const longRatio = parseFloat(data.longAccountRatio || data.long_ratio || '50');
+          const shortRatio = 100 - longRatio;
+          const liquidationsData = data.liquidations || {};
           
           coinglassSentiment = {
             fundingRate,
-            fundingSentiment: fundingRate > 0 ? 'bullish' : 'bearish',
-            openInterest: parseFloat(metrics.openInterest?.total?.replace('B', '') || '0'),
+            fundingSentiment: fundingRate > 0 ? 'bullish' : fundingRate < 0 ? 'bearish' : 'neutral',
+            openInterest: openInterest / 1e9, // Convert to billions if needed
             oiChange,
             liquidations: {
-              longs: parseFloat(metrics.liquidations24h?.total?.split('/')[0]?.replace('M', '') || '0'),
-              shorts: parseFloat(metrics.liquidations24h?.total?.split('/')[1]?.replace('M', '') || '0'),
+              longs: parseFloat(liquidationsData.longLiquidation || liquidationsData.longs || '0') / 1e6, // Convert to millions
+              shorts: parseFloat(liquidationsData.shortLiquidation || liquidationsData.shorts || '0') / 1e6,
             },
-            longShortRatio: parseFloat(metrics.liquidations24h?.longShortRatio || '1'),
-            overallSentiment: (fundingRate > 0 && oiChange > 0) ? 'bullish' : 
-                             (fundingRate < 0 && oiChange < 0) ? 'bearish' : 'neutral',
+            longShortRatio: longRatio / (shortRatio || 1),
+            overallSentiment: (fundingRate > 0.01 && oiChange > 0) ? 'bullish' : 
+                             (fundingRate < -0.01 && oiChange < 0) ? 'bearish' : 'neutral',
           };
+          
+          console.log('Parsed coinglass sentiment:', coinglassSentiment);
+        } else {
+          console.error('Coinglass error or no data:', coinglassError, coinglassData);
         }
         
         setChartData({
