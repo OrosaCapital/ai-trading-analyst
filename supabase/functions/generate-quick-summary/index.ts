@@ -38,7 +38,7 @@ function generateQuickFallback(query: string, symbol: string) {
 async function generateQuickSummary(query: string, symbol: string) {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
-  const systemPrompt = `You are a rapid trading analyst for Orosa Capital. Provide ONLY quick analysis without Pine Script code.
+  const systemPrompt = `You are a rapid trading analyst for OCAPX. Provide ONLY quick analysis without Pine Script code.
 
 Provide:
 1. Brief 1-2 sentence market summary
