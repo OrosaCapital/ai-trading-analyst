@@ -127,8 +127,11 @@ const volumeSeries = chart.addHistogramSeries({...});
 
 #### Setting Markers
 ```typescript
-// ✅ CORRECT (v5) - setMarkers() API is the same
-candleSeries.setMarkers([
+// ✅ CORRECT (v5) - Must use createSeriesMarkers function
+import { createSeriesMarkers } from 'lightweight-charts';
+
+// Create markers primitive
+const seriesMarkers = createSeriesMarkers(candleSeries, [
   {
     time: 1234567890,
     position: 'belowBar',
@@ -137,6 +140,17 @@ candleSeries.setMarkers([
     text: 'Buy'
   }
 ]);
+
+// Update markers later
+seriesMarkers.setMarkers([/* new markers */]);
+
+// Clear markers
+seriesMarkers.setMarkers([]);
+```
+
+```typescript
+// ❌ WRONG (v4) - series.setMarkers() doesn't exist in v5
+candleSeries.setMarkers([...]); // This will fail!
 ```
 
 #### TypeScript Refs
@@ -156,7 +170,8 @@ const candleSeriesRef = useRef<any>(null);
 ### 🔍 Key Changes from v4 to v5
 1. **Series creation:** Use `chart.addSeries(SeriesType, options)` instead of `chart.addSeriesType(options)`
 2. **Import series types:** Must import series classes (`CandlestickSeries`, `LineSeries`, etc.)
-3. **No API method changes:** `setMarkers()`, `setData()`, etc. remain the same
+3. **Markers API changed:** Must use `createSeriesMarkers()` function instead of `series.setMarkers()`
+4. **Data methods unchanged:** `setData()`, `update()`, etc. work the same
 
 ### 📝 Working Reference Implementation
 See `src/components/OcapxChart.tsx`:

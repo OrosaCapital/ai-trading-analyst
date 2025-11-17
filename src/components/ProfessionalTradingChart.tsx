@@ -8,6 +8,7 @@ import {
   CandlestickSeries,
   LineSeries,
   HistogramSeries,
+  createSeriesMarkers,
 } from 'lightweight-charts';
 import { useProfessionalChartData } from '@/hooks/useProfessionalChartData';
 import { calculateTradeSignal, ChartDataForSignal } from '@/lib/signalEngine';
@@ -64,6 +65,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
   const volumeSeriesRef = useRef<ISeriesApi<any> | null>(null);
   const emaSeriesRef = useRef<ISeriesApi<any> | null>(null);
   const rsiSeriesRef = useRef<ISeriesApi<any> | null>(null);
+  const markersRef = useRef<any>(null);
 
   const [activeTimeframe, setActiveTimeframe] = useState<Timeframe>('1H');
   const [chartReady, setChartReady] = useState(false);
@@ -337,11 +339,18 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
         }
       }
 
-      // Apply signals to chart
+      // Apply signals to chart using v5 API
       if (signalMarkers.length > 0) {
-        (candleSeriesRef.current as any).setMarkers(signalMarkers);
+        if (markersRef.current) {
+          markersRef.current.setMarkers(signalMarkers);
+        } else if (candleSeriesRef.current) {
+          markersRef.current = createSeriesMarkers(candleSeriesRef.current, signalMarkers);
+        }
         console.log(`✅ Added ${signalMarkers.length} trade signals to chart`);
       } else {
+        if (markersRef.current) {
+          markersRef.current.setMarkers([]);
+        }
         console.log('ℹ️ No high-confidence signals found');
       }
     } catch (err) {
