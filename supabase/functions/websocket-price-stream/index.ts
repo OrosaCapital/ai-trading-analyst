@@ -72,6 +72,11 @@ Deno.serve(async (req) => {
 
     coinglassWS.onmessage = (event) => {
       try {
+        // Ignore pong responses (keepalive messages)
+        if (event.data === 'pong') {
+          return;
+        }
+        
         const data = JSON.parse(event.data);
         console.log('CoinGlass message:', data);
         
