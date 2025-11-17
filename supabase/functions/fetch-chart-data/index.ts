@@ -563,6 +563,106 @@ function identifyVolumeBubbles(candles: Candle[]): VolumeBubble[] {
   return bubbles;
 }
 
+// Asset type detection
+function detectAssetType(symbol: string): 'crypto' | 'stock' {
+  const cryptoSymbols = ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'ADA', 'MATIC', 'LINK', 'DOT', 'UNI', 'AVAX', 'ATOM'];
+  const stockSymbols = ['AAPL', 'TSLA', 'GOOGL', 'MSFT', 'NVDA', 'AMZN', 'META', 'NFLX'];
+  
+  const upperSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '');
+  
+  if (cryptoSymbols.some(c => upperSymbol.includes(c))) return 'crypto';
+  if (stockSymbols.includes(upperSymbol)) return 'stock';
+  
+  return 'crypto'; // default to crypto
+}
+
+// CoinGlass OHLC API integration
+async function fetchCoinGlassOHLC(
+  symbol: string,
+  intervalMinutes: number,
+  days: number,
+  apiKey: string
+): Promise<Candle[] | null> {
+  try {
+    // Map intervals to CoinGlass format
+    const intervalMap: Record<number, string> = {
+      1: '1m',
+      5: '5m',
+      15: '15m',
+      60: '1h',
+      1440: '1d'
+    };
+    
+    const interval = intervalMap[intervalMinutes] || '1h';
+    const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '');
+    const endTime = Date.now();
+    const startTime = endTime - (days * 24 * 60 * 60 * 1000);
+    
+    console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
+    
+    const url = `https://open-api.coinglass.com/public/v2/futures/ohlc-aggregated?symbol=${cleanSymbol}&interval=${interval}&start_time=${startTime}&end_time=${endTime}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'accept': 'application/json',
+        'CG-API-KEY': apiKey
+      }
+    });
+
+    if (!response.ok) {
+      console.error(`CoinGlass API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (!data.success || !data.data || data.data.length === 0) {
+      console.error('CoinGlass returned no data');
+      return null;
+    }
+
+    // Transform CoinGlass data to our Candle format
+    const candles: Candle[] = data.data.map((item: any) => {
+      const close = parseFloat(item.c);
+      const open = parseFloat(item.o);
+      const high = parseFloat(item.h);
+      const low = parseFloat(item.l);
+      const volume = parseFloat(item.v) || 0;
+      
+      // Calculate RSI-like indicator from price change
+      const priceChange = close - open;
+      const range = high - low;
+      const rsi = range > 0 ? 50 + (priceChange / range) * 30 : 50;
+      const clampedRSI = Math.max(0, Math.min(100, rsi));
+      
+      // Calculate sentiment
+      let sentiment = 5;
+      if (clampedRSI < 30) sentiment = 3;
+      else if (clampedRSI > 70) sentiment = 7;
+      else sentiment = 5;
+      
+      return {
+        time: Math.floor(item.t / 1000), // Convert ms to seconds
+        open,
+        high,
+        low,
+        close,
+        volume,
+        sentiment,
+        rsi: clampedRSI,
+        oi: parseFloat(item.oi) || undefined
+      };
+    });
+
+    console.log(`Successfully fetched ${candles.length} candles from CoinGlass`);
+    return candles;
+    
+  } catch (error) {
+    console.error('Error fetching CoinGlass data:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -573,10 +673,47 @@ serve(async (req) => {
     
     console.log(`Generating multi-timeframe chart data for ${symbol}, ${days} days`);
     
-    const candles1h = generateMockOHLCV(symbol, days, 60);
-    const candles15m = generateMockOHLCV(symbol, days, 15);
-    const candles5m = generateMockOHLCV(symbol, days, 5);
-    const candles1m = generateMockOHLCV(symbol, days, 1);
+    // Detect asset type
+    const assetType = detectAssetType(symbol);
+    const COINGLASS_API_KEY = Deno.env.get('COINGLASS_API_KEY');
+    
+    let dataSource = 'mock';
+    let candles1h: Candle[];
+    let candles15m: Candle[];
+    let candles5m: Candle[];
+    let candles1m: Candle[];
+    
+    // Try to fetch live data for crypto
+    if (assetType === 'crypto' && COINGLASS_API_KEY) {
+      console.log(`Attempting to fetch live data for crypto symbol: ${symbol}`);
+      
+      const liveCandles1h = await fetchCoinGlassOHLC(symbol, 60, days, COINGLASS_API_KEY);
+      const liveCandles15m = await fetchCoinGlassOHLC(symbol, 15, days, COINGLASS_API_KEY);
+      const liveCandles5m = await fetchCoinGlassOHLC(symbol, 5, days, COINGLASS_API_KEY);
+      const liveCandles1m = await fetchCoinGlassOHLC(symbol, 1, days, COINGLASS_API_KEY);
+      
+      // Use live data if available, otherwise fallback to mock
+      if (liveCandles1h && liveCandles15m && liveCandles5m && liveCandles1m) {
+        candles1h = liveCandles1h;
+        candles15m = liveCandles15m;
+        candles5m = liveCandles5m;
+        candles1m = liveCandles1m;
+        dataSource = 'coinglass';
+        console.log('Using live CoinGlass data');
+      } else {
+        console.log('Falling back to mock data');
+        candles1h = generateMockOHLCV(symbol, days, 60);
+        candles15m = generateMockOHLCV(symbol, days, 15);
+        candles5m = generateMockOHLCV(symbol, days, 5);
+        candles1m = generateMockOHLCV(symbol, days, 1);
+      }
+    } else {
+      console.log(`Using mock data for ${assetType} symbol: ${symbol}`);
+      candles1h = generateMockOHLCV(symbol, days, 60);
+      candles15m = generateMockOHLCV(symbol, days, 15);
+      candles5m = generateMockOHLCV(symbol, days, 5);
+      candles1m = generateMockOHLCV(symbol, days, 1);
+    }
     
     const ema50_1h = calculateEMA(candles1h, 50);
     const ema200_1h = calculateEMA(candles1h, 200);
@@ -650,6 +787,8 @@ serve(async (req) => {
           invalidSignals,
           entryPoints: entryPointsWithConfirmation.length,
           generated_at: Date.now(),
+          dataSource,
+          assetType,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
