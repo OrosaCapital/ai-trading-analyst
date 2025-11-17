@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, TrendingUp, Zap, Activity, Sparkles, Radio } from "lucide-react";
@@ -101,6 +101,9 @@ export const PremiumAnalystInterface = () => {
   const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
   const [secondsUntilNext, setSecondsUntilNext] = useState(60);
   const [showFlash, setShowFlash] = useState(false);
+  
+  // Track previous connection status to only show toasts on state changes
+  const previousConnectionStatusRef = useRef<string | null>(null);
 
   // Update countdown timer
   useEffect(() => {
@@ -124,16 +127,34 @@ export const PremiumAnalystInterface = () => {
     }
   }, [priceData, lastUpdateTime]);
 
-  // Show toast when connection status changes
+  // Show toast only on connection status transitions
   useEffect(() => {
-    if (connectionStatus === 'connected' && chartData?.metadata?.assetType === 'crypto' && !isPolling) {
-      toast.success(`Live price streaming connected for ${symbol}`);
-    } else if (connectionStatus === 'error') {
-      toast.error('Price streaming connection error');
-    } else if (isPolling && chartData?.metadata?.assetType === 'crypto') {
-      toast.info('Using polling fallback (1-minute updates)');
+    const currentState = `${connectionStatus}-${isPolling}-${chartData?.metadata?.assetType}`;
+    const previousState = previousConnectionStatusRef.current;
+    
+    // Only show toast on state transitions, not on every render
+    if (previousState !== currentState) {
+      if (connectionStatus === 'connected' && chartData?.metadata?.assetType === 'crypto' && !isPolling && previousState !== null) {
+        toast.success(`Live streaming connected`, {
+          duration: 2000,
+        });
+      } else if (connectionStatus === 'error' && previousState !== currentState) {
+        toast.error('Connection error - retrying...', {
+          duration: 3000,
+        });
+      } else if (connectionStatus === 'disconnected' && previousState?.includes('connected')) {
+        toast.warning('Stream disconnected', {
+          duration: 2000,
+        });
+      } else if (isPolling && chartData?.metadata?.assetType === 'crypto' && !previousState?.includes('true')) {
+        toast.info('Using 1-minute polling', {
+          duration: 2000,
+        });
+      }
+      
+      previousConnectionStatusRef.current = currentState;
     }
-  }, [connectionStatus, chartData?.metadata?.assetType, symbol, isPolling]);
+  }, [connectionStatus, chartData?.metadata?.assetType, isPolling]);
 
   const extractSymbol = (text: string): string => {
     const upperText = text.toUpperCase();
