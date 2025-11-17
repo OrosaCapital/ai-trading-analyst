@@ -10,63 +10,54 @@ async function fetchTakerVolumeFromCoinglass(symbol: string, apiKey: string) {
   console.log(`Fetching taker volume (CVD) from Coinglass for ${symbol}`);
   
   try {
-    // Use v4 API endpoint
+    // Convert symbol to USDT pair format
+    const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
+    
+    // Use v4 API endpoint - Hobbyist plan requires >=4h interval
     const data = await fetchFromCoinglass(
-      `/api/futures/taker-buy-sell-ratio?symbol=${symbol}&interval=h1`,
+      `/api/futures/taker-buy-sell-volume/history?exchange=Binance&symbol=${cleanSymbol}&interval=4h&limit=24`,
       apiKey
     );
     console.log('Coinglass taker volume data received:', data);
 
     // Handle v4 API response structure
-    if (!data.success || !data.data) {
+    if (data.code !== '0' || !data.data || data.data.length === 0) {
       throw new Error('Invalid response from Coinglass API');
     }
 
-    const responseData = data.data;
-    const intervals = ['5m', '15m', '1h', '4h'];
-    const cvdData: any = {};
+    // Calculate totals from historical data (4h intervals)
+    const totalBuyVolume = data.data.reduce((sum: number, item: any) => 
+      sum + parseFloat(item.taker_buy_volume_usd || 0), 0);
+    const totalSellVolume = data.data.reduce((sum: number, item: any) => 
+      sum + parseFloat(item.taker_sell_volume_usd || 0), 0);
     
-    // Parse v4 API response (structure may vary)
-    intervals.forEach(interval => {
-      if (responseData[interval]) {
-        const intervalData = responseData[interval];
-        const buyVol = parseFloat(intervalData.buyVolume || intervalData.buy || 0);
-        const sellVol = parseFloat(intervalData.sellVolume || intervalData.sell || 0);
-        const delta = buyVol - sellVol;
+    const delta = totalBuyVolume - totalSellVolume;
+    const cvd = delta; // Cumulative volume delta
 
-        cvdData[interval] = {
-          current_cvd: delta.toFixed(2),
-          buy_volume: buyVol.toFixed(2),
-          sell_volume: sellVol.toFixed(2),
-          delta: delta.toFixed(2),
-          trend: delta > 0 ? 'BULLISH' : 'BEARISH',
-        };
+    // Get latest data point for current values
+    const latest = data.data[data.data.length - 1];
+    const latestBuy = parseFloat(latest.taker_buy_volume_usd || 0);
+    const latestSell = parseFloat(latest.taker_sell_volume_usd || 0);
+    const latestDelta = latestBuy - latestSell;
+
+    const cvdData = {
+      '4h': {
+        current_cvd: cvd.toFixed(2),
+        buy_volume: totalBuyVolume.toFixed(2),
+        sell_volume: totalSellVolume.toFixed(2),
+        delta: delta.toFixed(2),
+        trend: delta > 0 ? 'BULLISH' : 'BEARISH',
+      },
+      latest: {
+        current_cvd: latestDelta.toFixed(2),
+        buy_volume: latestBuy.toFixed(2),
+        sell_volume: latestSell.toFixed(2),
+        delta: latestDelta.toFixed(2),
+        trend: latestDelta > 0 ? 'BULLISH' : 'BEARISH',
       }
-    });
+    };
 
-    // If no interval data, try to parse as array
-    if (Object.keys(cvdData).length === 0 && Array.isArray(responseData)) {
-      intervals.forEach(interval => {
-        const intervalData = responseData.filter((item: any) => item.interval === interval);
-        if (intervalData.length > 0) {
-          const latest = intervalData[0];
-          const buyVol = parseFloat(latest.buyVolume || latest.buy || 0);
-          const sellVol = parseFloat(latest.sellVolume || latest.sell || 0);
-          const delta = buyVol - sellVol;
-
-          cvdData[interval] = {
-            current_cvd: delta.toFixed(2),
-            buy_volume: buyVol.toFixed(2),
-            sell_volume: sellVol.toFixed(2),
-            delta: delta.toFixed(2),
-            trend: delta > 0 ? 'BULLISH' : 'BEARISH',
-          };
-        }
-      });
-    }
-
-    const allDeltas = Object.values(cvdData).map((d: any) => parseFloat(d.delta));
-    const avgDelta = allDeltas.length > 0 ? allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length : 0;
+    const avgDelta = delta;
 
     return {
       symbol,
@@ -74,10 +65,15 @@ async function fetchTakerVolumeFromCoinglass(symbol: string, apiKey: string) {
       cvd: cvdData,
       summary: {
         dominant_trend: avgDelta > 0 ? 'BULLISH' : 'BEARISH',
-        strength: Math.min(100, Math.abs(avgDelta / 10000)).toFixed(0),
-        signal: avgDelta > 50000 ? 'BUY' : avgDelta < -50000 ? 'SELL' : 'NEUTRAL',
+        strength: Math.min(100, Math.abs(avgDelta / 10000000)).toFixed(0),
+        signal: avgDelta > 50000000 ? 'BUY' : avgDelta < -50000000 ? 'SELL' : 'NEUTRAL',
       },
-      raw_data: responseData, // Include raw data for debugging
+      historical: data.data.map((item: any) => ({
+        time: item.time,
+        buy_volume: item.taker_buy_volume_usd,
+        sell_volume: item.taker_sell_volume_usd,
+        delta: (parseFloat(item.taker_buy_volume_usd) - parseFloat(item.taker_sell_volume_usd)).toFixed(2),
+      })),
     };
   } catch (error) {
     console.error('Error fetching from Coinglass:', error);
