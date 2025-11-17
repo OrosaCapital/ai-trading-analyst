@@ -195,8 +195,8 @@ export const PremiumAnalystInterface = () => {
 
   // Get current price from real-time data or latest chart candle
   const getCurrentPrice = (): number => {
-    // Priority 1: Real-time WebSocket price
-    if (priceData?.price && priceData.price > 0) {
+    // Priority 1: Real-time WebSocket price (ONLY if symbol matches)
+    if (priceData?.price && priceData.price > 0 && priceData.symbol === symbol) {
       return priceData.price;
     }
     
