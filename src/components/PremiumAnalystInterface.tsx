@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Send, TrendingUp, Zap, Activity, Sparkles, Radio } from "lucide-react";
 import { SentimentGauge } from "./SentimentGauge";
-import { OcapxChart } from "./OcapxChart";
+import { TradingViewChart } from "./TradingViewChart";
 import { PremiumMarketMetrics } from "./PremiumMarketMetrics";
 import { EnhancedMarketMetrics } from "./EnhancedMarketMetrics";
 import { supabase } from "@/integrations/supabase/client";
@@ -467,10 +467,8 @@ export const PremiumAnalystInterface = () => {
             )}
 
             <div className="h-[720px] rounded-xl overflow-hidden">
-              <OcapxChart 
-                symbol={symbol} 
-                data={chartData || undefined} 
-                isLoading={isLoadingChart}
+              <TradingViewChart 
+                symbol={symbol ? symbol.replace('/', '') : 'BTCUSD'}
               />
             </div>
           </div>
