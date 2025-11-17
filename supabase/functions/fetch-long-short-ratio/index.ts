@@ -14,25 +14,20 @@ async function fetchLongShortFromCoinglass(symbol: string, apiKey: string) {
     // Convert symbol to USDT pair format
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
     
-    // CoinGlass API v4 endpoint for global long/short account ratio
-    // Hobbyist plan requires >=4h interval
-    const response = await fetch(
-      `https://open-api-v4.coinglass.com/api/futures/global-long-short-account-ratio/history?exchange=Binance&symbol=${cleanSymbol}&interval=4h&limit=24`,
+    // Import shared client function
+    const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
+    
+    // Use database lookup for endpoint
+    const data = await fetchFromCoinglassV2(
+      'long_short_ratio',
       {
-        headers: {
-          'accept': 'application/json',
-          'CG-API-KEY': apiKey,
-        },
-      }
+        exchange: 'Binance',
+        symbol: cleanSymbol,
+        interval: '4h',
+        limit: '24'
+      },
+      apiKey
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Coinglass API error: ${response.status} - ${errorText}`);
-      throw new Error(`Coinglass API error: ${response.status}`);
-    }
-
-    const data = await response.json();
     console.log('Coinglass long/short data received');
 
     if (data.code !== '0' || !data.data || data.data.length === 0) {

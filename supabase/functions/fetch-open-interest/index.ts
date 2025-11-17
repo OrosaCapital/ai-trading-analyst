@@ -13,24 +13,29 @@ async function fetchOpenInterestFromCoinglass(symbol: string, apiKey: string) {
     // Convert symbol to USDT pair format
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
     
-    // CoinGlass API v4 endpoints
-    const historyUrl = `https://open-api-v4.coinglass.com/api/futures/open-interest-ohlc/history?exchange=Binance&symbol=${cleanSymbol}&interval=1h&limit=24`;
-    const exchangeUrl = `https://open-api-v4.coinglass.com/api/futures/open-interest/list?symbol=${cleanSymbol.replace('USDT', '')}`;
-
-    const [historyRes, exchangeRes] = await Promise.all([
-      fetch(historyUrl, { headers: { 'accept': 'application/json', 'CG-API-KEY': apiKey } }),
-      fetch(exchangeUrl, { headers: { 'accept': 'application/json', 'CG-API-KEY': apiKey } })
+    // Import shared client function
+    const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
+    
+    // Use database lookup for endpoints
+    const [historyData, exchangeData] = await Promise.all([
+      fetchFromCoinglassV2(
+        'open_interest_ohlc',
+        {
+          exchange: 'Binance',
+          symbol: cleanSymbol,
+          interval: '1h',
+          limit: '24'
+        },
+        apiKey
+      ),
+      fetchFromCoinglassV2(
+        'open_interest_list',
+        {
+          symbol: cleanSymbol.replace('USDT', '')
+        },
+        apiKey
+      )
     ]);
-
-    if (!historyRes.ok || !exchangeRes.ok) {
-      const historyError = await historyRes.text();
-      const exchangeError = await exchangeRes.text();
-      console.error('Coinglass API errors:', { historyError, exchangeError });
-      throw new Error('Coinglass API error');
-    }
-
-    const historyData = await historyRes.json();
-    const exchangeData = await exchangeRes.json();
 
     if (historyData.code !== '0' || !historyData.data || historyData.data.length === 0) {
       throw new Error('Invalid history data from Coinglass');
