@@ -285,7 +285,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
           </button>
         ))}
       </div>
-      <div ref={chartContainerRef} className="bg-card/30 rounded-lg border border-border" />
+      <div ref={chartContainerRef} className="bg-card/30 rounded-lg border border-border min-h-[600px]" />
     </div>
   );
 };
