@@ -199,6 +199,69 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
     areaSeriesRef.current.applyOptions({ visible: chartMode === 'area' });
   }, [chartMode]);
 
+  // Calculate trade signals from chart data
+  useEffect(() => {
+    if (!chartData || !annotationConfig.showSignals) return;
+
+    const timeframeMap = { '1H': 'candles1h', '15M': 'candles15m', '5M': 'candles5m', '1M': 'candles1m' };
+    const candles = chartData[timeframeMap[activeTimeframe]] || [];
+    if (candles.length < 50) return; // Need enough data for indicators
+
+    const indicators = chartData.indicators?.[activeTimeframe.toLowerCase()];
+    if (!indicators) return;
+
+    // Calculate signals every 15 candles to avoid clutter
+    const signalMarkers: SeriesMarker<Time>[] = [];
+    const step = 15;
+    
+    for (let i = 50; i < candles.length; i += step) {
+      const currentCandle = candles[i];
+      
+      // Prepare data for signal calculation
+      const signalData: ChartDataForSignal = {
+        price1h: currentCandle.close,
+        ema501h: indicators.ema50?.slice(0, i + 1) || [],
+        rsi1h: indicators.rsi?.slice(0, i + 1) || [],
+        price15m: currentCandle.close,
+        ema5015m: indicators.ema50?.slice(0, i + 1) || [],
+        rsi15m: indicators.rsi?.slice(0, i + 1) || [],
+        currentVolume: currentCandle.volume || 0,
+        volumeSMA: indicators.volumeSMA?.slice(0, i + 1) || [],
+        coinglassSentiment: chartData.coinglass?.overallSentiment || 'neutral',
+      };
+
+      const signal = calculateTradeSignal(signalData);
+
+      // Only show high-confidence signals
+      if (signal.confidence >= 70) {
+        signalMarkers.push({
+          time: currentCandle.time as Time,
+          position: signal.signal === 'BUY' ? 'belowBar' : 'aboveBar',
+          color: signal.signal === 'BUY' ? '#22c55e' : '#ef4444',
+          shape: signal.signal === 'BUY' ? 'arrowUp' : 'arrowDown',
+          text: `${signal.signal} ${signal.confidence}%`,
+        });
+      }
+    }
+
+    // Set the latest calculated signal for the price line
+    if (signalMarkers.length > 0) {
+      const lastSignal = signalMarkers[signalMarkers.length - 1];
+      setTradeSignal({
+        signal: lastSignal.text?.includes('BUY') ? 'BUY' : 'SELL',
+        confidence: parseInt(lastSignal.text?.match(/\d+/)?.[0] || '0'),
+        reasons: [],
+        failedConditions: [],
+        timestamp: Date.now(),
+      });
+    }
+
+    // Apply markers to the series
+    if (candleSeriesRef.current && signalMarkers.length > 0) {
+      (candleSeriesRef.current as any).setMarkers(signalMarkers);
+    }
+  }, [chartData, activeTimeframe, annotationConfig.showSignals]);
+
   // Update chart data with annotations
   useEffect(() => {
     if (!chartData || !candleSeriesRef.current || !areaSeriesRef.current) return;
@@ -219,7 +282,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
     }
     volumeSeriesRef.current?.setData(candles.map((c: any) => ({ time: c.time, value: c.volume || 0, color: c.close >= c.open ? '#22c55e80' : '#ef444480' })));
 
-    // Add annotations (using price lines instead of markers)
+    // Add annotations (using price lines for events)
     const events = getEventsForSymbol(symbol);
     if (events.length > 0) {
       const startDate = new Date((candles[0].time as number) * 1000);
@@ -233,7 +296,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
       annotationManagerRef.current.clearAnnotations();
       annotationManagerRef.current.addAnnotations(relevantEvents);
       
-      // Add price lines for annotations (markers API not available)
+      // Add price lines for annotations
       relevantEvents.forEach(event => {
         if (event.price && candleSeriesRef.current) {
           candleSeriesRef.current.createPriceLine({
@@ -247,19 +310,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
         }
       });
     }
-
-    if (tradeSignal && tradeSignal.signal !== 'NO TRADE') {
-      const lastCandle = candles[candles.length - 1];
-      candleSeriesRef.current?.createPriceLine({
-        price: lastCandle.close,
-        color: tradeSignal.signal === 'BUY' ? '#22c55e' : '#ef4444',
-        lineWidth: 2,
-        lineStyle: 0,
-        axisLabelVisible: true,
-        title: `${tradeSignal.signal} (${tradeSignal.confidence}%)`,
-      });
-    }
-  }, [chartData, activeTimeframe, annotationConfig, tradeSignal, chartMode, symbol]);
+  }, [chartData, activeTimeframe, annotationConfig, chartMode, symbol]);
 
   if (isLoading) return <Skeleton className="h-[600px] w-full" />;
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
