@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, TrendingUp, Zap, Activity, Sparkles } from "lucide-react";
@@ -7,6 +7,29 @@ import { OcapxChart } from "./OcapxChart";
 import { PremiumMarketMetrics } from "./PremiumMarketMetrics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface ChartData {
+  candles: Array<{
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+    sentiment: number;
+    rsi: number;
+  }>;
+  indicators: {
+    ema50: Array<{ time: number; value: number }>;
+    ema200: Array<{ time: number; value: number }>;
+  };
+  volumeBubbles: Array<{
+    time: number;
+    volume: number;
+    type: 'buy' | 'sell';
+    size: 'small' | 'medium' | 'large';
+  }>;
+}
 
 interface AnalysisResult {
   summary: string;
@@ -27,6 +50,8 @@ export const PremiumAnalystInterface = () => {
   const [symbol, setSymbol] = useState("BTCUSD");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [isLoadingChart, setIsLoadingChart] = useState(false);
 
   const extractSymbol = (text: string): string => {
     const upperText = text.toUpperCase();
@@ -91,6 +116,31 @@ export const PremiumAnalystInterface = () => {
     setInput(sym);
     handleAnalyze(fullSymbol);
   };
+
+  // Fetch chart data when symbol changes
+  useEffect(() => {
+    const fetchChartData = async () => {
+      if (!symbol) return;
+      
+      setIsLoadingChart(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('fetch-chart-data', {
+          body: { symbol, days: 90 }
+        });
+
+        if (error) throw error;
+        
+        setChartData(data);
+      } catch (error) {
+        console.error('Chart data fetch error:', error);
+        toast.error("Failed to load chart data");
+      } finally {
+        setIsLoadingChart(false);
+      }
+    };
+
+    fetchChartData();
+  }, [symbol]);
 
   return (
     <div className="min-h-screen relative">
@@ -196,7 +246,11 @@ export const PremiumAnalystInterface = () => {
               </div>
             </div>
             <div className="h-[600px] rounded-xl overflow-hidden">
-              <OcapxChart symbol={symbol} />
+              <OcapxChart 
+                symbol={symbol} 
+                data={chartData || undefined} 
+                isLoading={isLoadingChart}
+              />
             </div>
           </div>
         )}
