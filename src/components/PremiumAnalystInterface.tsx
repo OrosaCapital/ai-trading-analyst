@@ -8,7 +8,22 @@ import { PremiumMarketMetrics } from "./PremiumMarketMetrics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface ChartData {
+interface MultiTimeframeData {
+  timeframes: {
+    '1h': TimeframeData;
+    '15m': TimeframeData;
+    '5m': TimeframeData;
+  };
+  metadata: {
+    rule: string;
+    trend1h: 'bullish' | 'bearish' | 'neutral';
+    validSignals: number;
+    invalidSignals: number;
+    entryPoints: number;
+  };
+}
+
+interface TimeframeData {
   candles: Array<{
     time: number;
     open: number;
@@ -18,6 +33,24 @@ interface ChartData {
     volume: number;
     sentiment: number;
     rsi: number;
+  }>;
+  trend?: 'bullish' | 'bearish' | 'neutral';
+  signals?: Array<{
+    time: number;
+    price: number;
+    type: 'buy' | 'sell';
+    strength: number;
+    reason: string;
+    valid: boolean;
+    rsi: number;
+  }>;
+  entryPoints?: Array<{
+    time: number;
+    price: number;
+    type: 'buy' | 'sell';
+    stopLoss: number;
+    takeProfit: number;
+    riskReward: number;
   }>;
   indicators: {
     ema50: Array<{ time: number; value: number }>;
@@ -50,7 +83,7 @@ export const PremiumAnalystInterface = () => {
   const [symbol, setSymbol] = useState("BTCUSD");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [chartData, setChartData] = useState<MultiTimeframeData | null>(null);
   const [isLoadingChart, setIsLoadingChart] = useState(false);
 
   const extractSymbol = (text: string): string => {
@@ -125,7 +158,7 @@ export const PremiumAnalystInterface = () => {
       setIsLoadingChart(true);
       try {
         const { data, error } = await supabase.functions.invoke('fetch-chart-data', {
-          body: { symbol, days: 90 }
+          body: { symbol, days: 7 }
         });
 
         if (error) throw error;
