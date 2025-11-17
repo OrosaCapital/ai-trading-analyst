@@ -134,7 +134,7 @@ export const PremiumAnalystInterface = () => {
     
     // Only show toast on state transitions, not on every render
     if (previousState !== currentState) {
-      if (connectionStatus === 'connected' && chartData?.metadata?.assetType === 'crypto' && !isPolling && previousState !== null) {
+      if (connectionStatus === 'connected' && chartData?.metadata?.assetType === 'crypto' && !isPolling && previousState !== null && !previousState.includes('connected')) {
         toast.success(`Live streaming connected`, {
           duration: 2000,
         });
