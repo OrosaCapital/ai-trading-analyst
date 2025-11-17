@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { AISignalCard } from '@/components/AISignalCard';
 import { PriceLogsSidebar } from '@/components/PriceLogsSidebar';
 import { DataAccumulationProgress } from '@/components/DataAccumulationProgress';
-import { OcapxChart } from '@/components/OcapxChart';
+import { SimplifiedChart } from '@/components/SimplifiedChart';
 import { PremiumMarketMetrics } from '@/components/PremiumMarketMetrics';
 import { useAITradingData } from '@/hooks/useAITradingData';
 import { Zap } from 'lucide-react';
@@ -73,17 +73,11 @@ export default function AITrading() {
           <>
             <AISignalCard {...data.aiSignal} />
             
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <OcapxChart symbol={symbol} data={data.priceData} />
-              </div>
-              <PriceLogsSidebar 
-                logs1m={data.priceData?.['1m'] || []}
-                logs5m={data.priceData?.['5m'] || []}
-                logs10m={data.priceData?.['10m'] || []}
-                logs15m={data.priceData?.['15m'] || []}
-              />
-            </div>
+            <SimplifiedChart 
+              symbol={symbol} 
+              priceData={data.priceData} 
+              emas={data.emas}
+            />
 
             <PremiumMarketMetrics symbol={symbol} />
           </>
