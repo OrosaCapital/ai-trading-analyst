@@ -595,12 +595,20 @@ async function fetchCoinGlassOHLC(
     
     const interval = intervalMap[intervalMinutes] || '1h';
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '');
+    console.log(`Cleaned symbol: ${cleanSymbol}, Original: ${symbol}`);
+    
     const endTime = Date.now();
     const startTime = endTime - (days * 24 * 60 * 60 * 1000);
     
+    // Limit to 30 days max for smaller intervals to avoid API limits
+    const maxDays = intervalMinutes < 60 ? 30 : 90;
+    const limitedStartTime = endTime - (Math.min(days, maxDays) * 24 * 60 * 60 * 1000);
+    console.log(`Time range: ${new Date(limitedStartTime).toISOString()} to ${new Date(endTime).toISOString()}`);
+    
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
     
-    const url = `https://open-api.coinglass.com/public/v2/futures/ohlc-aggregated?symbol=${cleanSymbol}&interval=${interval}&start_time=${startTime}&end_time=${endTime}`;
+    const url = `https://open-api.coinglass.com/public/v2/futures/ohlc-history-aggregated?symbol=${cleanSymbol}&interval=${interval}&start_time=${limitedStartTime}&end_time=${endTime}`;
+    console.log(`CoinGlass URL: ${url}`);
     
     const response = await fetch(url, {
       headers: {
@@ -610,7 +618,9 @@ async function fetchCoinGlassOHLC(
     });
 
     if (!response.ok) {
-      console.error(`CoinGlass API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`CoinGlass API error: ${response.status} - ${errorText}`);
+      console.error(`URL: ${url}`);
       return null;
     }
 
