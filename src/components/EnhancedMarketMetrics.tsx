@@ -103,9 +103,6 @@ export const EnhancedMarketMetrics = ({ symbol, assetType = 'crypto' }: Enhanced
             <div className="flex items-center gap-2">
               <Scale className="w-5 h-5 text-primary" />
               <h4 className="font-bold">Long/Short Ratio</h4>
-              {longShortData.mock && (
-                <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-500">Demo</span>
-              )}
             </div>
             <div className={`px-3 py-1 rounded-lg font-medium ${
               longShortData.sentiment === 'BULLISH' ? 'bg-chart-green/10 text-chart-green' :
@@ -162,9 +159,6 @@ export const EnhancedMarketMetrics = ({ symbol, assetType = 'crypto' }: Enhanced
             <div className="flex items-center gap-2">
               <Waves className="w-5 h-5 text-primary" />
               <h4 className="font-bold">Cumulative Volume Delta (CVD)</h4>
-              {cvdData.mock && (
-                <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-500">Demo</span>
-              )}
             </div>
             <div className={`flex items-center gap-2 px-3 py-1 rounded-lg font-medium ${
               cvdData.summary.signal === 'BUY' ? 'bg-chart-green/10 text-chart-green' :

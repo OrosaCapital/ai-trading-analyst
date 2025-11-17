@@ -1,10 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Activity, AlertCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface MarketMetricsProps {
   symbol: string;
@@ -117,25 +116,11 @@ export const MarketMetrics = ({ symbol }: MarketMetricsProps) => {
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
             <h3 className="text-lg font-semibold">Live Market Metrics</h3>
-            {data.isMockData && (
-              <Badge variant="secondary" className="text-xs">
-                Demo Mode
-              </Badge>
-            )}
           </div>
           <div className="text-sm text-muted-foreground">
             Updated {Math.round((new Date().getTime() - lastUpdate.getTime()) / 60000)} min ago
           </div>
         </div>
-
-        {data.isMockData && (
-          <Alert className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Using simulated data. Add your Coinglass API key in Lovable secrets for real-time market data.
-            </AlertDescription>
-          </Alert>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Funding Rate */}
