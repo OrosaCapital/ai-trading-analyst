@@ -5,30 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function generateMockLongShortRatio(symbol: string) {
-  const ratio = 0.45 + Math.random() * 0.15; // 0.45-0.60 (bearish to neutral)
-  const longPercent = ratio * 100;
-  const shortPercent = (1 - ratio) * 100;
-  
-  return {
-    symbol,
-    timestamp: new Date().toISOString(),
-    ratio: ratio.toFixed(3),
-    long_percent: longPercent.toFixed(2),
-    short_percent: shortPercent.toFixed(2),
-    sentiment: ratio > 0.55 ? 'BULLISH' : ratio < 0.45 ? 'BEARISH' : 'NEUTRAL',
-    exchanges: [
-      { name: 'Binance', long: (longPercent + Math.random() * 5).toFixed(2), short: (shortPercent - Math.random() * 5).toFixed(2) },
-      { name: 'OKX', long: (longPercent - Math.random() * 3).toFixed(2), short: (shortPercent + Math.random() * 3).toFixed(2) },
-      { name: 'Bybit', long: (longPercent + Math.random() * 2).toFixed(2), short: (shortPercent - Math.random() * 2).toFixed(2) },
-    ],
-    historical: Array.from({ length: 24 }, (_, i) => ({
-      timestamp: new Date(Date.now() - (23 - i) * 3600000).toISOString(),
-      ratio: (0.45 + Math.random() * 0.15).toFixed(3),
-    })),
-    mock: true,
-  };
-}
+// Mock data removed - only using live CoinGlass API data
 
 async function fetchLongShortFromCoinglass(symbol: string, apiKey: string) {
   console.log(`Fetching long/short ratio from Coinglass for ${symbol}`);
@@ -118,20 +95,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Try to fetch real data
+    // Only fetch from CoinGlass - NO MOCK DATA
     const apiKey = Deno.env.get('COINGLASS_API_KEY');
-    let ratioData;
+    
+    if (!apiKey) {
+      throw new Error('CoinGlass API key not configured. Please add COINGLASS_API_KEY secret.');
+    }
 
-    if (apiKey) {
-      try {
-        ratioData = await fetchLongShortFromCoinglass(symbol, apiKey);
-      } catch (error) {
-        console.error('Coinglass fetch failed, using mock data:', error);
-        ratioData = generateMockLongShortRatio(symbol);
-      }
-    } else {
-      console.log('No API key, using mock data');
-      ratioData = generateMockLongShortRatio(symbol);
+    let ratioData;
+    try {
+      ratioData = await fetchLongShortFromCoinglass(symbol, apiKey);
+    } catch (error) {
+      throw new Error(`Failed to fetch long/short ratio for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // Cache the result

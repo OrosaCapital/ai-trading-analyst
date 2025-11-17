@@ -5,41 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function generateMockTakerVolume(symbol: string) {
-  const intervals = ['5m', '15m', '1h', '4h'];
-  const cvdData: any = {};
-  
-  intervals.forEach(interval => {
-    const baseValue = Math.random() * 1000000;
-    const trend = Math.random() > 0.5 ? 1 : -1;
-    
-    cvdData[interval] = {
-      current_cvd: (baseValue * trend).toFixed(2),
-      buy_volume: (Math.abs(baseValue) + Math.random() * 500000).toFixed(2),
-      sell_volume: (Math.abs(baseValue) + Math.random() * 500000).toFixed(2),
-      delta: (Math.random() * 200000 * trend).toFixed(2),
-      trend: trend > 0 ? 'BULLISH' : 'BEARISH',
-    };
-  });
-
-  return {
-    symbol,
-    timestamp: new Date().toISOString(),
-    cvd: cvdData,
-    summary: {
-      dominant_trend: Math.random() > 0.5 ? 'BULLISH' : 'BEARISH',
-      strength: (50 + Math.random() * 50).toFixed(0),
-      signal: Math.random() > 0.6 ? 'BUY' : Math.random() > 0.3 ? 'NEUTRAL' : 'SELL',
-    },
-    historical: Array.from({ length: 48 }, (_, i) => ({
-      timestamp: new Date(Date.now() - (47 - i) * 1800000).toISOString(),
-      cvd: (Math.random() * 1000000 * (Math.random() > 0.5 ? 1 : -1)).toFixed(2),
-      buy_volume: (Math.random() * 500000).toFixed(2),
-      sell_volume: (Math.random() * 500000).toFixed(2),
-    })),
-    mock: true,
-  };
-}
+// Mock data removed - only using live CoinGlass API data
 
 async function fetchTakerVolumeFromCoinglass(symbol: string, apiKey: string) {
   console.log(`Fetching taker volume (CVD) from Coinglass for ${symbol}`);
@@ -139,20 +105,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Try to fetch real data
+    // Only fetch from CoinGlass - NO MOCK DATA
     const apiKey = Deno.env.get('COINGLASS_API_KEY');
-    let volumeData;
+    
+    if (!apiKey) {
+      throw new Error('CoinGlass API key not configured. Please add COINGLASS_API_KEY secret.');
+    }
 
-    if (apiKey) {
-      try {
-        volumeData = await fetchTakerVolumeFromCoinglass(symbol, apiKey);
-      } catch (error) {
-        console.error('Coinglass fetch failed, using mock data:', error);
-        volumeData = generateMockTakerVolume(symbol);
-      }
-    } else {
-      console.log('No API key, using mock data');
-      volumeData = generateMockTakerVolume(symbol);
+    let volumeData;
+    try {
+      volumeData = await fetchTakerVolumeFromCoinglass(symbol, apiKey);
+    } catch (error) {
+      throw new Error(`Failed to fetch taker volume for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // Cache the result

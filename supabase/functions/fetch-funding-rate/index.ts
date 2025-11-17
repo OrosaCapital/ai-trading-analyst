@@ -10,35 +10,7 @@ function getCacheKey(symbol: string, interval: string): string {
   return `funding_rate_${symbol}_${interval}`;
 }
 
-// Generate mock funding rate data
-function generateMockFundingRate(symbol: string) {
-  const baseRate = Math.random() * 0.01 - 0.005; // -0.5% to +0.5%
-  const sentiment = baseRate > 0 ? 'BULLISH' : baseRate < -0.002 ? 'BEARISH' : 'NEUTRAL';
-  
-  const history = Array.from({ length: 24 }, (_, i) => {
-    const timestamp = Date.now() - (23 - i) * 3600000;
-    const rate = baseRate + (Math.random() * 0.004 - 0.002);
-    return {
-      time: timestamp,
-      rate: rate,
-      open: rate - 0.0005,
-      high: rate + 0.001,
-      low: rate - 0.001,
-      close: rate
-    };
-  });
-
-  return {
-    current: {
-      rate: `${(baseRate * 100).toFixed(4)}%`,
-      rateValue: baseRate,
-      nextFunding: new Date(Date.now() + 8 * 3600000).toISOString(),
-      sentiment
-    },
-    history,
-    isMockData: true
-  };
-}
+// Mock data removed - only using live CoinGlass API data
 
 // Fetch real funding rate from Coinglass
 async function fetchFundingRateFromCoinglass(symbol: string, interval: string, apiKey: string) {
@@ -134,21 +106,18 @@ Deno.serve(async (req) => {
 
     console.log('❌ Cache miss, fetching funding rate data');
 
-    // Try to fetch from Coinglass if API key exists
+    // Only fetch from CoinGlass - NO MOCK DATA
     const COINGLASS_API_KEY = Deno.env.get('COINGLASS_API_KEY');
-    let result;
-
+    
     if (!COINGLASS_API_KEY) {
-      console.warn('⚠️ COINGLASS_API_KEY not set, using mock data');
-      console.log('💡 Add your API key via Lovable secrets to get real-time data');
-      result = generateMockFundingRate(symbol);
-    } else {
-      try {
-        result = await fetchFundingRateFromCoinglass(symbol, interval, COINGLASS_API_KEY);
-      } catch (error) {
-        console.warn('⚠️ Coinglass fetch failed, falling back to mock data:', error);
-        result = generateMockFundingRate(symbol);
-      }
+      throw new Error('CoinGlass API key not configured. Please add COINGLASS_API_KEY secret.');
+    }
+
+    let result;
+    try {
+      result = await fetchFundingRateFromCoinglass(symbol, interval, COINGLASS_API_KEY);
+    } catch (error) {
+      throw new Error(`Failed to fetch funding rate for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // Cache the result
@@ -165,14 +134,12 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('❌ Error in fetch-funding-rate:', error);
-    const mockData = generateMockFundingRate('BTC');
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        ...mockData
+        error: error instanceof Error ? error.message : 'Failed to fetch funding rate data'
       }),
       {
-        status: 200,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
