@@ -1,5 +1,8 @@
 project_id = "alzxeplijnbpuqkfnpjk"
 
+[functions.websocket-price-stream]
+verify_jwt = false
+
 [functions.generate-analysis]
 verify_jwt = false
 

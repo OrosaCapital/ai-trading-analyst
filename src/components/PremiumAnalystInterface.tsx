@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, TrendingUp, Zap, Activity, Sparkles } from "lucide-react";
+import { Send, TrendingUp, Zap, Activity, Sparkles, Radio } from "lucide-react";
 import { SentimentGauge } from "./SentimentGauge";
 import { OcapxChart } from "./OcapxChart";
 import { PremiumMarketMetrics } from "./PremiumMarketMetrics";
 import { EnhancedMarketMetrics } from "./EnhancedMarketMetrics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRealtimePriceStream } from "@/hooks/useRealtimePriceStream";
 
 interface MultiTimeframeData {
   timeframes: {
@@ -88,6 +89,22 @@ export const PremiumAnalystInterface = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [chartData, setChartData] = useState<MultiTimeframeData | null>(null);
   const [isLoadingChart, setIsLoadingChart] = useState(false);
+  const [streamingEnabled, setStreamingEnabled] = useState(true);
+
+  // Real-time price streaming
+  const { priceData, connectionStatus, isConnected } = useRealtimePriceStream(
+    chartData?.metadata?.assetType === 'crypto' ? symbol : null,
+    streamingEnabled
+  );
+
+  // Show toast when connection status changes
+  useEffect(() => {
+    if (connectionStatus === 'connected' && chartData?.metadata?.assetType === 'crypto') {
+      toast.success(`Live price streaming connected for ${symbol}`);
+    } else if (connectionStatus === 'error') {
+      toast.error('Price streaming connection error');
+    }
+  }, [connectionStatus, chartData?.metadata?.assetType, symbol]);
 
   const extractSymbol = (text: string): string => {
     const upperText = text.toUpperCase();
@@ -284,10 +301,48 @@ export const PremiumAnalystInterface = () => {
               <div className="flex items-center gap-3">
                 <TrendingUp className="w-5 h-5 text-primary" />
                 <h2 className="text-xl font-bold">{symbol} Chart</h2>
+                {priceData && isConnected && (
+                  <div className="flex items-center gap-2 ml-4 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+                    <span className="text-lg font-bold text-foreground">
+                      ${priceData.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    <span className={`text-xs font-medium ${
+                      priceData.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {priceData.change24h >= 0 ? '↑' : '↓'} {Math.abs(priceData.change24h).toFixed(2)}%
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Zap className="w-4 h-4" />
-                Real-time Data
+              <div className="flex items-center gap-3">
+                {chartData?.metadata?.assetType === 'crypto' && (
+                  <button
+                    onClick={() => setStreamingEnabled(!streamingEnabled)}
+                    className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full transition-all hover:bg-background/50"
+                  >
+                    <div className={`relative flex items-center gap-2 ${
+                      isConnected ? 'text-green-400' :
+                      connectionStatus === 'connecting' ? 'text-yellow-400' :
+                      connectionStatus === 'error' ? 'text-red-400' :
+                      'text-muted-foreground'
+                    }`}>
+                      <Radio className="w-4 h-4" />
+                      <span className="text-xs font-medium">
+                        {isConnected ? 'STREAMING' :
+                         connectionStatus === 'connecting' ? 'CONNECTING' :
+                         connectionStatus === 'error' ? 'ERROR' :
+                         'OFFLINE'}
+                      </span>
+                      {isConnected && (
+                        <div className="absolute -right-1 -top-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      )}
+                    </div>
+                  </button>
+                )}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Zap className="w-4 h-4" />
+                  Real-time Data
+                </div>
               </div>
             </div>
             <div className="h-[600px] rounded-xl overflow-hidden">
