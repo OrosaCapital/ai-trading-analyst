@@ -466,7 +466,7 @@ export const PremiumAnalystInterface = () => {
               </div>
             )}
 
-            <div className="h-[600px] rounded-xl overflow-hidden">
+            <div className="h-[720px] rounded-xl overflow-hidden">
               <OcapxChart 
                 symbol={symbol} 
                 data={chartData || undefined} 
