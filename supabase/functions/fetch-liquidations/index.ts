@@ -66,8 +66,8 @@ async function fetchLiquidationsFromCoinglass(symbol: string, apiKey: string) {
     // Convert symbol to USDT pair format
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
     
-    // CoinGlass API v4 endpoint for pair liquidation history
-    const url = `https://open-api-v4.coinglass.com/api/futures/liquidation/pair-history?symbol=${cleanSymbol}&interval=1h&limit=24`;
+    // CoinGlass API v4 endpoint for liquidation history
+    const url = `https://open-api-v4.coinglass.com/api/futures/liquidation/history?symbol=${cleanSymbol}&interval=1h&limit=24`;
     
     const response = await fetch(url, {
       headers: {

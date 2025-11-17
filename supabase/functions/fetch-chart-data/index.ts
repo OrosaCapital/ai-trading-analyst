@@ -593,21 +593,31 @@ async function fetchCoinGlassOHLC(
       1440: '1d'
     };
     
-    const interval = intervalMap[intervalMinutes] || '1h';
+    // Validate interval for API plan restrictions
+    function getValidInterval(requestedInterval: string): string {
+      const intervalMinutes: Record<string, number> = {
+        '1m': 1, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 240
+      };
+      
+      // If interval not supported (< 60m), upgrade to 1h as safe fallback
+      // This handles API plan restrictions (Hobbyist: >=4h, Startup: >=30m)
+      const minutes = intervalMinutes[requestedInterval] || 60;
+      if (minutes < 60) {
+        console.log(`⚠️ Interval ${requestedInterval} may not be supported by API plan, using 1h fallback`);
+        return '1h';
+      }
+      return requestedInterval;
+    }
+    
+    const requestedInterval = intervalMap[intervalMinutes] || '1h';
+    const interval = getValidInterval(requestedInterval);
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
-    console.log(`Cleaned symbol: ${cleanSymbol}, Original: ${symbol}`);
-    
-    const endTime = Date.now();
-    
-    // Limit to 30 days max for smaller intervals to avoid API limits
-    const maxDays = intervalMinutes < 60 ? 30 : 90;
-    const limitedStartTime = endTime - (Math.min(days, maxDays) * 24 * 60 * 60 * 1000);
-    console.log(`Time range: ${new Date(limitedStartTime).toISOString()} to ${new Date(endTime).toISOString()}`);
+    console.log(`Cleaned symbol: ${cleanSymbol}, Original: ${symbol}, Interval: ${interval}`);
     
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
     
-    // CoinGlass API v4 endpoint for price OHLC
-    const url = `https://open-api-v4.coinglass.com/api/futures/price/history?exchange=Binance&symbol=${cleanSymbol}&interval=${interval}&start_time=${limitedStartTime}&end_time=${endTime}&limit=1000`;
+    // CoinGlass API v4 endpoint for price OHLC history
+    const url = `https://open-api-v4.coinglass.com/api/futures/price-ohlc/history?exchange=Binance&symbol=${cleanSymbol}&interval=${interval}&limit=1000`;
     console.log(`CoinGlass URL: ${url}`);
     
     const response = await fetch(url, {
@@ -621,13 +631,33 @@ async function fetchCoinGlassOHLC(
       const errorText = await response.text();
       console.error(`CoinGlass API error: ${response.status} - ${errorText}`);
       console.error(`URL: ${url}`);
+      
+      // If 400 error and not already using 4h, try with 4h interval
+      if (response.status === 400 && interval !== '4h') {
+        console.log('⚠️ Got 400 error, retrying with 4h interval...');
+        return await fetchCoinGlassOHLC(symbol, 240, days, apiKey);
+      }
+      
       return null;
     }
 
     const data = await response.json();
     
     if (data.code !== '0' || !data.data || data.data.length === 0) {
-      console.error('CoinGlass returned no data or error code:', data.code);
+      console.error('CoinGlass error details:', {
+        code: data.code,
+        msg: data.msg,
+        symbol: cleanSymbol,
+        interval: interval,
+        dataLength: data.data?.length
+      });
+      
+      // If error due to interval restriction and not already using 4h
+      if (data.code === '400' && interval !== '4h') {
+        console.log('⚠️ Retrying with 4h interval due to API plan restrictions...');
+        return await fetchCoinGlassOHLC(symbol, 240, days, apiKey);
+      }
+      
       return null;
     }
 
@@ -652,7 +682,7 @@ async function fetchCoinGlassOHLC(
       else sentiment = 5;
       
       return {
-        time: Math.floor(item.t / 1000), // Convert ms to seconds
+        time: Math.floor(item.time / 1000), // CoinGlass returns time in milliseconds
         open,
         high,
         low,
@@ -660,7 +690,7 @@ async function fetchCoinGlassOHLC(
         volume,
         sentiment,
         rsi: clampedRSI,
-        oi: parseFloat(item.oi) || undefined
+        oi: parseFloat(item.volume_usd) || undefined // Use volume_usd as OI proxy
       };
     });
 
