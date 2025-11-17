@@ -164,7 +164,7 @@ const TrendBadge = ({ trend, size = 'md' }: { trend: 'bullish' | 'bearish' | 'ne
 export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const [activeTimeframe, setActiveTimeframe] = useState<'1h' | '15m' | '5m' | '1m'>('15m');
+  const [activeTimeframe, setActiveTimeframe] = useState<'1h' | '15m'>('15m');
 
   useEffect(() => {
     if (!chartContainerRef.current || !data) return;
@@ -176,7 +176,7 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
         horzLines: { color: 'rgba(0, 255, 255, 0.08)', style: 2 } 
       },
       width: chartContainerRef.current.clientWidth,
-      height: 650,
+      height: 680,
       timeScale: { 
         timeVisible: true, 
         secondsVisible: false,
@@ -287,8 +287,6 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
     const visibleBars = {
       '1h': 48,   // 2 days
       '15m': 96,  // 24 hours
-      '5m': 144,  // 12 hours
-      '1m': 180,  // 3 hours
     }[activeTimeframe];
 
     if (candleData.length > 0) {
@@ -366,7 +364,7 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
 
       {/* Multi-Timeframe Chart Tabs */}
       <Tabs value={activeTimeframe} onValueChange={(v) => setActiveTimeframe(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="1h" className="flex flex-col gap-1">
             <span>1H Chart</span>
             <TrendBadge trend={data.metadata.trend1h} size="sm" />
@@ -375,30 +373,14 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
             <span>15M Chart</span>
             <span className="text-xs text-[hsl(var(--chart-green))]">{validSignals.length} Valid</span>
           </TabsTrigger>
-          <TabsTrigger value="5m" className="flex flex-col gap-1">
-            <span>5M Chart</span>
-            <span className="text-xs text-primary">{entryPoints.length} Points</span>
-          </TabsTrigger>
-          <TabsTrigger value="1m" className="flex flex-col gap-1">
-            <span>1M Chart</span>
-            <span className="text-xs text-muted-foreground">Precision</span>
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="1h">
-          <div ref={chartContainerRef} className="w-full h-[650px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+          <div ref={chartContainerRef} className="w-full h-[680px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm" />
         </TabsContent>
 
         <TabsContent value="15m">
-          <div ref={chartContainerRef} className="w-full h-[650px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
-        </TabsContent>
-
-        <TabsContent value="5m">
-          <div ref={chartContainerRef} className="w-full h-[650px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
-        </TabsContent>
-
-        <TabsContent value="1m">
-          <div ref={chartContainerRef} className="w-full h-[650px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+          <div ref={chartContainerRef} className="w-full h-[680px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm" />
         </TabsContent>
       </Tabs>
 
