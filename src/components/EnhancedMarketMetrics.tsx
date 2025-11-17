@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Activity, Scale, Waves, Zap, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Scale, Waves, Zap, AlertTriangle, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LiquidationHeatmap } from "./LiquidationHeatmap";
 import { Card } from "./ui/card";
@@ -53,12 +53,21 @@ export const EnhancedMarketMetrics = ({ symbol, assetType = 'crypto' }: Enhanced
         if (lsError) throw lsError;
         setLongShortData(lsData);
 
-        // Fetch taker volume (CVD)
-        const { data: cvdDataResult, error: cvdError } = await supabase.functions.invoke('fetch-taker-volume', {
-          body: { symbol }
-        });
-        if (cvdError) throw cvdError;
-        setCvdData(cvdDataResult);
+        // Fetch taker volume (CVD) - may fail on Hobbyist plan
+        try {
+          const { data: cvdDataResult, error: cvdError } = await supabase.functions.invoke('fetch-taker-volume', {
+            body: { symbol }
+          });
+          if (!cvdError) {
+            setCvdData(cvdDataResult);
+          } else {
+            console.log('Taker volume unavailable on Hobbyist plan');
+            setCvdData(null);
+          }
+        } catch (error) {
+          console.log('Taker volume unavailable:', error);
+          setCvdData(null);
+        }
         
       } catch (error) {
         console.error('Error fetching enhanced metrics:', error);
@@ -153,7 +162,7 @@ export const EnhancedMarketMetrics = ({ symbol, assetType = 'crypto' }: Enhanced
       )}
 
       {/* CVD (Cumulative Volume Delta) */}
-      {cvdData && (
+      {cvdData ? (
         <Card className="glass p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -207,6 +216,14 @@ export const EnhancedMarketMetrics = ({ symbol, assetType = 'crypto' }: Enhanced
               <span className="text-sm font-bold">{cvdData.summary.strength}%</span>
             </div>
           </div>
+        </Card>
+      ) : (
+        <Card className="glass p-6 flex flex-col items-center justify-center min-h-[200px]">
+          <Lock className="w-12 h-12 text-muted-foreground mb-4" />
+          <h4 className="text-lg font-semibold mb-2">Cumulative Volume Delta (CVD)</h4>
+          <p className="text-sm text-muted-foreground text-center">
+            Unavailable on Hobbyist Plan
+          </p>
         </Card>
       )}
 
