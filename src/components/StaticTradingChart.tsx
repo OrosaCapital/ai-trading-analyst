@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { createChart, ColorType, IChartApi, CandlestickSeries } from 'lightweight-charts';
+import { createChart, ColorType, IChartApi, CandlestickSeries, createSeriesMarkers } from 'lightweight-charts';
 import { MockCandle } from '@/data/mockCandles';
 import { MockSignal } from '@/data/mockSignals';
 
@@ -12,6 +12,7 @@ export const StaticTradingChart = ({ candles, signals }: StaticTradingChartProps
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<any>(null);
+  const markersRef = useRef<any>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -82,7 +83,16 @@ export const StaticTradingChart = ({ candles, signals }: StaticTradingChartProps
         shape: signal.shape,
         text: signal.text,
       }));
-      (candleSeriesRef.current as any).setMarkers(markers);
+      
+      // V5 API: Use createSeriesMarkers instead of series.setMarkers
+      if (markersRef.current) {
+        markersRef.current.setMarkers(markers);
+      } else {
+        markersRef.current = createSeriesMarkers(candleSeriesRef.current, markers);
+      }
+    } else if (markersRef.current) {
+      // Clear markers if no signals
+      markersRef.current.setMarkers([]);
     }
   }, [candles, signals]);
 
