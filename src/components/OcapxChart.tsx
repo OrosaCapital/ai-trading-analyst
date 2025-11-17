@@ -282,74 +282,6 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
         </div>
       </div>
 
-      {/* Trend Alignment Dashboard */}
-      {trendAnalysis && (
-        <div className="bg-card/50 border border-border/50 rounded-xl p-6 backdrop-blur-sm space-y-4">
-          <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Activity className="w-5 h-5 text-primary" />
-            STEP 1: 1H Trend Analysis
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Overall Trend</span>
-                <TrendBadge trend={trendAnalysis.trend} size="sm" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Confidence</span>
-                <span className="text-lg font-bold text-primary">{trendAnalysis.confidence.toFixed(0)}%</span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">EMAs</span>
-                <span className={`font-semibold ${trendAnalysis.emaScore > 60 ? 'text-[hsl(var(--chart-green))]' : trendAnalysis.emaScore < 40 ? 'text-[hsl(var(--chart-red))]' : 'text-muted-foreground'}`}>
-                  {trendAnalysis.emaScore.toFixed(0)}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Momentum</span>
-                <span className={`font-semibold ${trendAnalysis.momentumScore > 60 ? 'text-[hsl(var(--chart-green))]' : trendAnalysis.momentumScore < 40 ? 'text-[hsl(var(--chart-red))]' : 'text-muted-foreground'}`}>
-                  {trendAnalysis.momentumScore.toFixed(0)}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Structure</span>
-                <span className={`font-semibold ${trendAnalysis.structureScore > 60 ? 'text-[hsl(var(--chart-green))]' : trendAnalysis.structureScore < 40 ? 'text-[hsl(var(--chart-red))]' : 'text-muted-foreground'}`}>
-                  {trendAnalysis.structureScore.toFixed(0)}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Sentiment</span>
-                <span className={`font-semibold ${trendAnalysis.sentimentScore > 60 ? 'text-[hsl(var(--chart-green))]' : trendAnalysis.sentimentScore < 40 ? 'text-[hsl(var(--chart-red))]' : 'text-muted-foreground'}`}>
-                  {trendAnalysis.sentimentScore.toFixed(0)}%
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t border-border/50">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-[hsl(var(--chart-green))]">{trendAnalysis.higherHighs}</div>
-              <div className="text-xs text-muted-foreground">Higher Highs</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-[hsl(var(--chart-green))]">{trendAnalysis.higherLows}</div>
-              <div className="text-xs text-muted-foreground">Higher Lows</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-[hsl(var(--chart-red))]">{trendAnalysis.lowerHighs}</div>
-              <div className="text-xs text-muted-foreground">Lower Highs</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-[hsl(var(--chart-red))]">{trendAnalysis.lowerLows}</div>
-              <div className="text-xs text-muted-foreground">Lower Lows</div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Multi-Timeframe Chart Tabs */}
       <Tabs value={activeTimeframe} onValueChange={(v) => setActiveTimeframe(v as any)} className="w-full">
@@ -389,8 +321,14 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
         </TabsContent>
       </Tabs>
 
-      {/* All 4 Steps - Always Visible in Accordion */}
-      <Accordion type="multiple" defaultValue={["step1", "step2", "step3", "step4"]} className="space-y-4">
+      {/* Multi-Timeframe Analysis Workflow */}
+      <div className="mt-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Multi-Timeframe Analysis Workflow</h2>
+          <p className="text-muted-foreground">Follow these 4 steps in sequence for high-probability trade entries</p>
+        </div>
+        
+        <Accordion type="multiple" defaultValue={["step1", "step2", "step3", "step4"]} className="space-y-4">
         {/* STEP 1: 1H Trend Analysis */}
         <AccordionItem value="step1" className="bg-card/50 border border-border/50 rounded-xl px-6">
           <AccordionTrigger className="hover:no-underline">
@@ -703,6 +641,7 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+      </div>
     </div>
   );
 };
