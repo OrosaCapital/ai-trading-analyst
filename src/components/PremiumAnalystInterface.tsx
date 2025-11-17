@@ -92,19 +92,48 @@ export const PremiumAnalystInterface = () => {
   const [streamingEnabled, setStreamingEnabled] = useState(true);
 
   // Real-time price streaming
-  const { priceData, connectionStatus, isConnected } = useRealtimePriceStream(
+  const { priceData, connectionStatus, isConnected, lastUpdateTime, isPolling } = useRealtimePriceStream(
     chartData?.metadata?.assetType === 'crypto' ? symbol : null,
     streamingEnabled
   );
 
+  // Countdown timer state
+  const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
+  const [secondsUntilNext, setSecondsUntilNext] = useState(60);
+  const [showFlash, setShowFlash] = useState(false);
+
+  // Update countdown timer
+  useEffect(() => {
+    if (!lastUpdateTime) return;
+
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - lastUpdateTime) / 1000;
+      setSecondsSinceUpdate(Math.floor(elapsed));
+      setSecondsUntilNext(Math.max(0, 60 - Math.floor(elapsed)));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lastUpdateTime]);
+
+  // Flash animation on price update
+  useEffect(() => {
+    if (priceData && lastUpdateTime) {
+      setShowFlash(true);
+      const timeout = setTimeout(() => setShowFlash(false), 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [priceData, lastUpdateTime]);
+
   // Show toast when connection status changes
   useEffect(() => {
-    if (connectionStatus === 'connected' && chartData?.metadata?.assetType === 'crypto') {
+    if (connectionStatus === 'connected' && chartData?.metadata?.assetType === 'crypto' && !isPolling) {
       toast.success(`Live price streaming connected for ${symbol}`);
     } else if (connectionStatus === 'error') {
       toast.error('Price streaming connection error');
+    } else if (isPolling && chartData?.metadata?.assetType === 'crypto') {
+      toast.info('Using polling fallback (1-minute updates)');
     }
-  }, [connectionStatus, chartData?.metadata?.assetType, symbol]);
+  }, [connectionStatus, chartData?.metadata?.assetType, symbol, isPolling]);
 
   const extractSymbol = (text: string): string => {
     const upperText = text.toUpperCase();
@@ -302,7 +331,9 @@ export const PremiumAnalystInterface = () => {
                 <TrendingUp className="w-5 h-5 text-primary" />
                 <h2 className="text-xl font-bold">{symbol} Chart</h2>
                 {priceData && isConnected && (
-                  <div className="flex items-center gap-2 ml-4 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+                  <div className={`flex items-center gap-2 ml-4 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 ${
+                    showFlash ? 'scale-110 bg-primary/20 border-primary/40' : ''
+                  }`}>
                     <span className="text-lg font-bold text-foreground">
                       ${priceData.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
@@ -316,28 +347,40 @@ export const PremiumAnalystInterface = () => {
               </div>
               <div className="flex items-center gap-3">
                 {chartData?.metadata?.assetType === 'crypto' && (
-                  <button
-                    onClick={() => setStreamingEnabled(!streamingEnabled)}
-                    className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full transition-all hover:bg-background/50"
-                  >
-                    <div className={`relative flex items-center gap-2 ${
-                      isConnected ? 'text-green-400' :
-                      connectionStatus === 'connecting' ? 'text-yellow-400' :
-                      connectionStatus === 'error' ? 'text-red-400' :
-                      'text-muted-foreground'
-                    }`}>
-                      <Radio className="w-4 h-4" />
-                      <span className="text-xs font-medium">
-                        {isConnected ? 'STREAMING' :
-                         connectionStatus === 'connecting' ? 'CONNECTING' :
-                         connectionStatus === 'error' ? 'ERROR' :
-                         'OFFLINE'}
-                      </span>
-                      {isConnected && (
-                        <div className="absolute -right-1 -top-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      )}
-                    </div>
-                  </button>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setStreamingEnabled(!streamingEnabled)}
+                      className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full transition-all hover:bg-background/50"
+                    >
+                      <div className={`relative flex items-center gap-2 ${
+                        isConnected && !isPolling ? 'text-green-400' :
+                        isPolling ? 'text-yellow-400' :
+                        connectionStatus === 'connecting' ? 'text-yellow-400' :
+                        connectionStatus === 'error' ? 'text-red-400' :
+                        'text-muted-foreground'
+                      }`}>
+                        <Radio className="w-4 h-4" />
+                        <span className="text-xs font-medium">
+                          {isPolling ? 'POLLING (1m)' :
+                           isConnected ? 'STREAMING (1m)' :
+                           connectionStatus === 'connecting' ? 'CONNECTING' :
+                           connectionStatus === 'error' ? 'ERROR' :
+                           'OFFLINE'}
+                        </span>
+                        {isConnected && !isPolling && (
+                          <div className="absolute -right-1 -top-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                        )}
+                      </div>
+                    </button>
+                    
+                    {lastUpdateTime && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Updated {secondsSinceUpdate}s ago</span>
+                        <span>•</span>
+                        <span>Next in {secondsUntilNext}s</span>
+                      </div>
+                    )}
+                  </div>
                 )}
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Zap className="w-4 h-4" />
