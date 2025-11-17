@@ -182,8 +182,8 @@ export const PremiumAnalystInterface = () => {
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="text-3xl font-black text-gradient">OCAPX</div>
-              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-accent"></div>
+              <div className="text-3xl font-black text-accent drop-shadow-[0_0_20px_hsl(var(--accent)/0.6)]">OCAPX</div>
+              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent/50"></div>
             </div>
             <div className="h-6 w-px bg-border/50"></div>
             <span className="text-sm font-medium text-muted-foreground">AI Trading Terminal</span>
