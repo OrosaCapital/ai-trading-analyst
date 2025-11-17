@@ -538,19 +538,20 @@ async function fetchCoinGlassOHLC(
       1440: '1d'
     };
     
-    // Validate interval for API plan restrictions
+    // Validate interval for Hobbyist API plan (requires >= 4h)
     function getValidInterval(requestedInterval: string): string {
       const intervalMinutes: Record<string, number> = {
-        '1m': 1, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 240
+        '1m': 1, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 240, '1d': 1440
       };
       
-      // If interval not supported (< 60m), upgrade to 1h as safe fallback
-      // This handles API plan restrictions (Hobbyist: >=4h, Startup: >=30m)
-      const minutes = intervalMinutes[requestedInterval] || 60;
-      if (minutes < 60) {
-        console.log(`⚠️ Interval ${requestedInterval} may not be supported by API plan, using 1h fallback`);
-        return '1h';
+      const minutes = intervalMinutes[requestedInterval] || 240;
+      
+      // Hobbyist plan requires >= 4h (240 minutes)
+      if (minutes < 240) {
+        console.log(`⚠️ Hobbyist plan restriction: ${requestedInterval} not supported, using 4h`);
+        return '4h';
       }
+      
       return requestedInterval;
     }
     
@@ -561,32 +562,51 @@ async function fetchCoinGlassOHLC(
     
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
     
-    // CoinGlass API v4 endpoint for price OHLC history
-    const url = `https://open-api-v4.coinglass.com/api/futures/price-ohlc/history?exchange=Binance&symbol=${cleanSymbol}&interval=${interval}&limit=1000`;
-    console.log(`CoinGlass URL: ${url}`);
-    
-    const response = await fetch(url, {
-      headers: {
-        'accept': 'application/json',
-        'CG-API-KEY': apiKey
-      }
-    });
+    // Try multiple CoinGlass API v4 endpoints for reliability
+    const endpoints = [
+      `/api/futures/price-ohlc/history`,
+      `/api/futures/ohlc/history`,
+      `/api/index/price-ohlc/history`
+    ];
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`CoinGlass API error: ${response.status} - ${errorText}`);
-      console.error(`URL: ${url}`);
+    let data = null;
+    let successfulEndpoint = null;
+
+    for (const endpoint of endpoints) {
+      const url = `https://open-api-v4.coinglass.com${endpoint}?symbol=${cleanSymbol}&interval=${interval}&limit=1000`;
+      console.log(`Trying: ${url}`);
       
-      // If 400 error and not already using 4h, try with 4h interval
-      if (response.status === 400 && interval !== '4h') {
-        console.log('⚠️ Got 400 error, retrying with 4h interval...');
-        return await fetchCoinGlassOHLC(symbol, 240, days, apiKey);
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'accept': 'application/json',
+            'CG-API-KEY': apiKey
+          }
+        });
+        
+        if (response.ok) {
+          const jsonData = await response.json();
+          if (jsonData.code === '0' && jsonData.data?.length > 0) {
+            data = jsonData;
+            successfulEndpoint = endpoint;
+            console.log(`✅ SUCCESS: ${endpoint} returned ${jsonData.data.length} candles`);
+            break;
+          } else {
+            console.log(`⚠️ ${endpoint} returned code ${jsonData.code}: ${jsonData.msg}`);
+          }
+        } else {
+          console.log(`❌ ${endpoint} returned ${response.status}: ${await response.text()}`);
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.log(`❌ ${endpoint} failed: ${errorMsg}`);
       }
-      
-      return null;
     }
 
-    const data = await response.json();
+    if (!data) {
+      console.error('❌ All CoinGlass endpoints failed');
+      return null;
+    }
     
     if (data.code !== '0' || !data.data || data.data.length === 0) {
       console.error('CoinGlass error details:', {
@@ -677,18 +697,29 @@ serve(async (req) => {
       throw new Error(`Symbol ${symbol} is not a supported cryptocurrency. Only crypto symbols are supported (BTC, ETH, XRP, etc).`);
     }
     
-    console.log(`Fetching live CoinGlass data for ${symbol}`);
-    const liveCandles1h = await fetchCoinGlassOHLC(symbol, 60, days, COINGLASS_API_KEY);
+    // Detect API plan based on available intervals
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📊 CoinGlass API Plan: HOBBYIST');
+    console.log('⚠️  Interval Restriction: >=4h only');
+    console.log('✅ Supported: 4h, 1d, 1w');
+    console.log('❌ Not Supported: 1m, 5m, 15m, 30m, 1h');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
-    if (!liveCandles1h || liveCandles1h.length === 0) {
-      throw new Error(`Failed to fetch CoinGlass data for ${symbol}. Please verify the symbol is a valid cryptocurrency.`);
+    // Hobbyist plan: Fetch ONLY 4h data (single API call)
+    console.log('🔑 Using Hobbyist plan - fetching 4h interval data only');
+    const candles4h = await fetchCoinGlassOHLC(symbol, 240, days, COINGLASS_API_KEY);
+
+    if (!candles4h || candles4h.length === 0) {
+      throw new Error(`Failed to fetch CoinGlass data for ${symbol}. Hobbyist plan requires valid 4h interval data.`);
     }
-    
-    candles1h = liveCandles1h;
-    candles15m = await fetchCoinGlassOHLC(symbol, 15, days, COINGLASS_API_KEY) || candles1h;
-    candles5m = await fetchCoinGlassOHLC(symbol, 5, days, COINGLASS_API_KEY) || candles1h;
-    candles1m = await fetchCoinGlassOHLC(symbol, 1, days, COINGLASS_API_KEY) || candles1h;
-    console.log('✅ Using live CoinGlass data');
+
+    // Reuse 4h data for all timeframes (Hobbyist plan limitation)
+    candles1h = candles4h;
+    candles15m = candles4h;
+    candles5m = candles4h;
+    candles1m = candles4h;
+
+    console.log(`✅ Using live CoinGlass 4h data (${candles4h.length} candles) for all timeframes`);
     
     const ema50_1h = calculateEMA(candles1h, 50);
     const ema200_1h = calculateEMA(candles1h, 200);

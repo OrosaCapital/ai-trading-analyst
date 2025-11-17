@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Send, TrendingUp, Zap, Activity, Sparkles, Radio } from "lucide-react";
 import { SentimentGauge } from "./SentimentGauge";
 import { OcapxChart } from "./OcapxChart";
@@ -393,6 +394,9 @@ export const PremiumAnalystInterface = () => {
                     })}
                   </span>
                 )}
+                <Badge variant="outline" className="text-xs">
+                  4h data
+                </Badge>
               </div>
                 {priceData && isConnected && (
                   <div className={`flex items-center gap-2 ml-4 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 ${
