@@ -14,7 +14,8 @@ async function fetchLiquidationsFromCoinglass(symbol: string, apiKey: string) {
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
     
     // CoinGlass API v4 endpoint for liquidation history
-    const url = `https://open-api-v4.coinglass.com/api/futures/liquidation/history?symbol=${cleanSymbol}&interval=1h&limit=24`;
+    // Hobbyist plan requires >=4h interval
+    const url = `https://open-api-v4.coinglass.com/api/futures/liquidation/history?exchange=Binance&symbol=${cleanSymbol}&interval=4h&limit=24`;
     
     const response = await fetch(url, {
       headers: {
