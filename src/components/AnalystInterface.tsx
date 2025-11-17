@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Sparkles, TrendingUp, Activity } from "lucide-react";
 import { SentimentLegend } from "./SentimentLegend";
 import { TradingViewChart } from "./TradingViewChart";
+import { MarketMetrics } from "./MarketMetrics";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -176,7 +177,13 @@ export const AnalystInterface = () => {
         </Card>
 
         {result && (
-          <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border border-primary/20 bg-card">
+          <>
+            {/* Market Data Section */}
+            <div className="mb-8">
+              <MarketMetrics symbol={symbol.replace('USD', '')} />
+            </div>
+
+            <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border border-primary/20 bg-card">
             <ResizablePanel defaultSize={60} minSize={30}>
               <div className="h-full p-6 bg-card">
                 <div className="flex items-center justify-between mb-6">
@@ -274,6 +281,7 @@ export const AnalystInterface = () => {
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
+          </>
         )}
       </div>
     </section>

@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      market_data_cache: {
+        Row: {
+          created_at: string | null
+          data: Json
+          data_type: string
+          expires_at: string | null
+          id: string
+          interval: string | null
+          symbol: string
+        }
+        Insert: {
+          created_at?: string | null
+          data: Json
+          data_type: string
+          expires_at?: string | null
+          id?: string
+          interval?: string | null
+          symbol: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json
+          data_type?: string
+          expires_at?: string | null
+          id?: string
+          interval?: string | null
+          symbol?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
