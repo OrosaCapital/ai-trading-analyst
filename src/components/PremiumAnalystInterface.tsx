@@ -5,6 +5,7 @@ import { Send, TrendingUp, Zap, Activity, Sparkles } from "lucide-react";
 import { SentimentGauge } from "./SentimentGauge";
 import { OcapxChart } from "./OcapxChart";
 import { PremiumMarketMetrics } from "./PremiumMarketMetrics";
+import { EnhancedMarketMetrics } from "./EnhancedMarketMetrics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -292,6 +293,13 @@ export const PremiumAnalystInterface = () => {
         {symbol && (
           <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
             <PremiumMarketMetrics symbol={symbol} />
+          </div>
+        )}
+
+        {/* Enhanced Market Metrics */}
+        {symbol && (
+          <div className="animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
+            <EnhancedMarketMetrics symbol={symbol} />
           </div>
         )}
 
