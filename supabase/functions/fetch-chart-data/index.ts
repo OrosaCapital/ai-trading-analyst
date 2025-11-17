@@ -24,7 +24,26 @@ interface VolumeBubble {
   size: 'small' | 'medium' | 'large';
 }
 
-function generateMockOHLCV(symbol: string, days: number = 90): Candle[] {
+interface TradingSignal {
+  time: number;
+  price: number;
+  type: 'buy' | 'sell';
+  strength: number;
+  reason: string;
+  valid: boolean;
+  rsi: number;
+}
+
+interface EntryPoint {
+  time: number;
+  price: number;
+  type: 'buy' | 'sell';
+  stopLoss: number;
+  takeProfit: number;
+  riskReward: number;
+}
+
+function generateMockOHLCV(symbol: string, days: number = 90, intervalMinutes: number = 1440): Candle[] {
   const candles: Candle[] = [];
   const basePrices: Record<string, number> = {
     'BTCUSD': 42000,
@@ -40,9 +59,10 @@ function generateMockOHLCV(symbol: string, days: number = 90): Candle[] {
   
   let currentPrice = basePrices[symbol] || basePrices['BTCUSD'];
   const now = Date.now();
-  const interval = 24 * 60 * 60 * 1000; // 1 day
+  const interval = intervalMinutes * 60 * 1000;
+  const numCandles = Math.floor((days * 24 * 60) / intervalMinutes);
   
-  for (let i = days - 1; i >= 0; i--) {
+  for (let i = numCandles - 1; i >= 0; i--) {
     const time = Math.floor((now - (i * interval)) / 1000);
     
     // Generate realistic price movement
@@ -145,50 +165,243 @@ function identifyVolumeBubbles(candles: Candle[]): VolumeBubble[] {
   return bubbles;
 }
 
+type TrendType = 'bullish' | 'bearish' | 'neutral';
+
+function classifyTrend(candles: Candle[], ema50: number[], ema200: number[]): TrendType {
+  if (candles.length === 0 || ema50.length === 0 || ema200.length === 0) return 'neutral';
+  
+  const recentCandles = candles.slice(-20);
+  const currentPrice = recentCandles[recentCandles.length - 1].close;
+  const currentEMA50 = ema50[ema50.length - 1];
+  const currentEMA200 = ema200[ema200.length - 1];
+  
+  const priceAboveEMA50 = currentPrice > currentEMA50;
+  const ema50AboveEMA200 = currentEMA50 > currentEMA200;
+  const priceRising = recentCandles[recentCandles.length - 1].close > recentCandles[0].close;
+  
+  if (priceAboveEMA50 && ema50AboveEMA200 && priceRising) return 'bullish';
+  if (!priceAboveEMA50 && !ema50AboveEMA200 && !priceRising) return 'bearish';
+  return 'neutral';
+}
+
+function detectSignals(candles: Candle[], ema50Values: number[], trend1h: TrendType): TradingSignal[] {
+  const signals: TradingSignal[] = [];
+  
+  for (let i = 50; i < candles.length; i++) {
+    const candle = candles[i];
+    const prevCandle = candles[i - 1];
+    const ema50 = ema50Values[i - (candles.length - ema50Values.length)];
+    
+    if (!ema50) continue;
+    
+    // RSI Oversold Buy Signal
+    if (candle.rsi < 30 && prevCandle.rsi >= 30 && candle.close > candle.open) {
+      const signalType = 'buy';
+      const valid = trend1h === 'bullish';
+      
+      signals.push({
+        time: candle.time,
+        price: candle.close,
+        type: signalType,
+        strength: 100 - candle.rsi,
+        reason: 'RSI Oversold + Bullish Candle',
+        valid,
+        rsi: candle.rsi,
+      });
+    }
+    
+    // RSI Overbought Sell Signal
+    if (candle.rsi > 70 && prevCandle.rsi <= 70 && candle.close < candle.open) {
+      const signalType = 'sell';
+      const valid = trend1h === 'bearish';
+      
+      signals.push({
+        time: candle.time,
+        price: candle.close,
+        type: signalType,
+        strength: candle.rsi - 30,
+        reason: 'RSI Overbought + Bearish Candle',
+        valid,
+        rsi: candle.rsi,
+      });
+    }
+    
+    // EMA50 Bounce Buy Signal
+    const touchingEMA = Math.abs(candle.low - ema50) < (ema50 * 0.005);
+    if (touchingEMA && candle.close > candle.open && candle.close > ema50) {
+      const signalType = 'buy';
+      const valid = trend1h === 'bullish';
+      
+      signals.push({
+        time: candle.time,
+        price: candle.close,
+        type: signalType,
+        strength: 75,
+        reason: 'Bounce off EMA50',
+        valid,
+        rsi: candle.rsi,
+      });
+    }
+  }
+  
+  return signals;
+}
+
+function calculateEntryPoints(candles5m: Candle[], signals15m: TradingSignal[], ema50_5m: number[]): EntryPoint[] {
+  const entries: EntryPoint[] = [];
+  
+  const validSignals = signals15m.filter(s => s.valid);
+  
+  for (const signal of validSignals) {
+    const signalTime = signal.time;
+    const next5mCandles = candles5m.filter(c => c.time >= signalTime && c.time < signalTime + 3600);
+    
+    for (let i = 0; i < next5mCandles.length; i++) {
+      const candle = next5mCandles[i];
+      const ema50 = ema50_5m[candles5m.indexOf(candle) - (candles5m.length - ema50_5m.length)];
+      
+      if (!ema50) continue;
+      
+      if (signal.type === 'buy') {
+        const pullbackToEMA = Math.abs(candle.low - ema50) < (ema50 * 0.003);
+        const bounceConfirm = candle.close > candle.open && candle.close > ema50;
+        
+        if (pullbackToEMA && bounceConfirm && candle.volume > candles5m.reduce((sum, c) => sum + c.volume, 0) / candles5m.length * 1.2) {
+          const stopLoss = candle.low * 0.99;
+          const takeProfit = candle.close + (candle.close - stopLoss) * 2.5;
+          
+          entries.push({
+            time: candle.time,
+            price: candle.close,
+            type: 'buy',
+            stopLoss,
+            takeProfit,
+            riskReward: 2.5,
+          });
+          break;
+        }
+      } else {
+        const rallyToEMA = Math.abs(candle.high - ema50) < (ema50 * 0.003);
+        const rejectConfirm = candle.close < candle.open && candle.close < ema50;
+        
+        if (rallyToEMA && rejectConfirm && candle.volume > candles5m.reduce((sum, c) => sum + c.volume, 0) / candles5m.length * 1.2) {
+          const stopLoss = candle.high * 1.01;
+          const takeProfit = candle.close - (stopLoss - candle.close) * 2.5;
+          
+          entries.push({
+            time: candle.time,
+            price: candle.close,
+            type: 'sell',
+            stopLoss,
+            takeProfit,
+            riskReward: 2.5,
+          });
+          break;
+        }
+      }
+    }
+  }
+  
+  return entries;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { symbol, days = 90 } = await req.json();
+    const { symbol, days = 7 } = await req.json();
     
     if (!symbol) {
       throw new Error('Symbol is required');
     }
 
-    console.log(`Generating mock chart data for ${symbol}, ${days} days`);
+    console.log(`Generating multi-timeframe chart data for ${symbol}, ${days} days`);
     
-    // Generate mock OHLCV data
-    const candles = generateMockOHLCV(symbol, days);
+    // Generate data for all three timeframes
+    const candles1h = generateMockOHLCV(symbol, days, 60);
+    const candles15m = generateMockOHLCV(symbol, days, 15);
+    const candles5m = generateMockOHLCV(symbol, days, 5);
     
-    // Calculate indicators
-    const ema50 = calculateEMA(candles, 50);
-    const ema200 = calculateEMA(candles, 200);
+    // Calculate indicators for 1H (trend)
+    const ema50_1h = calculateEMA(candles1h, 50);
+    const ema200_1h = calculateEMA(candles1h, 200);
+    const trend1h = classifyTrend(candles1h, ema50_1h, ema200_1h);
     
-    // Identify volume bubbles
-    const volumeBubbles = identifyVolumeBubbles(candles);
+    // Calculate indicators for 15M (signals)
+    const ema50_15m = calculateEMA(candles15m, 50);
+    const ema200_15m = calculateEMA(candles15m, 200);
+    const signals15m = detectSignals(candles15m, ema50_15m, trend1h);
     
-    // Prepare response
+    // Calculate indicators for 5M (entries)
+    const ema50_5m = calculateEMA(candles5m, 50);
+    const ema200_5m = calculateEMA(candles5m, 200);
+    const entryPoints5m = calculateEntryPoints(candles5m, signals15m, ema50_5m);
+    
+    // Volume bubbles for each timeframe
+    const volumeBubbles1h = identifyVolumeBubbles(candles1h);
+    const volumeBubbles15m = identifyVolumeBubbles(candles15m);
+    const volumeBubbles5m = identifyVolumeBubbles(candles5m);
+    
+    // Prepare multi-timeframe response
     const response = {
       symbol,
-      candles,
-      indicators: {
-        ema50: ema50.map((value, index) => ({
-          time: candles[index + (candles.length - ema50.length)].time,
-          value: Number(value.toFixed(2)),
-        })),
-        ema200: ema200.map((value, index) => ({
-          time: candles[index + (candles.length - ema200.length)].time,
-          value: Number(value.toFixed(2)),
-        })),
+      timeframes: {
+        '1h': {
+          candles: candles1h,
+          trend: trend1h,
+          indicators: {
+            ema50: ema50_1h.map((value, index) => ({
+              time: candles1h[index + (candles1h.length - ema50_1h.length)].time,
+              value: Number(value.toFixed(2)),
+            })),
+            ema200: ema200_1h.map((value, index) => ({
+              time: candles1h[index + (candles1h.length - ema200_1h.length)].time,
+              value: Number(value.toFixed(2)),
+            })),
+          },
+          volumeBubbles: volumeBubbles1h,
+        },
+        '15m': {
+          candles: candles15m,
+          signals: signals15m,
+          indicators: {
+            ema50: ema50_15m.map((value, index) => ({
+              time: candles15m[index + (candles15m.length - ema50_15m.length)].time,
+              value: Number(value.toFixed(2)),
+            })),
+            ema200: ema200_15m.map((value, index) => ({
+              time: candles15m[index + (candles15m.length - ema200_15m.length)].time,
+              value: Number(value.toFixed(2)),
+            })),
+          },
+          volumeBubbles: volumeBubbles15m,
+        },
+        '5m': {
+          candles: candles5m,
+          entryPoints: entryPoints5m,
+          indicators: {
+            ema50: ema50_5m.map((value, index) => ({
+              time: candles5m[index + (candles5m.length - ema50_5m.length)].time,
+              value: Number(value.toFixed(2)),
+            })),
+            ema200: ema200_5m.map((value, index) => ({
+              time: candles5m[index + (candles5m.length - ema200_5m.length)].time,
+              value: Number(value.toFixed(2)),
+            })),
+          },
+          volumeBubbles: volumeBubbles5m,
+        },
       },
-      volumeBubbles,
       metadata: {
         generatedAt: new Date().toISOString(),
         dataType: 'mock',
-        candleCount: candles.length,
-        avgSentiment: Number((candles.reduce((sum, c) => sum + c.sentiment, 0) / candles.length).toFixed(2)),
+        rule: 'Never take 15m signal if 1h is neutral or against it',
+        trend1h,
+        validSignals: signals15m.filter(s => s.valid).length,
+        invalidSignals: signals15m.filter(s => !s.valid).length,
+        entryPoints: entryPoints5m.length,
       },
     };
 
