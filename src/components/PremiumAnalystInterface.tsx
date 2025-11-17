@@ -177,14 +177,17 @@ export const PremiumAnalystInterface = () => {
     );
     
     if (cryptoSymbol) {
-      // If it already ends with USD or USDT, use as-is, otherwise append USD
-      if (cryptoSymbol.endsWith('USD') || cryptoSymbol.endsWith('USDT')) {
+      // Always use USDT format for crypto (CoinGlass standard)
+      if (cryptoSymbol.endsWith('USDT')) {
         return cryptoSymbol;
       }
-      return `${cryptoSymbol}USD`;
+      if (cryptoSymbol.endsWith('USD')) {
+        return cryptoSymbol.replace('USD', 'USDT');
+      }
+      return `${cryptoSymbol}USDT`;
     }
     
-    return "BTCUSD";
+    return "BTCUSDT";
   };
 
   // Format symbol display: BTCUSD -> BTC/USD, ETHUSD -> ETH/USD
@@ -311,9 +314,12 @@ export const PremiumAnalystInterface = () => {
           body: { symbol, days: 7 }
         });
 
-        if (error) {
-          setApiError(`Failed to load chart data: ${error.message}`);
+        if (error || data?.error) {
+          const errorMsg = data?.error || error?.message || 'Unknown error';
+          setApiError(`Unable to load data for ${symbol}`);
           setChartData(null);
+          toast.error(`${symbol.replace('USDT', '').replace('USD', '')} data not available. Try BTC, ETH, or SOL.`);
+          console.error('Chart data error:', errorMsg);
           return;
         }
         
