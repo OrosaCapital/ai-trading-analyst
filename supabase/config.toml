@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.fetch-taker-volume]
 verify_jwt = false
+
+[functions.tatum-price-logger]
+verify_jwt = false
+
+[functions.ai-trading-decision]
+verify_jwt = false
+
+[functions.fetch-trading-data]
+verify_jwt = false
