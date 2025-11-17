@@ -1,48 +1,41 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
+import { fetchFromCoinglass } from '../_shared/coinglassClient.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Mock data removed - only using live CoinGlass API data
-
 async function fetchTakerVolumeFromCoinglass(symbol: string, apiKey: string) {
   console.log(`Fetching taker volume (CVD) from Coinglass for ${symbol}`);
   
   try {
-    const response = await fetch(
-      `https://open-api.coinglass.com/public/v2/indicator/taker_buy_sell_volume?symbol=${symbol}&interval=h1`,
-      {
-        headers: {
-          'CG-API-KEY': apiKey,
-        },
-      }
+    // Use v4 API endpoint
+    const data = await fetchFromCoinglass(
+      `/api/futures/taker-buy-sell-ratio?symbol=${symbol}&interval=h1`,
+      apiKey
     );
+    console.log('Coinglass taker volume data received:', data);
 
-    if (!response.ok) {
-      throw new Error(`Coinglass API error: ${response.status}`);
+    // Handle v4 API response structure
+    if (!data.success || !data.data) {
+      throw new Error('Invalid response from Coinglass API');
     }
 
-    const data = await response.json();
-    console.log('Coinglass taker volume data received');
-
+    const responseData = data.data;
     const intervals = ['5m', '15m', '1h', '4h'];
     const cvdData: any = {};
     
+    // Parse v4 API response (structure may vary)
     intervals.forEach(interval => {
-      const intervalData = data.data.filter((item: any) => item.interval === interval);
-      if (intervalData.length > 0) {
-        const latest = intervalData[0];
-        const buyVol = parseFloat(latest.buyVolume);
-        const sellVol = parseFloat(latest.sellVolume);
+      if (responseData[interval]) {
+        const intervalData = responseData[interval];
+        const buyVol = parseFloat(intervalData.buyVolume || intervalData.buy || 0);
+        const sellVol = parseFloat(intervalData.sellVolume || intervalData.sell || 0);
         const delta = buyVol - sellVol;
-        const cvd = intervalData.reduce((sum: number, item: any) => 
-          sum + (parseFloat(item.buyVolume) - parseFloat(item.sellVolume)), 0
-        );
 
         cvdData[interval] = {
-          current_cvd: cvd.toFixed(2),
+          current_cvd: delta.toFixed(2),
           buy_volume: buyVol.toFixed(2),
           sell_volume: sellVol.toFixed(2),
           delta: delta.toFixed(2),
@@ -51,8 +44,29 @@ async function fetchTakerVolumeFromCoinglass(symbol: string, apiKey: string) {
       }
     });
 
+    // If no interval data, try to parse as array
+    if (Object.keys(cvdData).length === 0 && Array.isArray(responseData)) {
+      intervals.forEach(interval => {
+        const intervalData = responseData.filter((item: any) => item.interval === interval);
+        if (intervalData.length > 0) {
+          const latest = intervalData[0];
+          const buyVol = parseFloat(latest.buyVolume || latest.buy || 0);
+          const sellVol = parseFloat(latest.sellVolume || latest.sell || 0);
+          const delta = buyVol - sellVol;
+
+          cvdData[interval] = {
+            current_cvd: delta.toFixed(2),
+            buy_volume: buyVol.toFixed(2),
+            sell_volume: sellVol.toFixed(2),
+            delta: delta.toFixed(2),
+            trend: delta > 0 ? 'BULLISH' : 'BEARISH',
+          };
+        }
+      });
+    }
+
     const allDeltas = Object.values(cvdData).map((d: any) => parseFloat(d.delta));
-    const avgDelta = allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length;
+    const avgDelta = allDeltas.length > 0 ? allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length : 0;
 
     return {
       symbol,
@@ -63,12 +77,7 @@ async function fetchTakerVolumeFromCoinglass(symbol: string, apiKey: string) {
         strength: Math.min(100, Math.abs(avgDelta / 10000)).toFixed(0),
         signal: avgDelta > 50000 ? 'BUY' : avgDelta < -50000 ? 'SELL' : 'NEUTRAL',
       },
-      historical: data.data.slice(0, 48).map((item: any) => ({
-        timestamp: new Date(item.createTime).toISOString(),
-        cvd: (parseFloat(item.buyVolume) - parseFloat(item.sellVolume)).toFixed(2),
-        buy_volume: item.buyVolume,
-        sell_volume: item.sellVolume,
-      })),
+      raw_data: responseData, // Include raw data for debugging
     };
   } catch (error) {
     console.error('Error fetching from Coinglass:', error);
