@@ -4,7 +4,10 @@ import {
   IChartApi,
   ISeriesApi,
   Time,
-  SeriesMarker,
+  CandlestickSeries,
+  AreaSeries,
+  LineSeries,
+  HistogramSeries,
 } from 'lightweight-charts';
 import { useProfessionalChartData } from '@/hooks/useProfessionalChartData';
 import { calculateTradeSignal, ChartDataForSignal } from '@/lib/signalEngine';
@@ -145,7 +148,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
 
     chartRef.current = chart;
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#22c55e',
       downColor: '#ef4444',
       borderUpColor: '#22c55e',
@@ -155,7 +158,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
     });
     candleSeriesRef.current = candleSeries;
 
-    const areaSeries = chart.addAreaSeries({
+    const areaSeries = chart.addSeries(AreaSeries, {
       lineColor: '#8b5cf6',
       topColor: 'rgba(139, 92, 246, 0.4)',
       bottomColor: 'rgba(139, 92, 246, 0.01)',
@@ -164,14 +167,14 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
     });
     areaSeriesRef.current = areaSeries;
 
-    emaSeriesRef.current = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2 });
-    volumeSeriesRef.current = chart.addHistogramSeries({
+    emaSeriesRef.current = chart.addSeries(LineSeries, { color: '#3b82f6', lineWidth: 2 });
+    volumeSeriesRef.current = chart.addSeries(HistogramSeries, {
       color: '#26a69a',
       priceFormat: { type: 'volume' },
       priceScaleId: '',
-      scaleMargins: { top: 0.7, bottom: 0 },
     });
-    rsiSeriesRef.current = chart.addLineSeries({ color: '#fbbf24', lineWidth: 1, priceScaleId: 'rsi' });
+    chart.priceScale('').applyOptions({ scaleMargins: { top: 0.7, bottom: 0 } });
+    rsiSeriesRef.current = chart.addSeries(LineSeries, { color: '#fbbf24', lineWidth: 1, priceScaleId: 'rsi' });
     chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
 
     const handleResize = () => {
@@ -215,8 +218,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
     }
     volumeSeriesRef.current?.setData(candles.map((c: any) => ({ time: c.time, value: c.volume || 0, color: c.close >= c.open ? '#22c55e80' : '#ef444480' })));
 
-    // Add annotations
-    const allMarkers: SeriesMarker<Time>[] = [];
+    // Add annotations (using price lines instead of markers)
     const events = getEventsForSymbol(symbol);
     if (events.length > 0) {
       const startDate = new Date((candles[0].time as number) * 1000);
@@ -229,22 +231,33 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
       });
       annotationManagerRef.current.clearAnnotations();
       annotationManagerRef.current.addAnnotations(relevantEvents);
-      allMarkers.push(...annotationManagerRef.current.convertToMarkers(relevantEvents));
+      
+      // Add price lines for annotations (markers API not available)
+      relevantEvents.forEach(event => {
+        if (event.price && candleSeriesRef.current) {
+          candleSeriesRef.current.createPriceLine({
+            price: event.price,
+            color: event.type === 'milestone' ? '#FFA726' : '#2196F3',
+            lineWidth: 1,
+            lineStyle: 2,
+            axisLabelVisible: true,
+            title: event.title.substring(0, 15),
+          });
+        }
+      });
     }
 
     if (tradeSignal && tradeSignal.signal !== 'NO TRADE') {
       const lastCandle = candles[candles.length - 1];
-      allMarkers.push({
-        time: lastCandle.time as Time,
-        position: (tradeSignal.signal === 'BUY' ? 'belowBar' : 'aboveBar') as any,
+      candleSeriesRef.current?.createPriceLine({
+        price: lastCandle.close,
         color: tradeSignal.signal === 'BUY' ? '#22c55e' : '#ef4444',
-        shape: (tradeSignal.signal === 'BUY' ? 'arrowUp' : 'arrowDown') as any,
-        text: `${tradeSignal.signal}`,
+        lineWidth: 2,
+        lineStyle: 0,
+        axisLabelVisible: true,
+        title: `${tradeSignal.signal} (${tradeSignal.confidence}%)`,
       });
     }
-
-    const activeSeries = chartMode === 'candlestick' ? candleSeriesRef.current : areaSeriesRef.current;
-    if (allMarkers.length > 0) activeSeries?.setMarkers(allMarkers);
   }, [chartData, activeTimeframe, annotationConfig, tradeSignal, chartMode, symbol]);
 
   if (isLoading) return <Skeleton className="h-[600px] w-full" />;
