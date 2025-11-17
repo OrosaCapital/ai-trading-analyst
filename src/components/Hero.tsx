@@ -24,7 +24,7 @@ export const Hero = ({ onGetStarted }: { onGetStarted: () => void }) => {
 
         {/* Main Heading */}
         <h1 className="text-7xl md:text-8xl font-black mb-6 tracking-tight">
-          <span className="text-primary drop-shadow-[0_0_30px_hsl(var(--primary))]">
+          <span className="text-accent drop-shadow-[0_0_40px_hsl(var(--accent)/0.8)]">
             OCAPX
           </span>
         </h1>
