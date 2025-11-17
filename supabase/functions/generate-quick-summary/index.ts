@@ -27,7 +27,7 @@ function generateQuickFallback(query: string, symbol: string) {
   }
   
   return {
-    summary: `Quick analysis for ${symbol} indicates a ${signal.toLowerCase()} market bias with ${sentiment.toLowerCase()} sentiment. Detailed Pine Script is being generated.`,
+    summary: `Quick analysis for ${symbol} indicates a ${signal.toLowerCase()} market bias with ${sentiment.toLowerCase()} sentiment. Detailed analysis is available.`,
     signal,
     sentiment,
     confidence: '70%'
@@ -37,7 +37,7 @@ function generateQuickFallback(query: string, symbol: string) {
 async function generateQuickSummary(query: string, symbol: string) {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
-  const systemPrompt = `You are a rapid trading analyst for OCAPX. Provide ONLY quick analysis without Pine Script code.
+  const systemPrompt = `You are a rapid trading analyst for OCAPX. Provide ONLY quick analysis.
 
 Provide:
 1. Brief 1-2 sentence market summary

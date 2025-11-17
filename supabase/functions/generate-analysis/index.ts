@@ -184,11 +184,10 @@ function generateFallbackAnalysis(query: string, symbol: string) {
   }
   
   return {
-    summary: `Technical analysis for ${symbol} suggests a ${signal.toLowerCase()} bias based on query analysis. Market conditions indicate ${sentiment.toLowerCase()} sentiment. Consider monitoring key support and resistance levels for confirmation.`,
-    signal: signal,
-    sentiment: sentiment,
-    confidence: '65%',
-    pineScript: PINE_SCRIPT_TEMPLATE.replace('{{STRATEGY_NAME}}', `${symbol} Analysis`)
+    summary: `Analysis for ${symbol}: Market shows ${signal.toLowerCase()} bias with ${sentiment.toLowerCase()} sentiment. Please try again for detailed analysis.`,
+    signal,
+    sentiment,
+    confidence: '65%'
   };
 }
 
@@ -322,24 +321,17 @@ Analyze this trading query and generate a complete trading analysis with Pine Sc
       const result = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
       
       const validation = validateAnalysis(result);
-      
-      if (validation.valid) {
-        const pineValidation = validatePineScript(result.pineScript);
-        if (pineValidation.valid) {
-          console.log('✅ Valid response received');
-          return result;
-        } else {
-          console.log('⚠️  Pine Script validation failed, using template');
-          result.pineScript = PINE_SCRIPT_TEMPLATE.replace('{{STRATEGY_NAME}}', `${symbol} Strategy`);
-          return result;
+      if (!validation.valid) {
+        console.error('❌ Validation errors:', validation.errors);
+        if (attempt < maxAttempts) {
+          console.log('⚠️ Retrying due to validation errors...');
+          continue;
         }
+        throw new Error('VALIDATION_FAILED');
       }
-      
-      console.error(`❌ Validation failed on attempt ${attempt}:`, validation.errors);
-      
-      if (attempt === maxAttempts) {
-        throw new Error('Failed to generate valid analysis');
-      }
+
+      console.log('✅ Analysis generated and validated successfully');
+      return result;
       
       await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       

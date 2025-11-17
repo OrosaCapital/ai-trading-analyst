@@ -34,7 +34,7 @@ export const Hero = ({ onGetStarted }: { onGetStarted: () => void }) => {
         </h2>
 
         <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto">
-          Advanced Pine Script v6 indicators with real-time sentiment analysis, volume bubbles, and trade signals
+          Advanced AI-powered trading analysis with real-time sentiment analysis, volume bubbles, and trade signals
         </p>
 
         {/* Feature Pills */}
