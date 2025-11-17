@@ -94,50 +94,101 @@ function generateMockOverview(symbol: string) {
 // Aggregate data from other endpoints
 async function fetchMarketOverview(symbol: string, supabase: any) {
   try {
-    // Fetch from cache or invoke other functions
-    const [fundingRes, oiRes, liqRes] = await Promise.all([
+    // Fetch from all endpoints but don't fail if some are unavailable
+    const [fundingRes, oiRes, liqRes] = await Promise.allSettled([
       supabase.functions.invoke('fetch-funding-rate', { body: { symbol } }),
       supabase.functions.invoke('fetch-open-interest', { body: { symbol } }),
       supabase.functions.invoke('fetch-liquidations', { body: { symbol } })
     ]);
 
-    const funding = fundingRes.data;
-    const oi = oiRes.data;
-    const liq = liqRes.data;
+    // Extract data with fallbacks
+    const funding = fundingRes.status === 'fulfilled' && !fundingRes.value.error 
+      ? fundingRes.value.data 
+      : null;
+    
+    const oi = oiRes.status === 'fulfilled' && !oiRes.value.error 
+      ? oiRes.value.data 
+      : null;
+    
+    const liq = liqRes.status === 'fulfilled' && !liqRes.value.error 
+      ? liqRes.value.data 
+      : null;
 
-    if (!funding || !oi || !liq) {
-      throw new Error('Failed to fetch market data');
+    // Build response with available data
+    const response: any = {
+      metrics: {},
+      marketHealth: { score: 50, status: 'UNKNOWN', signals: [] },
+      timestamp: new Date().toISOString(),
+      availability: {
+        fundingRate: !!funding,
+        openInterest: !!oi,
+        liquidations: !!liq
+      }
+    };
+
+    // Add funding rate if available
+    if (funding) {
+      response.metrics.fundingRate = {
+        current: `${(funding.current.rateValue * 100).toFixed(4)}%`,
+        value: funding.current.rateValue,
+        trend: funding.current.trend
+      };
+    } else {
+      response.metrics.fundingRate = {
+        current: 'N/A',
+        value: 0,
+        trend: 'UNAVAILABLE',
+        unavailable: true
+      };
     }
 
-    const fundingRate = funding.current.rateValue;
-    const oiChange = parseFloat(oi.total.change24h);
-    const liqRatio = parseFloat(liq.last24h.longShortRatio);
+    // Add OI if available
+    if (oi) {
+      response.metrics.openInterest = {
+        total: oi.total.value,
+        change24h: oi.total.change24h,
+        trend: parseFloat(oi.total.change24h) > 0 ? 'INCREASING' : 'DECREASING'
+      };
+    } else {
+      response.metrics.openInterest = {
+        total: 'N/A',
+        change24h: '0%',
+        trend: 'UNAVAILABLE',
+        unavailable: true
+      };
+    }
 
-    const health = calculateMarketHealth(fundingRate, oiChange, liqRatio);
+    // Add liquidations if available
+    if (liq) {
+      response.metrics.liquidations24h = {
+        total: liq.last24h.total,
+        longShortRatio: liq.last24h.longShortRatio
+      };
+    } else {
+      response.metrics.liquidations24h = {
+        total: 'N/A',
+        longShortRatio: '1.0',
+        unavailable: true
+      };
+    }
 
-    return {
-      marketHealth: health,
-      metrics: {
-        fundingRate: {
-          current: funding.current.rate,
-          value: fundingRate,
-          trend: funding.current.sentiment === 'BULLISH' ? 'RISING' : 'FALLING'
-        },
-        openInterest: {
-          total: oi.total.value,
-          change24h: oi.total.change24h,
-          trend: oi.total.sentiment
-        },
-        liquidations24h: {
-          total: liq.last24h.total,
-          longShortRatio: liq.last24h.longShortRatio
-        }
-      },
-      timestamp: new Date().toISOString(),
-      isMockData: funding.isMockData || oi.isMockData || liq.isMockData
-    };
+    // Calculate health score only if we have sufficient data
+    if (funding && oi && liq) {
+      const fundingRate = funding.current.rateValue;
+      const oiChange = parseFloat(oi.total.change24h);
+      const liqRatio = parseFloat(liq.last24h.longShortRatio);
+      response.marketHealth = calculateMarketHealth(fundingRate, oiChange, liqRatio);
+    } else {
+      response.marketHealth = {
+        score: 0,
+        status: 'UNAVAILABLE',
+        signals: ['Market health requires funding rate, open interest, and liquidation data']
+      };
+    }
+
+    return response;
   } catch (error) {
-    console.error('Error aggregating market data:', error);
+    console.error('Error fetching market overview:', error);
     throw error;
   }
 }
