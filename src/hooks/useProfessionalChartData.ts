@@ -69,94 +69,15 @@ export function useProfessionalChartData(symbol: string | null) {
   
   const { priceData, isConnected } = useRealtimePriceStream(symbol, !!symbol);
   
-  // Fetch Tatum price as fallback/primary data source
-  useEffect(() => {
-    if (!symbol) return;
-    
-    const fetchPrice = async () => {
-      try {
-        const { data } = await supabase.functions.invoke('fetch-tatum-price', {
-          body: { symbol }
-        });
-        
-        if (data?.price && !data.unavailable) {
-          setTatumPrice(data.price);
-          console.log('💰 Tatum price:', data.price);
-        }
-      } catch (err) {
-        console.error('Error fetching Tatum price:', err);
-      }
-    };
-    
-    fetchPrice();
-    const interval = setInterval(fetchPrice, 10000); // Every 10 seconds
-    
-    return () => clearInterval(interval);
-  }, [symbol]);
-  
   // Initialize with sample data immediately when symbol is set
   useEffect(() => {
     if (!symbol) return;
     
     setIsLoading(true);
     
-    // Start with basic initialization
-    const init = async () => {
-      try {
-        // Try to get immediate price
-        const { data } = await supabase.functions.invoke('fetch-tatum-price', {
-          body: { symbol }
-        });
-        
-        if (data?.price && data.price > 0) {
-          console.log('🚀 Initializing chart with price:', data.price);
-          const sampleCandles = generateSampleCandles(data.price, 100);
-          candles1mRef.current = sampleCandles;
-          hasInitializedRef.current = true;
-          lastPriceRef.current = data.price;
-          
-          // Immediately calculate and set chart data
-          const candles5m = aggregateCandles(sampleCandles, 5);
-          const candles15m = aggregateCandles(sampleCandles, 15);
-          const candles1h = aggregateCandles(sampleCandles, 60);
-          
-          const prices1h = candles1h.map(c => c.close);
-          const ema501h = calculateEMA(prices1h, 50);
-          const rsi1h = calculateRSI(prices1h, 14);
-          
-          setChartData({
-            candles1m: sampleCandles,
-            candles5m,
-            candles15m,
-            candles1h,
-            indicators: {
-              '1h': { ema50: ema501h, rsi: rsi1h, volumeSMA: [] },
-              '15m': { ema50: [], rsi: [], volumeSMA: [] },
-            },
-            coinglass: {
-              fundingRate: 0,
-              fundingSentiment: 'neutral',
-              openInterest: 0,
-              oiChange: 0,
-              liquidations: { longs: 0, shorts: 0 },
-              longShortRatio: 1,
-              overallSentiment: 'neutral',
-            },
-            levels: { support: [], resistance: [] },
-            liquiditySweeps: [],
-            candleCount: sampleCandles.length,
-            dataSource: 'sample',
-          });
-          
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Init error:', err);
-        setIsLoading(false);
-      }
-    };
-    
-    init();
+    // For now, we don't fetch data in this hook since we're using CoinGlass data
+    // This hook is only used as fallback when existingChartData is not provided
+    setIsLoading(false);
   }, [symbol]);
   
   // Update candles with real-time price data OR Tatum price

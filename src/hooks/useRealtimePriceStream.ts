@@ -189,29 +189,9 @@ export const useRealtimePriceStream = (
           return; // Success - exit early
         }
 
-        // Fallback to Tatum if CoinGlass fails
-        console.log('CoinGlass polling failed, trying Tatum API...');
-        const tatumResponse = await supabase.functions.invoke('fetch-tatum-price', {
-          body: { symbol }
-        });
-
-        if (!tatumResponse.error && tatumResponse.data?.price && !tatumResponse.data.unavailable) {
-          const tatumPriceUpdate: PriceUpdate = {
-            type: 'price_update',
-            symbol,
-            price: tatumResponse.data.price,
-            volume: tatumResponse.data.volume || 0,
-            change24h: tatumResponse.data.change24h || 0,
-            high24h: tatumResponse.data.high24h || 0,
-            low24h: tatumResponse.data.low24h || 0,
-            timestamp: Date.now()
-          };
-          setPriceData(tatumPriceUpdate);
-          setLastUpdateTime(Date.now());
-          console.log('✅ Using Tatum price:', tatumResponse.data.price);
-        } else {
-          console.error('Both CoinGlass and Tatum polling failed');
-        }
+        // Fallback to Tatum if CoinGlass fails (disabled - Tatum requires payment)
+        console.log('CoinGlass polling unavailable, using last known price');
+        setIsPolling(false);
 
       } catch (error) {
         console.error('Polling error:', error);
