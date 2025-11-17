@@ -351,225 +351,358 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
         </div>
       )}
 
-      {/* Multi-Timeframe Chart */}
+      {/* Multi-Timeframe Chart Tabs */}
       <Tabs value={activeTimeframe} onValueChange={(v) => setActiveTimeframe(v as any)} className="w-full">
         <TabsList className="grid w-full grid-cols-4 mb-4">
           <TabsTrigger value="1h" className="flex flex-col gap-1">
-            <span>1H Trend</span>
+            <span>1H Chart</span>
             <TrendBadge trend={data.metadata.trend1h} size="sm" />
           </TabsTrigger>
           <TabsTrigger value="15m" className="flex flex-col gap-1">
-            <span>15M Signal</span>
+            <span>15M Chart</span>
             <span className="text-xs text-[hsl(var(--chart-green))]">{validSignals.length} Valid</span>
           </TabsTrigger>
           <TabsTrigger value="5m" className="flex flex-col gap-1">
-            <span>5M Entry</span>
+            <span>5M Chart</span>
             <span className="text-xs text-primary">{entryPoints.length} Points</span>
           </TabsTrigger>
           <TabsTrigger value="1m" className="flex flex-col gap-1">
-            <span>1M Confirm</span>
+            <span>1M Chart</span>
             <span className="text-xs text-muted-foreground">Precision</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="1h" className="space-y-4">
-          <div ref={chartContainerRef} className="w-full rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+        <TabsContent value="1h">
+          <div ref={chartContainerRef} className="w-full h-[500px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
         </TabsContent>
 
-        <TabsContent value="15m" className="space-y-4">
-          <div ref={chartContainerRef} className="w-full rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
-          
-          {/* STEP 2: Setup Signals */}
-          <div className="bg-card/50 border border-border/50 rounded-xl p-6 backdrop-blur-sm space-y-4">
-            <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Zap className="w-5 h-5 text-primary" />
-              STEP 2: 15M Setup Formation ({signals15m.length} signals)
-            </h3>
-            
-            <div className="space-y-3">
-              {validSignals.slice(-3).map((signal, idx) => (
-                <div key={idx} className="bg-[hsl(var(--chart-green))]/10 border border-[hsl(var(--chart-green))]/30 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-[hsl(var(--chart-green))]" />
-                      <span className="font-bold text-[hsl(var(--chart-green))]">{signal.type.toUpperCase()} Signal</span>
-                      <span className="text-sm text-muted-foreground">${signal.price.toFixed(2)}</span>
-                    </div>
-                    <span className="text-sm font-semibold text-[hsl(var(--chart-green))]">
-                      Setup: {signal.setupScore?.totalScore}/7 ✓
-                    </span>
-                  </div>
-                  {signal.setupScore && (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={signal.setupScore.volumeBubbleAlign ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {signal.setupScore.volumeBubbleAlign ? '✓' : '✗'} Volume Aligned
-                      </div>
-                      <div className={signal.setupScore.oiExpanding ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {signal.setupScore.oiExpanding ? '✓' : '✗'} OI Expanding
-                      </div>
-                      <div className={signal.setupScore.rsiZone ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {signal.setupScore.rsiZone ? '✓' : '✗'} RSI Zone
-                      </div>
-                      <div className={signal.setupScore.emotionalShift ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {signal.setupScore.emotionalShift ? '✓' : '✗'} Emotional Shift
-                      </div>
-                      <div className={signal.setupScore.bosConfirmed ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {signal.setupScore.bosConfirmed ? '✓' : '✗'} BOS Confirmed
-                      </div>
-                      <div className={signal.setupScore.pullbackValid ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {signal.setupScore.pullbackValid ? '✓' : '✗'} Valid Pullback
-                      </div>
-                      <div className={signal.setupScore.consolidationBreak ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {signal.setupScore.consolidationBreak ? '✓' : '✗'} Consolidation Break
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              
-              {invalidSignals.length > 0 && (
-                <div className="bg-[hsl(var(--chart-red))]/10 border border-[hsl(var(--chart-red))]/30 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <XCircle className="w-5 h-5 text-[hsl(var(--chart-red))]" />
-                    <span className="font-bold text-[hsl(var(--chart-red))]">{invalidSignals.length} Invalid Signals</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    These signals were filtered out due to 1H trend misalignment or low setup scores
-                  </p>
-                </div>
-              )}
+        <TabsContent value="15m">
+          <div ref={chartContainerRef} className="w-full h-[500px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+        </TabsContent>
+
+        <TabsContent value="5m">
+          <div ref={chartContainerRef} className="w-full h-[500px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+        </TabsContent>
+
+        <TabsContent value="1m">
+          <div ref={chartContainerRef} className="w-full h-[500px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+        </TabsContent>
+      </Tabs>
+
+      {/* All 4 Steps - Always Visible in Accordion */}
+      <Accordion type="multiple" defaultValue={["step1", "step2", "step3", "step4"]} className="space-y-4">
+        {/* STEP 1: 1H Trend Analysis */}
+        <AccordionItem value="step1" className="bg-card/50 border border-border/50 rounded-xl px-6">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold">1</div>
+              <div className="text-left">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-primary" />
+                  1H Trend Analysis
+                </h3>
+                <p className="text-xs text-muted-foreground">Momentum • Structure • Sentiment Alignment</p>
+              </div>
             </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="5m" className="space-y-4">
-          <div ref={chartContainerRef} className="w-full rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
-          
-          {/* STEP 3: Entry Points */}
-          <div className="bg-card/50 border border-border/50 rounded-xl p-6 backdrop-blur-sm space-y-4">
-            <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Target className="w-5 h-5 text-primary" />
-              STEP 3: 5M Entry Execution ({entryPoints.length} entries)
-            </h3>
-            
-            <div className="space-y-4">
-              {entryPoints.slice(-2).map((entry, idx) => (
-                <div key={idx} className="bg-primary/10 border border-primary/30 rounded-lg p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${entry.type === 'buy' ? 'bg-[hsl(var(--chart-green))]/20' : 'bg-[hsl(var(--chart-red))]/20'}`}>
-                        {entry.type === 'buy' ? <TrendingUp className="w-6 h-6 text-[hsl(var(--chart-green))]" /> : <TrendingDown className="w-6 h-6 text-[hsl(var(--chart-red))]" />}
-                      </div>
-                      <div>
-                        <div className="font-bold text-lg">{entry.type.toUpperCase()} Entry</div>
-                        <div className="text-sm text-muted-foreground">${entry.price.toFixed(2)}</div>
-                      </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            {trendAnalysis && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Overall Trend</span>
+                    <TrendBadge trend={trendAnalysis.trend} size="sm" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Confidence</span>
+                    <span className="text-lg font-bold text-primary">{trendAnalysis.confidence.toFixed(0)}%</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">Factor Scores</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">EMAs</span>
+                      <span className={`font-semibold ${trendAnalysis.emaScore > 60 ? 'text-[hsl(var(--chart-green))]' : trendAnalysis.emaScore < 40 ? 'text-[hsl(var(--chart-red))]' : 'text-muted-foreground'}`}>
+                        {trendAnalysis.emaScore.toFixed(0)}%
+                      </span>
                     </div>
-                    {entry.validation && (
-                      <div className="text-right">
-                        <div className={`text-2xl font-bold ${entry.validation.aiConfidence > 70 ? 'text-[hsl(var(--chart-green))]' : 'text-primary'}`}>
-                          {entry.validation.aiConfidence.toFixed(0)}%
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Momentum</span>
+                      <span className={`font-semibold ${trendAnalysis.momentumScore > 60 ? 'text-[hsl(var(--chart-green))]' : trendAnalysis.momentumScore < 40 ? 'text-[hsl(var(--chart-red))]' : 'text-muted-foreground'}`}>
+                        {trendAnalysis.momentumScore.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Structure</span>
+                      <span className={`font-semibold ${trendAnalysis.structureScore > 60 ? 'text-[hsl(var(--chart-green))]' : trendAnalysis.structureScore < 40 ? 'text-[hsl(var(--chart-red))]' : 'text-muted-foreground'}`}>
+                        {trendAnalysis.structureScore.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Sentiment</span>
+                      <span className={`font-semibold ${trendAnalysis.sentimentScore > 60 ? 'text-[hsl(var(--chart-green))]' : trendAnalysis.sentimentScore < 40 ? 'text-[hsl(var(--chart-red))]' : 'text-muted-foreground'}`}>
+                        {trendAnalysis.sentimentScore.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="md:col-span-2 grid grid-cols-4 gap-4 bg-muted/30 rounded-lg p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-[hsl(var(--chart-green))]">{trendAnalysis.higherHighs}</div>
+                    <div className="text-xs text-muted-foreground">Higher Highs</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-[hsl(var(--chart-green))]">{trendAnalysis.higherLows}</div>
+                    <div className="text-xs text-muted-foreground">Higher Lows</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-[hsl(var(--chart-red))]">{trendAnalysis.lowerHighs}</div>
+                    <div className="text-xs text-muted-foreground">Lower Highs</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-[hsl(var(--chart-red))]">{trendAnalysis.lowerLows}</div>
+                    <div className="text-xs text-muted-foreground">Lower Lows</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* STEP 2: 15M Setup Formation */}
+        <AccordionItem value="step2" className="bg-card/50 border border-border/50 rounded-xl px-6">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold">2</div>
+              <div className="text-left">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-primary" />
+                  15M Setup Formation
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {validSignals.length} Valid • {invalidSignals.length} Invalid
+                </p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            {signals15m.length > 0 ? (
+              <>
+                {validSignals.slice(-3).map((signal, idx) => (
+                  <div key={idx} className="bg-[hsl(var(--chart-green))]/10 border border-[hsl(var(--chart-green))]/30 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-[hsl(var(--chart-green))]" />
+                        <span className="font-bold text-[hsl(var(--chart-green))]">{signal.type.toUpperCase()} Signal</span>
+                        <span className="text-sm text-muted-foreground">${signal.price.toFixed(2)}</span>
+                      </div>
+                      <span className="text-sm font-semibold text-[hsl(var(--chart-green))]">
+                        Setup: {signal.setupScore?.totalScore}/7 ✓
+                      </span>
+                    </div>
+                    {signal.setupScore && (
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className={signal.setupScore.volumeBubbleAlign ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
+                          {signal.setupScore.volumeBubbleAlign ? '✓' : '✗'} Volume Aligned
                         </div>
-                        <div className="text-xs text-muted-foreground">AI Confidence</div>
+                        <div className={signal.setupScore.oiExpanding ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
+                          {signal.setupScore.oiExpanding ? '✓' : '✗'} OI Expanding
+                        </div>
+                        <div className={signal.setupScore.rsiZone ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
+                          {signal.setupScore.rsiZone ? '✓' : '✗'} RSI Zone
+                        </div>
+                        <div className={signal.setupScore.emotionalShift ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
+                          {signal.setupScore.emotionalShift ? '✓' : '✗'} Emotional Shift
+                        </div>
+                        <div className={signal.setupScore.bosConfirmed ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
+                          {signal.setupScore.bosConfirmed ? '✓' : '✗'} BOS
+                        </div>
+                        <div className={signal.setupScore.pullbackValid ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
+                          {signal.setupScore.pullbackValid ? '✓' : '✗'} Pullback
+                        </div>
+                        <div className={signal.setupScore.consolidationBreak ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
+                          {signal.setupScore.consolidationBreak ? '✓' : '✗'} Consolidation Break
+                        </div>
                       </div>
                     )}
                   </div>
-                  
-                  {entry.validation && (
-                    <div className="mb-4 p-3 bg-background/50 rounded-lg">
-                      <div className="font-semibold text-sm mb-2">Entry Checklist ({entry.validation.entryScore}/6)</div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className={entry.validation.microBOS ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                          {entry.validation.microBOS ? '✓' : '✗'} Micro-BOS
-                        </div>
-                        <div className={entry.validation.candlePattern ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                          {entry.validation.candlePattern ? `✓ ${entry.validation.candlePattern}` : '✗ No Pattern'}
-                        </div>
-                        <div className={entry.validation.volumeConfirm ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                          {entry.validation.volumeConfirm ? '✓' : '✗'} Volume Confirm
-                        </div>
-                        <div className={entry.validation.bubbleBurst ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                          {entry.validation.bubbleBurst ? '✓' : '✗'} Bubble Burst
-                        </div>
-                        <div className={entry.validation.momentumFlip ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                          {entry.validation.momentumFlip ? '✓' : '✗'} Momentum Flip
-                        </div>
-                        <div className={entry.validation.wrFormation ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                          {entry.validation.wrFormation ? '✓' : '✗'} W/R Formation
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div className="text-center p-2 bg-background/50 rounded">
-                      <div className="text-xs text-muted-foreground mb-1">Stop Loss</div>
-                      <div className="font-semibold text-[hsl(var(--chart-red))]">${entry.stopLoss.toFixed(2)}</div>
-                    </div>
-                    <div className="text-center p-2 bg-background/50 rounded">
-                      <div className="text-xs text-muted-foreground mb-1">Take Profit</div>
-                      <div className="font-semibold text-[hsl(var(--chart-green))]">${entry.takeProfit.toFixed(2)}</div>
-                    </div>
-                    <div className="text-center p-2 bg-background/50 rounded">
-                      <div className="text-xs text-muted-foreground mb-1">R:R</div>
-                      <div className="font-semibold text-primary">1:{entry.riskReward.toFixed(1)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="1m" className="space-y-4">
-          <div ref={chartContainerRef} className="w-full rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
-          
-          {/* STEP 4: Micro-Confirmation */}
-          <div className="bg-card/50 border border-border/50 rounded-xl p-6 backdrop-blur-sm space-y-4">
-            <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              STEP 4: 1M Micro-Confirmation (Optional Precision)
-            </h3>
-            
-            <div className="space-y-3">
-              {entryPoints.slice(-2).map((entry, idx) => (
-                entry.microConfirmation && (
-                  <div key={idx} className={`border rounded-lg p-4 ${
-                    entry.microConfirmation.recommendation === 'ENTER NOW' ? 'bg-[hsl(var(--chart-green))]/10 border-[hsl(var(--chart-green))]/30' :
-                    entry.microConfirmation.recommendation === 'SKIP' ? 'bg-[hsl(var(--chart-red))]/10 border-[hsl(var(--chart-red))]/30' :
-                    'bg-muted/10 border-muted/30'
-                  }`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-bold">{entry.type.toUpperCase()} @ ${entry.price.toFixed(2)}</span>
-                      <span className={`font-bold text-lg ${
-                        entry.microConfirmation.recommendation === 'ENTER NOW' ? 'text-[hsl(var(--chart-green))]' :
-                        entry.microConfirmation.recommendation === 'SKIP' ? 'text-[hsl(var(--chart-red))]' :
-                        'text-muted-foreground'
-                      }`}>
-                        {entry.microConfirmation.recommendation}
+                ))}
+                
+                {invalidSignals.length > 0 && (
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-destructive" />
+                      <span className="text-sm text-destructive">
+                        {invalidSignals.length} signal(s) failed setup criteria
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className={entry.microConfirmation.breakoutConfirmed ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {entry.microConfirmation.breakoutConfirmed ? '✓' : '✗'} Breakout
-                      </div>
-                      <div className={entry.microConfirmation.volumeSustained ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {entry.microConfirmation.volumeSustained ? '✓' : '✗'} Volume
-                      </div>
-                      <div className={entry.microConfirmation.momentumContinues ? 'text-[hsl(var(--chart-green))]' : 'text-muted-foreground'}>
-                        {entry.microConfirmation.momentumContinues ? '✓' : '✗'} Momentum
-                      </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No signals detected</p>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* STEP 3: 5M Entry Execution */}
+        <AccordionItem value="step3" className="bg-card/50 border border-border/50 rounded-xl px-6">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold">3</div>
+              <div className="text-left">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  5M Entry Execution
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {entryPoints.length} Entry Point(s) • Risk/Reward Analysis
+                </p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            {entryPoints.length > 0 ? (
+              entryPoints.map((entry, idx) => (
+                <div key={idx} className="bg-muted/30 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-primary" />
+                      <span className="font-semibold text-foreground capitalize">{entry.type} Entry</span>
+                      <span className="text-sm text-muted-foreground">${entry.price.toFixed(2)}</span>
                     </div>
-                    <div className="mt-2 text-center">
-                      <span className="text-sm font-semibold">Confirmation: {entry.microConfirmation.confirmationScore}/3</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Score:</span>
+                      <span className="text-sm font-semibold text-foreground">{entry.validation?.entryScore || 0}/6</span>
                     </div>
                   </div>
-                )
-              ))}
+                  
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground block text-xs">Stop Loss</span>
+                      <span className="font-semibold text-[hsl(var(--chart-red))]">${entry.stopLoss.toFixed(2)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-xs">Take Profit</span>
+                      <span className="font-semibold text-[hsl(var(--chart-green))]">${entry.takeProfit.toFixed(2)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-xs">Risk/Reward</span>
+                      <span className="text-sm font-bold text-primary">1:{entry.riskReward.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  
+                  {entry.validation && (
+                    <>
+                      <div className="flex items-center justify-between bg-card/50 rounded p-2">
+                        <span className="text-xs text-muted-foreground">AI Confidence</span>
+                        <span className="text-sm font-bold text-primary">{entry.validation.aiConfidence}%</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-1">
+                          {entry.validation.microBOS ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--chart-green))]" /> : <XCircle className="h-3 w-3 text-[hsl(var(--chart-red))]" />}
+                          <span className="text-muted-foreground">Micro BOS</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {entry.validation.candlePattern ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--chart-green))]" /> : <XCircle className="h-3 w-3 text-[hsl(var(--chart-red))]" />}
+                          <span className="text-muted-foreground">Candle Pattern</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {entry.validation.volumeConfirm ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--chart-green))]" /> : <XCircle className="h-3 w-3 text-[hsl(var(--chart-red))]" />}
+                          <span className="text-muted-foreground">Volume Confirm</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {entry.validation.bubbleBurst ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--chart-green))]" /> : <XCircle className="h-3 w-3 text-[hsl(var(--chart-red))]" />}
+                          <span className="text-muted-foreground">Bubble Burst</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {entry.validation.momentumFlip ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--chart-green))]" /> : <XCircle className="h-3 w-3 text-[hsl(var(--chart-red))]" />}
+                          <span className="text-muted-foreground">Momentum Flip</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {entry.validation.wrFormation ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--chart-green))]" /> : <XCircle className="h-3 w-3 text-[hsl(var(--chart-red))]" />}
+                          <span className="text-muted-foreground">W/R Formation</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No valid entry points detected</p>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* STEP 4: 1M Micro-Confirmation */}
+        <AccordionItem value="step4" className="bg-card/50 border border-border/50 rounded-xl px-6">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold">4</div>
+              <div className="text-left">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-primary" />
+                  1M Micro-Confirmation
+                </h3>
+                <p className="text-xs text-muted-foreground">Optional Precision Entry Refinement</p>
+              </div>
             </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            {entryPoints.length > 0 ? (
+              entryPoints.map((entry, idx) => {
+                const confirmation = entry.microConfirmation;
+                if (!confirmation) return null;
+                
+                return (
+                  <div key={idx} className="bg-muted/30 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-yellow-500" />
+                        <span className="font-semibold text-foreground">Entry #{idx + 1} Confirmation</span>
+                      </div>
+                      <div className={`px-2 py-1 rounded text-xs font-semibold ${
+                        confirmation.recommendation === 'ENTER NOW' ? 'bg-[hsl(var(--chart-green))]/20 text-[hsl(var(--chart-green))]' :
+                        confirmation.recommendation === 'WAIT' ? 'bg-yellow-500/20 text-yellow-500' :
+                        'bg-[hsl(var(--chart-red))]/20 text-[hsl(var(--chart-red))]'
+                      }`}>
+                        {confirmation.recommendation}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        {confirmation.breakoutConfirmed ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--chart-green))]" /> : <XCircle className="h-3 w-3 text-[hsl(var(--chart-red))]" />}
+                        <span className="text-muted-foreground">Breakout</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {confirmation.volumeSustained ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--chart-green))]" /> : <XCircle className="h-3 w-3 text-[hsl(var(--chart-red))]" />}
+                        <span className="text-muted-foreground">Volume Spike</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {confirmation.momentumContinues ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--chart-green))]" /> : <XCircle className="h-3 w-3 text-[hsl(var(--chart-red))]" />}
+                        <span className="text-muted-foreground">Momentum</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-card/50 rounded p-2">
+                      <span className="text-xs text-muted-foreground">
+                        Confirmation Score: {confirmation.confirmationScore}/3
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No entries to confirm</p>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 };
