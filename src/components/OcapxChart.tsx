@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createChart, IChartApi, CandlestickSeries, LineSeries } from "lightweight-charts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle, Activity, Zap, Target, Shield } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
