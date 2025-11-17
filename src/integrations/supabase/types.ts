@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_trading_signals: {
+        Row: {
+          coinglass_explanation: string | null
+          confidence: number
+          created_at: string | null
+          decision: string
+          entry_price: number | null
+          entry_trigger_explanation: string | null
+          id: string
+          liquidity_explanation: string | null
+          reasoning: Json
+          stop_loss: number | null
+          symbol: string
+          take_profit: number | null
+          timestamp: string | null
+          trend_explanation: string | null
+          volume_explanation: string | null
+        }
+        Insert: {
+          coinglass_explanation?: string | null
+          confidence: number
+          created_at?: string | null
+          decision: string
+          entry_price?: number | null
+          entry_trigger_explanation?: string | null
+          id?: string
+          liquidity_explanation?: string | null
+          reasoning: Json
+          stop_loss?: number | null
+          symbol: string
+          take_profit?: number | null
+          timestamp?: string | null
+          trend_explanation?: string | null
+          volume_explanation?: string | null
+        }
+        Update: {
+          coinglass_explanation?: string | null
+          confidence?: number
+          created_at?: string | null
+          decision?: string
+          entry_price?: number | null
+          entry_trigger_explanation?: string | null
+          id?: string
+          liquidity_explanation?: string | null
+          reasoning?: Json
+          stop_loss?: number | null
+          symbol?: string
+          take_profit?: number | null
+          timestamp?: string | null
+          trend_explanation?: string | null
+          volume_explanation?: string | null
+        }
+        Relationships: []
+      }
       analysis_cache: {
         Row: {
           created_at: string | null
@@ -37,6 +91,33 @@ export type Database = {
           id?: string
           query_hash?: string
           result?: Json
+          symbol?: string
+        }
+        Relationships: []
+      }
+      coinglass_metrics_cache: {
+        Row: {
+          cached_at: string | null
+          data: Json
+          expires_at: string
+          id: string
+          metric_type: string
+          symbol: string
+        }
+        Insert: {
+          cached_at?: string | null
+          data: Json
+          expires_at: string
+          id?: string
+          metric_type: string
+          symbol: string
+        }
+        Update: {
+          cached_at?: string | null
+          data?: Json
+          expires_at?: string
+          id?: string
+          metric_type?: string
           symbol?: string
         }
         Relationships: []
@@ -68,6 +149,36 @@ export type Database = {
           id?: string
           interval?: string | null
           symbol?: string
+        }
+        Relationships: []
+      }
+      tatum_price_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          interval: string
+          price: number
+          symbol: string
+          timestamp: string
+          volume: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interval: string
+          price: number
+          symbol: string
+          timestamp?: string
+          volume?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interval?: string
+          price?: number
+          symbol?: string
+          timestamp?: string
+          volume?: number | null
         }
         Relationships: []
       }

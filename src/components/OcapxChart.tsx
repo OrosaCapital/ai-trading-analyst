@@ -170,23 +170,30 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
     if (!chartContainerRef.current || !data) return;
 
     const chart = createChart(chartContainerRef.current, {
-      layout: { background: { color: 'transparent' }, textColor: 'rgba(255, 255, 255, 0.9)' },
-      grid: { vertLines: { color: 'rgba(255, 255, 255, 0.05)' }, horzLines: { color: 'rgba(255, 255, 255, 0.05)' } },
+      layout: { background: { color: 'transparent' }, textColor: 'hsl(197, 100%, 44%)' },
+      grid: { 
+        vertLines: { color: 'rgba(0, 255, 255, 0.08)', style: 2 }, 
+        horzLines: { color: 'rgba(0, 255, 255, 0.08)', style: 2 } 
+      },
       width: chartContainerRef.current.clientWidth,
       height: 500,
       timeScale: { timeVisible: true, secondsVisible: false },
+      crosshair: {
+        vertLine: { color: 'hsl(75, 100%, 50%)', width: 2, labelBackgroundColor: 'hsl(75, 100%, 50%)' },
+        horzLine: { color: 'hsl(75, 100%, 50%)', width: 2, labelBackgroundColor: 'hsl(75, 100%, 50%)' },
+      },
     });
 
     chartRef.current = chart;
 
     const timeframeData = data.timeframes[activeTimeframe];
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: 'rgba(76, 255, 186, 0.9)',
-      downColor: 'rgba(255, 71, 133, 0.9)',
-      borderUpColor: 'rgba(76, 255, 186, 1)',
-      borderDownColor: 'rgba(255, 71, 133, 1)',
-      wickUpColor: 'rgba(76, 255, 186, 0.8)',
-      wickDownColor: 'rgba(255, 71, 133, 0.8)',
+      upColor: 'hsl(75, 100%, 50%)',
+      downColor: 'hsl(5, 85%, 60%)',
+      borderUpColor: 'hsl(75, 100%, 50%)',
+      borderDownColor: 'hsl(5, 85%, 60%)',
+      wickUpColor: 'hsl(75, 100%, 50%)',
+      wickDownColor: 'hsl(5, 85%, 60%)',
     });
 
     const candleData = timeframeData.candles.map(c => {
@@ -204,17 +211,35 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
     candlestickSeries.setData(candleData);
 
     if (timeframeData.indicators.ema50) {
-      const ema50Series = chart.addSeries(LineSeries, { color: 'rgba(255, 206, 86, 0.8)', lineWidth: 2, title: 'EMA 50' });
+      const ema50Series = chart.addSeries(LineSeries, { 
+        color: 'hsl(197, 100%, 54%)', 
+        lineWidth: 3, 
+        title: 'EMA 50',
+        lastValueVisible: true,
+        priceLineVisible: true,
+      });
       ema50Series.setData(timeframeData.indicators.ema50.map(p => ({ time: p.time as any, value: p.value })));
     }
 
     if (timeframeData.indicators.ema200) {
-      const ema200Series = chart.addSeries(LineSeries, { color: 'rgba(54, 162, 235, 0.8)', lineWidth: 2, title: 'EMA 200' });
+      const ema200Series = chart.addSeries(LineSeries, { 
+        color: 'hsl(280, 100%, 60%)', 
+        lineWidth: 3, 
+        title: 'EMA 200',
+        lastValueVisible: true,
+        priceLineVisible: true,
+      });
       ema200Series.setData(timeframeData.indicators.ema200.map(p => ({ time: p.time as any, value: p.value })));
     }
 
     if (timeframeData.indicators.ema20) {
-      const ema20Series = chart.addSeries(LineSeries, { color: 'rgba(153, 102, 255, 0.8)', lineWidth: 2, title: 'EMA 20' });
+      const ema20Series = chart.addSeries(LineSeries, { 
+        color: 'hsl(330, 100%, 60%)', 
+        lineWidth: 3, 
+        title: 'EMA 20',
+        lastValueVisible: true,
+        priceLineVisible: true,
+      });
       ema20Series.setData(timeframeData.indicators.ema20.map(p => ({ time: p.time as any, value: p.value })));
     }
 
