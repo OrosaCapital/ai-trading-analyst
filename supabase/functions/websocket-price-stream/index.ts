@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
   let currentSymbol: string | null = null;
   let reconnectAttempts = 0;
   const MAX_RECONNECT_ATTEMPTS = 5;
+  let pingInterval: number | null = null;
 
   const connectToCoinGlass = (symbol: string) => {
     if (coinglassWS && coinglassWS.readyState === WebSocket.OPEN) {
@@ -35,8 +36,9 @@ Deno.serve(async (req) => {
 
     console.log(`Connecting to CoinGlass WebSocket for ${symbol}...`);
     
-    // CoinGlass WebSocket endpoint
-    coinglassWS = new WebSocket("wss://api.coinglass.com/ws/v2");
+    // CoinGlass WebSocket endpoint with API key
+    const apiKey = Deno.env.get('COINGLASS_API_KEY') || '';
+    coinglassWS = new WebSocket(`wss://open-ws.coinglass.com/ws-api?cg-api-key=${apiKey}`);
     
     coinglassWS.onopen = () => {
       console.log(`CoinGlass WebSocket connected for ${symbol}`);
@@ -51,6 +53,14 @@ Deno.serve(async (req) => {
       };
       
       coinglassWS?.send(JSON.stringify(subscribeMsg));
+      
+      // Set up ping interval to keep connection alive (every 20 seconds)
+      if (pingInterval) clearInterval(pingInterval);
+      pingInterval = setInterval(() => {
+        if (coinglassWS?.readyState === WebSocket.OPEN) {
+          coinglassWS.send('ping');
+        }
+      }, 20000);
       
       // Send connection success to client
       socket.send(JSON.stringify({
@@ -98,6 +108,12 @@ Deno.serve(async (req) => {
 
     coinglassWS.onclose = () => {
       console.log('CoinGlass WebSocket closed');
+      
+      // Clear ping interval
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
       
       // Attempt reconnection
       if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && currentSymbol) {
@@ -152,6 +168,10 @@ Deno.serve(async (req) => {
 
   socket.onclose = () => {
     console.log("Client WebSocket closed");
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
     if (coinglassWS) {
       coinglassWS.close();
       coinglassWS = null;
