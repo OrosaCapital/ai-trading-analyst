@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createChart, IChartApi } from "lightweight-charts";
+import { createChart, IChartApi, CandlestickSeries, LineSeries } from "lightweight-charts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle, Activity, Zap, Target, Shield } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -179,7 +179,7 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
     chartRef.current = chart;
 
     const timeframeData = data.timeframes[activeTimeframe];
-    const candlestickSeries = (chart as any).addCandlestickSeries({
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: 'rgba(76, 255, 186, 0.9)',
       downColor: 'rgba(255, 71, 133, 0.9)',
       borderUpColor: 'rgba(76, 255, 186, 1)',
@@ -203,17 +203,17 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
     candlestickSeries.setData(candleData);
 
     if (timeframeData.indicators.ema50) {
-      const ema50Series = (chart as any).addLineSeries({ color: 'rgba(255, 206, 86, 0.8)', lineWidth: 2, title: 'EMA 50' });
+      const ema50Series = chart.addSeries(LineSeries, { color: 'rgba(255, 206, 86, 0.8)', lineWidth: 2, title: 'EMA 50' });
       ema50Series.setData(timeframeData.indicators.ema50.map(p => ({ time: p.time as any, value: p.value })));
     }
 
     if (timeframeData.indicators.ema200) {
-      const ema200Series = (chart as any).addLineSeries({ color: 'rgba(54, 162, 235, 0.8)', lineWidth: 2, title: 'EMA 200' });
+      const ema200Series = chart.addSeries(LineSeries, { color: 'rgba(54, 162, 235, 0.8)', lineWidth: 2, title: 'EMA 200' });
       ema200Series.setData(timeframeData.indicators.ema200.map(p => ({ time: p.time as any, value: p.value })));
     }
 
     if (timeframeData.indicators.ema20) {
-      const ema20Series = (chart as any).addLineSeries({ color: 'rgba(153, 102, 255, 0.8)', lineWidth: 2, title: 'EMA 20' });
+      const ema20Series = chart.addSeries(LineSeries, { color: 'rgba(153, 102, 255, 0.8)', lineWidth: 2, title: 'EMA 20' });
       ema20Series.setData(timeframeData.indicators.ema20.map(p => ({ time: p.time as any, value: p.value })));
     }
 
