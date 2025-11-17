@@ -4,6 +4,7 @@ import {
   IChartApi,
   ISeriesApi,
   Time,
+  SeriesMarker,
   CandlestickSeries,
   AreaSeries,
   LineSeries,
