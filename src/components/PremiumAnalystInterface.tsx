@@ -85,7 +85,7 @@ const popularSymbols = [
 
 export const PremiumAnalystInterface = () => {
   const [input, setInput] = useState("");
-  const [symbol, setSymbol] = useState("BTCUSD");
+  const [symbol, setSymbol] = useState("BTCUSD"); // No slash format
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [chartData, setChartData] = useState<MultiTimeframeData | null>(null);
@@ -291,7 +291,7 @@ export const PremiumAnalystInterface = () => {
     fetchTatumPrice();
   }, [symbol]);
 
-  // Fetch chart data when symbol changes
+  // Fetch chart data when symbol changes (START BACKGROUND PRICE LOGGING)
   useEffect(() => {
     const fetchChartData = async () => {
       if (!symbol) return;
@@ -299,6 +299,11 @@ export const PremiumAnalystInterface = () => {
       setIsLoadingChart(true);
       setApiError(null);
       try {
+        // Start background price logging for this symbol
+        supabase.functions.invoke('tatum-price-logger', {
+          body: { symbol }
+        }).catch(err => console.log('Price logger started:', err?.message || 'running'));
+        
         const { data, error } = await supabase.functions.invoke('fetch-chart-data', {
           body: { symbol, days: 7 }
         });

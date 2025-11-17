@@ -264,9 +264,16 @@ export const ProfessionalTradingChart = ({ symbol }: ProfessionalTradingChartPro
   
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-[600px] w-full" />
+      <div className="w-full h-[600px] rounded-lg bg-card border border-border flex flex-col items-center justify-center gap-4">
+        <div className="flex items-center gap-2">
+          <Activity className="w-6 h-6 animate-pulse text-primary" />
+          <span className="text-lg text-muted-foreground">Building chart from live data...</span>
+        </div>
+        {chartData && (
+          <div className="text-sm text-muted-foreground">
+            Accumulated {chartData.candleCount || 0} candles • {chartData.dataSource === 'sample' ? 'Sample data' : 'Real-time'}
+          </div>
+        )}
       </div>
     );
   }

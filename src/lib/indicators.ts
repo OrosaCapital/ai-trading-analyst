@@ -312,3 +312,66 @@ export function aggregateCandles(
   
   return aggregated;
 }
+
+// Build candles in-memory from price stream data
+export function buildCandleFromPriceUpdates(
+  existingCandles: Candle[],
+  currentPrice: number,
+  volume: number,
+  timestamp: number
+): Candle[] {
+  const candleTime = Math.floor(timestamp / 60) * 60; // Round down to minute
+  const candles = [...existingCandles];
+  
+  // Find or create candle for this minute
+  const lastCandle = candles[candles.length - 1];
+  
+  if (!lastCandle || lastCandle.time < candleTime) {
+    // New candle
+    candles.push({
+      time: candleTime,
+      open: currentPrice,
+      high: currentPrice,
+      low: currentPrice,
+      close: currentPrice,
+      volume: volume,
+    });
+  } else if (lastCandle.time === candleTime) {
+    // Update existing candle
+    lastCandle.high = Math.max(lastCandle.high, currentPrice);
+    lastCandle.low = Math.min(lastCandle.low, currentPrice);
+    lastCandle.close = currentPrice;
+    lastCandle.volume += volume;
+  }
+  
+  return candles;
+}
+
+// Generate sample candles for immediate display
+export function generateSampleCandles(basePrice: number, count: number): Candle[] {
+  const candles: Candle[] = [];
+  const now = Math.floor(Date.now() / 1000);
+  
+  for (let i = count; i > 0; i--) {
+    const time = now - (i * 60);
+    const randomChange = (Math.random() - 0.5) * basePrice * 0.01; // ±0.5% variation
+    const open = basePrice + randomChange;
+    const close = open + (Math.random() - 0.5) * basePrice * 0.005;
+    const high = Math.max(open, close) + Math.random() * basePrice * 0.002;
+    const low = Math.min(open, close) - Math.random() * basePrice * 0.002;
+    
+    candles.push({
+      time,
+      open,
+      high,
+      low,
+      close,
+      volume: Math.random() * 1000000,
+    });
+    
+    basePrice = close; // Continue from last close
+  }
+  
+  return candles;
+}
+
