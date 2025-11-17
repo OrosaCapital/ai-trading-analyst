@@ -159,24 +159,31 @@ export const PremiumAnalystInterface = () => {
   }, [connectionStatus, chartData?.metadata?.assetType, isPolling]);
 
   const extractSymbol = (text: string): string => {
-    const upperText = text.toUpperCase();
-    const cryptoMap: Record<string, string> = {
-      "BTC": "BTCUSD", "BITCOIN": "BTCUSD",
-      "ETH": "ETHUSD", "ETHEREUM": "ETHUSD",
-      "SOL": "SOLUSD", "SOLANA": "SOLUSD",
-      "XRP": "XRPUSD", "RIPPLE": "XRPUSD",
-      "XLM": "XLMUSD", "STELLAR": "XLMUSD",
-    };
-
-    for (const [key, value] of Object.entries(cryptoMap)) {
-      if (upperText.includes(key)) return value;
+    const upperText = text.toUpperCase().trim();
+    
+    // Check for stock tickers first (exact list)
+    const stockTickerMatch = upperText.match(/\b([A-Z]{2,5})\b/);
+    if (stockTickerMatch && ["AAPL", "TSLA", "GOOGL", "MSFT", "NVDA"].includes(stockTickerMatch[1])) {
+      return stockTickerMatch[1];
     }
-
-    const tickerMatch = upperText.match(/\b([A-Z]{2,5})\b/);
-    if (tickerMatch && ["AAPL", "TSLA", "GOOGL", "MSFT", "NVDA"].includes(tickerMatch[1])) {
-      return tickerMatch[1];
+    
+    // Extract any crypto symbol (2-10 characters, alphanumeric)
+    const words = upperText.split(/\s+/);
+    const cryptoSymbol = words.find(word => 
+      word.length >= 2 && 
+      word.length <= 10 && 
+      /^[A-Z0-9]+$/.test(word) &&
+      !['TRADE', 'TRADING', 'BUY', 'SELL', 'CRYPTO', 'COIN', 'TOKEN', 'USD', 'USDT'].includes(word)
+    );
+    
+    if (cryptoSymbol) {
+      // If it already ends with USD or USDT, use as-is, otherwise append USD
+      if (cryptoSymbol.endsWith('USD') || cryptoSymbol.endsWith('USDT')) {
+        return cryptoSymbol;
+      }
+      return `${cryptoSymbol}USD`;
     }
-
+    
     return "BTCUSD";
   };
 
