@@ -97,10 +97,15 @@ export const useRealtimePriceStream = (
         } else if (data.type === 'price_update') {
           setPriceData(data);
           setLastUpdateTime(Date.now());
-          setIsPolling(false);
-          if (connectionStatus !== 'connected') {
-            setConnectionStatus('connected');
-          }
+          // Only stop polling and update status once
+          setIsPolling((prev) => {
+            if (prev) {
+              // Only set connected status when transitioning from polling
+              setConnectionStatus('connected');
+              return false;
+            }
+            return prev;
+          });
         } else if (data.type === 'error') {
           console.error('WebSocket error message:', data.message);
           setConnectionStatus('error');
