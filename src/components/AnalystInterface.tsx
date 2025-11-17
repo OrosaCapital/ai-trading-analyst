@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Sparkles, TrendingUp, Activity } from "lucide-react";
 import { SentimentLegend } from "./SentimentLegend";
+import { TradingViewChart } from "./TradingViewChart";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface AnalysisResult {
   summary: string;
@@ -18,9 +20,58 @@ export const AnalystInterface = () => {
   const [query, setQuery] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [symbol, setSymbol] = useState("BTCUSD");
+
+  // Extract symbol from query
+  const extractSymbol = (text: string): string => {
+    const upperText = text.toUpperCase();
+    
+    // Common crypto mappings
+    const cryptoMap: Record<string, string> = {
+      "BITCOIN": "BTCUSD",
+      "BTC": "BTCUSD",
+      "ETHEREUM": "ETHUSD",
+      "ETH": "ETHUSD",
+      "SOLANA": "SOLUSD",
+      "SOL": "SOLUSD",
+      "XRP": "XRPUSD",
+      "RIPPLE": "XRPUSD",
+      "CARDANO": "ADAUSD",
+      "ADA": "ADAUSD",
+    };
+
+    // Check for crypto names
+    for (const [key, value] of Object.entries(cryptoMap)) {
+      if (upperText.includes(key)) {
+        return value;
+      }
+    }
+
+    // Check for stock tickers (3-5 uppercase letters)
+    const tickerMatch = upperText.match(/\b([A-Z]{2,5})\b/);
+    if (tickerMatch && tickerMatch[1] !== "USD") {
+      const ticker = tickerMatch[1];
+      // Common stock symbols
+      if (["AAPL", "TSLA", "GOOGL", "MSFT", "AMZN", "NVDA", "SPY", "QQQ"].includes(ticker)) {
+        return ticker;
+      }
+    }
+
+    // Check for forex pairs
+    const forexMatch = upperText.match(/([A-Z]{3})[\/\s]?([A-Z]{3})/);
+    if (forexMatch) {
+      return `${forexMatch[1]}${forexMatch[2]}`;
+    }
+
+    return "BTCUSD"; // Default
+  };
 
   const handleAnalyze = () => {
     setIsAnalyzing(true);
+    
+    // Extract symbol from query
+    const detectedSymbol = extractSymbol(query);
+    setSymbol(detectedSymbol);
     
     // Mock analysis result
     setTimeout(() => {
@@ -116,7 +167,7 @@ alertcondition(shortSignal, "Short Entry", "Orosa Capital: SHORT signal triggere
 
   return (
     <section className="min-h-screen py-20 px-4">
-      <div className="container mx-auto max-w-6xl">
+      <div className="container mx-auto w-full">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             <span className="text-primary">AI</span> Trading Analyst
@@ -155,103 +206,104 @@ alertcondition(shortSignal, "Short Entry", "Orosa Capital: SHORT signal triggere
         </Card>
 
         {result && (
-          <div className="space-y-6">
-            <Card className="p-6 bg-card border-border">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-primary" />
+          <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border border-primary/20 bg-card">
+            <ResizablePanel defaultSize={60} minSize={30}>
+              <div className="h-full p-6 bg-card">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+                    <TrendingUp className="h-6 w-6 text-primary" />
+                    {symbol} Chart
+                  </h3>
+                  <div className="flex gap-2">
+                    {["BTCUSD", "ETHUSD", "SOLUSD", "AAPL", "SPY"].map((s) => (
+                      <Button
+                        key={s}
+                        variant={symbol === s ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSymbol(s)}
+                        className="text-xs"
+                      >
+                        {s.replace("USD", "")}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-2">Analysis Summary</h3>
-                  <p className="text-muted-foreground leading-relaxed">{result.summary}</p>
-                </div>
+                <TradingViewChart symbol={symbol} />
               </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                <div className="bg-secondary p-4 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Signal</div>
-                  <div className={`text-xl font-bold ${result.signal === 'LONG' ? 'text-chart-green' : 'text-chart-red'}`}>
-                    {result.signal}
-                  </div>
-                </div>
-                <div className="bg-secondary p-4 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Sentiment</div>
-                  <div className="text-xl font-bold text-sentiment-mild-greed">
-                    {result.sentiment}
-                  </div>
-                </div>
-                <div className="bg-secondary p-4 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Confidence</div>
-                  <div className="text-xl font-bold text-primary">
-                    {result.confidence}
-                  </div>
-                </div>
-                <div className="bg-secondary p-4 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">Risk Level</div>
-                  <div className="text-xl font-bold text-sentiment-mild-caution">
-                    MEDIUM
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            <SentimentLegend />
-
-            <Card className="p-6 bg-card border-border">
-              <Tabs defaultValue="pinescript" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="pinescript">Pine Script v6</TabsTrigger>
-                  <TabsTrigger value="json">JSON Output</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="pinescript">
-                  <div className="bg-secondary p-4 rounded-lg">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Activity className="w-5 h-5 text-primary" />
-                      <h4 className="font-semibold">Ready-to-use TradingView Indicator</h4>
+            </ResizablePanel>
+            
+            <ResizableHandle withHandle />
+            
+            <ResizablePanel defaultSize={40} minSize={30}>
+              <div className="h-full overflow-y-auto p-6 bg-card space-y-6">
+                <div>
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <Sparkles className="w-6 h-6 text-primary" />
                     </div>
-                    <pre className="text-sm text-muted-foreground overflow-x-auto font-mono leading-relaxed whitespace-pre-wrap">
-                      {result.pineScript}
-                    </pre>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold mb-2">Analysis Summary</h3>
+                      <p className="text-muted-foreground leading-relaxed">{result.summary}</p>
+                    </div>
                   </div>
-                </TabsContent>
 
-                <TabsContent value="json">
-                  <div className="bg-secondary p-4 rounded-lg">
-                    <pre className="text-sm text-muted-foreground overflow-x-auto font-mono">
-{`{
-  "signal": "LONG",
-  "confidence": 0.78,
-  "sentiment": "MILD_GREED",
-  "trend": {
-    "direction": "BULLISH",
-    "strength": 0.82,
-    "ema50": 94250.50,
-    "ema200": 88750.25
-  },
-  "momentum": {
-    "rsi": 58.5,
-    "macd_histogram": 1250.75,
-    "acceleration": "INCREASING"
-  },
-  "volume_analysis": {
-    "relative_volume": 1.45,
-    "open_interest_change": "+12.5%",
-    "liquidation_clusters": [95000, 98000]
-  },
-  "entry_conditions": {
-    "price": 95000,
-    "stop_loss": 92500,
-    "take_profit": [97500, 99000, 101000]
-  },
-  "risk_level": "MEDIUM"
-}`}
-                    </pre>
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div className="bg-secondary p-4 rounded-lg">
+                      <div className="text-sm text-muted-foreground mb-1">Signal</div>
+                      <div className={`text-xl font-bold ${result.signal === 'LONG' ? 'text-chart-green' : 'text-chart-red'}`}>
+                        {result.signal}
+                      </div>
+                    </div>
+                    <div className="bg-secondary p-4 rounded-lg">
+                      <div className="text-sm text-muted-foreground mb-1">Sentiment</div>
+                      <div className="text-xl font-bold text-sentiment-mild-greed">
+                        {result.sentiment}
+                      </div>
+                    </div>
+                    <div className="bg-secondary p-4 rounded-lg">
+                      <div className="text-sm text-muted-foreground mb-1">Confidence</div>
+                      <div className="text-xl font-bold text-primary">
+                        {result.confidence}
+                      </div>
+                    </div>
+                    <div className="bg-secondary p-4 rounded-lg">
+                      <div className="text-sm text-muted-foreground mb-1">Risk Level</div>
+                      <div className="text-xl font-bold text-sentiment-mild-caution">
+                        MEDIUM
+                      </div>
+                    </div>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </Card>
-          </div>
+                </div>
+
+                <SentimentLegend />
+
+                <div className="pt-4 border-t border-border">
+                  <Tabs defaultValue="pinescript" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                      <TabsTrigger value="pinescript">Pine Script v6</TabsTrigger>
+                      <TabsTrigger value="json">JSON Output</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="pinescript">
+                      <div className="bg-secondary rounded-lg p-4 max-h-[300px] overflow-auto">
+                        <pre className="text-xs text-foreground font-mono">
+                          <code>{result.pineScript}</code>
+                        </pre>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="json">
+                      <div className="bg-secondary rounded-lg p-4 max-h-[300px] overflow-auto">
+                        <pre className="text-xs text-foreground font-mono">
+                          <code>{JSON.stringify(result, null, 2)}</code>
+                        </pre>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         )}
       </div>
     </section>
