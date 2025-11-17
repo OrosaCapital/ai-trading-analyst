@@ -23,14 +23,14 @@ interface SimplifiedChartProps {
   };
 }
 
-type Timeframe = '1h' | '15m' | '5m' | '1m';
+type Timeframe = '1h' | '15m';
 
 export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<any>(null);
   const emaSeriesRef = useRef<any>(null);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('15m');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('1h');
 
   // Convert price logs to candlesticks
   const convertLogsToCandlesticks = (
@@ -81,10 +81,6 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
         }));
       case '15m':
         return convertLogsToCandlesticks(priceData['15m'] || [], 15);
-      case '5m':
-        return convertLogsToCandlesticks(priceData['5m'] || [], 5);
-      case '1m':
-        return convertLogsToCandlesticks(priceData['1m'] || [], 1);
       default:
         return [];
     }
@@ -95,7 +91,7 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
     if (!emas) return [];
 
     const chartData = getChartData();
-    const emaValues = emas[selectedTimeframe as '5m' | '15m' | '1h'];
+    const emaValues = emas[selectedTimeframe as '15m' | '1h'];
     
     if (!emaValues || emaValues.length === 0 || chartData.length === 0) return [];
 
@@ -119,11 +115,11 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
         if (emaValue && latestCandle.close < emaValue) return 'BEARISH';
         return 'NEUTRAL';
       case '15m':
-        return `${(priceData['15m'] || []).length} Valid`;
-      case '5m':
-        return `${(priceData['5m'] || []).length} Points`;
-      case '1m':
-        return `${(priceData['1m'] || []).length} Logs`;
+        const data15m = priceData['15m'] || [];
+        if (data15m.length < 2) return 'No data';
+        const recent15m = data15m.slice(-2);
+        const trend15m = recent15m[1].price > recent15m[0].price;
+        return trend15m ? 'UP' : 'DOWN';
       default:
         return 'No data';
     }

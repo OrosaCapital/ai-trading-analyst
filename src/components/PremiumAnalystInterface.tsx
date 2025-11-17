@@ -103,7 +103,8 @@ export const PremiumAnalystInterface = () => {
   // Countdown timer state
   const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
   const [secondsUntilNext, setSecondsUntilNext] = useState(60);
-  const [showFlash, setShowFlash] = useState(false);
+  const [priceChangeDirection, setPriceChangeDirection] = useState<'up' | 'down' | null>(null);
+  const previousPriceRef = useRef<number | null>(null);
   
   // Track previous connection status to only show toasts on state changes
   const previousConnectionStatusRef = useRef<string | null>(null);
@@ -122,41 +123,39 @@ export const PremiumAnalystInterface = () => {
   }, [lastUpdateTime]);
 
   // Flash animation on price update
+  // Track price direction for subtle color change
   useEffect(() => {
-    if (priceData && lastUpdateTime) {
-      setShowFlash(true);
-      const timeout = setTimeout(() => setShowFlash(false), 500);
-      return () => clearTimeout(timeout);
+    if (priceData && priceData.price) {
+      if (previousPriceRef.current !== null) {
+        if (priceData.price > previousPriceRef.current) {
+          setPriceChangeDirection('up');
+        } else if (priceData.price < previousPriceRef.current) {
+          setPriceChangeDirection('down');
+        }
+        const timeout = setTimeout(() => setPriceChangeDirection(null), 200);
+        return () => clearTimeout(timeout);
+      }
+      previousPriceRef.current = priceData.price;
     }
-  }, [priceData, lastUpdateTime]);
+  }, [priceData]);
 
-  // Show toast only on connection status transitions
+  // Simplified toast notifications - only show on initial connection
   useEffect(() => {
-    const currentState = `${connectionStatus}-${isPolling}-${chartData?.metadata?.assetType}`;
+    const currentState = `${connectionStatus}-${isPolling}`;
     const previousState = previousConnectionStatusRef.current;
     
-    // Only show toast on state transitions, not on every render
-    if (previousState !== currentState) {
-      if (connectionStatus === 'connected' && chartData?.metadata?.assetType === 'crypto' && !isPolling && previousState !== null && !previousState.includes('connected')) {
-        toast.success(`Live streaming connected`, {
-          duration: 2000,
-        });
-      } else if (connectionStatus === 'error' && previousState !== currentState) {
-        toast.error('Connection error - retrying...', {
-          duration: 3000,
-        });
-      } else if (connectionStatus === 'disconnected' && previousState?.includes('connected')) {
-        toast.warning('Stream disconnected', {
-          duration: 2000,
-        });
-      } else if (isPolling && chartData?.metadata?.assetType === 'crypto' && !previousState?.includes('true')) {
-        toast.info('Using 1-minute polling', {
+    // Only show toast on significant state changes
+    if (previousState !== currentState && previousState !== null) {
+      if (connectionStatus === 'connected' && chartData?.metadata?.assetType === 'crypto' && !isPolling) {
+        // Silent connection - no toast spam
+      } else if (connectionStatus === 'error' && !previousState.includes('error')) {
+        toast.error('Connection error', {
           duration: 2000,
         });
       }
-      
-      previousConnectionStatusRef.current = currentState;
     }
+    
+    previousConnectionStatusRef.current = currentState;
   }, [connectionStatus, chartData?.metadata?.assetType, isPolling]);
 
   const extractSymbol = (text: string): string => {
@@ -411,74 +410,42 @@ export const PremiumAnalystInterface = () => {
         {symbol && (
           <div className="glass rounded-2xl p-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-bold">
-                  {formatSymbolDisplay(symbol)}
-                </h2>
-                {getCurrentPrice() > 0 && (
-                  <span className="text-xl font-semibold text-primary">
-                    current price ${getCurrentPrice().toLocaleString(undefined, { 
-                      minimumFractionDigits: 2, 
-                      maximumFractionDigits: 2 
-                    })}
-                  </span>
-                )}
-                <Badge variant="outline" className="text-xs">
-                  4h data
-                </Badge>
-              </div>
-                {priceData && isConnected && (
-                  <div className={`flex items-center gap-2 ml-4 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 ${
-                    showFlash ? 'scale-110 bg-primary/20 border-primary/40' : ''
-                  }`}>
-                    <span className="text-lg font-bold text-foreground">
-                      ${priceData.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                    <span className={`text-xs font-medium ${
-                      priceData.change24h >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {priceData.change24h >= 0 ? '↑' : '↓'} {Math.abs(priceData.change24h).toFixed(2)}%
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-bold">{formatSymbolDisplay(symbol)}</h2>
+                  {getCurrentPrice() > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className={`text-2xl font-semibold transition-colors duration-200 ${
+                        priceChangeDirection === 'up' ? 'text-green-400' :
+                        priceChangeDirection === 'down' ? 'text-red-400' :
+                        'text-foreground'
+                      }`}>
+                        ${getCurrentPrice().toLocaleString(undefined, { 
+                          minimumFractionDigits: 2, 
+                          maximumFractionDigits: 2 
+                        })}
+                      </span>
+                      {priceData && (
+                        <span className={`text-sm font-semibold ${
+                          priceData.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {priceData.change24h >= 0 ? '↑' : '↓'} {Math.abs(priceData.change24h).toFixed(2)}%
+                        </span>
+                      )}
+                      {chartData?.metadata?.assetType === 'crypto' && (
+                        <div className={`w-2 h-2 rounded-full ${
+                          isConnected && !isPolling ? 'bg-green-400' : 'bg-muted-foreground/30'
+                        }`} />
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
-                {chartData?.metadata?.assetType === 'crypto' && (
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => setStreamingEnabled(!streamingEnabled)}
-                      className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full transition-all hover:bg-background/50"
-                    >
-                      <div className={`relative flex items-center gap-2 ${
-                        isConnected && !isPolling ? 'text-green-400' :
-                        isPolling ? 'text-yellow-400' :
-                        connectionStatus === 'connecting' ? 'text-yellow-400' :
-                        connectionStatus === 'error' ? 'text-red-400' :
-                        'text-muted-foreground'
-                      }`}>
-                        <Radio className="w-4 h-4" />
-                        <span className="text-xs font-medium">
-                          {isPolling ? 'POLLING (1m)' :
-                           isConnected ? 'STREAMING (1m)' :
-                           connectionStatus === 'connecting' ? 'CONNECTING' :
-                           connectionStatus === 'error' ? 'ERROR' :
-                           'OFFLINE'}
-                        </span>
-                        {isConnected && !isPolling && (
-                          <div className="absolute -right-1 -top-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                        )}
-                      </div>
-                    </button>
-                    
-                    {lastUpdateTime && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>Updated {secondsSinceUpdate}s ago</span>
-                        <span>•</span>
-                        <span>Next in {secondsUntilNext}s</span>
-                      </div>
-                    )}
+                {chartData?.metadata?.assetType === 'crypto' && lastUpdateTime && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Next update in {secondsUntilNext}s</span>
                   </div>
                 )}
               </div>

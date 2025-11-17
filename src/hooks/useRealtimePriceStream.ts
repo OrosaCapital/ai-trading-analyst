@@ -42,6 +42,25 @@ export const useRealtimePriceStream = (
   const reconnectTimeoutRef = useRef<number | null>(null);
   const pollingIntervalRef = useRef<number | null>(null);
   const currentSymbolRef = useRef<string | null>(null);
+  const statusDebounceRef = useRef<number | null>(null);
+  const stableConnectionRef = useRef<boolean>(false);
+
+  const setStableConnectionStatus = useCallback((status: 'connecting' | 'connected' | 'disconnected' | 'error') => {
+    // Clear any pending status updates
+    if (statusDebounceRef.current) {
+      clearTimeout(statusDebounceRef.current);
+    }
+
+    // Debounce status changes to prevent flashing (300ms delay)
+    statusDebounceRef.current = window.setTimeout(() => {
+      setConnectionStatus(status);
+      if (status === 'connected') {
+        stableConnectionRef.current = true;
+      } else if (status === 'disconnected' || status === 'error') {
+        stableConnectionRef.current = false;
+      }
+    }, 300);
+  }, []);
 
   const connect = useCallback(() => {
     if (!enabled || !symbol) {
@@ -63,7 +82,10 @@ export const useRealtimePriceStream = (
       wsRef.current.close();
     }
 
-    setConnectionStatus('connecting');
+    // Only show connecting if not already connected
+    if (!stableConnectionRef.current) {
+      setStableConnectionStatus('connecting');
+    }
     currentSymbolRef.current = symbol;
 
     const wsUrl = `wss://alzxeplijnbpuqkfnpjk.supabase.co/functions/v1/websocket-price-stream`;
@@ -88,11 +110,11 @@ export const useRealtimePriceStream = (
 
         if (data.type === 'connection') {
           if (data.status === 'connected') {
-            setConnectionStatus('connected');
+            setStableConnectionStatus('connected');
           } else if (data.status === 'disconnected') {
-            setConnectionStatus('disconnected');
+            setStableConnectionStatus('disconnected');
           } else if (data.status === 'error') {
-            setConnectionStatus('error');
+            setStableConnectionStatus('error');
           }
         } else if (data.type === 'price_update') {
           setPriceData(data);
@@ -101,14 +123,14 @@ export const useRealtimePriceStream = (
           setIsPolling((prev) => {
             if (prev) {
               // Only set connected status when transitioning from polling
-              setConnectionStatus('connected');
+              setStableConnectionStatus('connected');
               return false;
             }
             return prev;
           });
         } else if (data.type === 'error') {
           console.error('WebSocket error message:', data.message);
-          setConnectionStatus('error');
+          setStableConnectionStatus('error');
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -117,12 +139,12 @@ export const useRealtimePriceStream = (
 
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
-      setConnectionStatus('error');
+      setStableConnectionStatus('error');
     };
 
     ws.onclose = () => {
       console.log('WebSocket closed');
-      setConnectionStatus('disconnected');
+      setStableConnectionStatus('disconnected');
       
       // Auto-reconnect after 3 seconds if still enabled
       if (enabled && symbol) {
