@@ -43,11 +43,16 @@ function generateMockFundingRate(symbol: string) {
 // Fetch real funding rate from Coinglass
 async function fetchFundingRateFromCoinglass(symbol: string, interval: string, apiKey: string) {
   try {
-    const url = `https://open-api-v3.coinglass.com/api/fundingRate/ohlc-history?symbol=${symbol}&interval=${interval}&limit=24`;
+    // Convert symbol to USDT pair format
+    const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
+    
+    // CoinGlass API v4 endpoint for funding rate
+    const url = `https://open-api-v4.coinglass.com/api/futures/funding-rate/history?exchange=Binance&symbol=${cleanSymbol}&interval=${interval}&limit=24`;
     
     const response = await fetch(url, {
       headers: {
-        'coinglassSecret': apiKey,
+        'accept': 'application/json',
+        'CG-API-KEY': apiKey,
       },
     });
 
@@ -56,26 +61,36 @@ async function fetchFundingRateFromCoinglass(symbol: string, interval: string, a
         console.error('⚠️ Coinglass rate limit exceeded');
         throw new Error('RATE_LIMIT');
       }
+      const errorText = await response.text();
+      console.error(`Coinglass API error: ${response.status} - ${errorText}`);
       throw new Error(`Coinglass API error: ${response.status}`);
     }
 
     const data = await response.json();
     
-    if (!data.success || !data.data) {
+    if (data.code !== '0' || !data.data) {
+      console.error('Invalid Coinglass response:', data);
       throw new Error('Invalid Coinglass response');
     }
 
-    const currentRate = data.data[data.data.length - 1]?.rate || 0;
+    const currentRate = parseFloat(data.data[data.data.length - 1]?.close) || 0;
     const sentiment = currentRate > 0.0001 ? 'BULLISH' : currentRate < -0.0001 ? 'BEARISH' : 'NEUTRAL';
 
     return {
       current: {
         rate: `${(currentRate * 100).toFixed(4)}%`,
         rateValue: currentRate,
-        nextFunding: data.nextFundingTime || new Date(Date.now() + 8 * 3600000).toISOString(),
+        nextFunding: new Date(Date.now() + 8 * 3600000).toISOString(),
         sentiment
       },
-      history: data.data,
+      history: data.data.map((item: any) => ({
+        time: item.time,
+        rate: parseFloat(item.close),
+        open: parseFloat(item.open),
+        high: parseFloat(item.high),
+        low: parseFloat(item.low),
+        close: parseFloat(item.close)
+      })),
       isMockData: false
     };
   } catch (error) {

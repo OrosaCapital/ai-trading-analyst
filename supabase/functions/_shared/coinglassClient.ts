@@ -40,7 +40,7 @@ export async function fetchFromCoinglass(
   endpoint: string,
   apiKey: string
 ): Promise<any> {
-  const url = `https://open-api.coinglass.com${endpoint}`;
+  const url = `https://open-api-v4.coinglass.com${endpoint}`;
   
   console.log(`CoinGlass API call: ${endpoint}`);
   const stats = rateLimiter.getStats();

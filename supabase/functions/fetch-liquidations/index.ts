@@ -63,40 +63,58 @@ function generateMockLiquidations(symbol: string) {
 // Fetch real liquidation data from Coinglass
 async function fetchLiquidationsFromCoinglass(symbol: string, apiKey: string) {
   try {
-    const url = `https://open-api-v3.coinglass.com/api/futures/liquidation/history?symbol=${symbol}&interval=h1&limit=24`;
+    // Convert symbol to USDT pair format
+    const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
+    
+    // CoinGlass API v4 endpoint for pair liquidation history
+    const url = `https://open-api-v4.coinglass.com/api/futures/liquidation/pair-history?symbol=${cleanSymbol}&interval=1h&limit=24`;
     
     const response = await fetch(url, {
       headers: {
-        'coinglassSecret': apiKey,
+        'accept': 'application/json',
+        'CG-API-KEY': apiKey,
       },
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Coinglass API error: ${response.status} - ${errorText}`);
       throw new Error(`Coinglass API error: ${response.status}`);
     }
 
     const data = await response.json();
 
-    if (!data.success || !data.data) {
+    if (data.code !== '0' || !data.data || data.data.length === 0) {
+      console.error('Invalid Coinglass response:', data);
       throw new Error('Invalid Coinglass response');
     }
 
-    const totalLongs = data.data.reduce((sum: number, item: any) => sum + item.longLiquidation, 0);
-    const totalShorts = data.data.reduce((sum: number, item: any) => sum + item.shortLiquidation, 0);
+    const totalLongs = data.data.reduce((sum: number, item: any) => 
+      sum + parseFloat(item.long_liquidation_usd || item.longLiquidation || 0), 0);
+    const totalShorts = data.data.reduce((sum: number, item: any) => 
+      sum + parseFloat(item.short_liquidation_usd || item.shortLiquidation || 0), 0);
     const total = totalLongs + totalShorts;
     const longRatio = (totalLongs / total * 100).toFixed(1);
 
     // Find major liquidation events (> 20M)
     const majorEvents = data.data
-      .filter((item: any) => item.longLiquidation > 20000000 || item.shortLiquidation > 20000000)
-      .map((item: any) => ({
-        time: new Date(item.time).toISOString(),
-        amount: item.longLiquidation > item.shortLiquidation 
-          ? `${(item.longLiquidation / 1000000).toFixed(1)}M`
-          : `${(item.shortLiquidation / 1000000).toFixed(1)}M`,
-        type: item.longLiquidation > item.shortLiquidation ? 'LONG' : 'SHORT',
-        price: item.price
-      }))
+      .filter((item: any) => {
+        const longLiq = parseFloat(item.long_liquidation_usd || item.longLiquidation || 0);
+        const shortLiq = parseFloat(item.short_liquidation_usd || item.shortLiquidation || 0);
+        return longLiq > 20000000 || shortLiq > 20000000;
+      })
+      .map((item: any) => {
+        const longLiq = parseFloat(item.long_liquidation_usd || item.longLiquidation || 0);
+        const shortLiq = parseFloat(item.short_liquidation_usd || item.shortLiquidation || 0);
+        return {
+          time: new Date(item.time).toISOString(),
+          amount: longLiq > shortLiq 
+            ? `${(longLiq / 1000000).toFixed(1)}M`
+            : `${(shortLiq / 1000000).toFixed(1)}M`,
+          type: longLiq > shortLiq ? 'LONG' : 'SHORT',
+          price: item.price || 0
+        };
+      })
       .slice(0, 5);
 
     return {
@@ -110,8 +128,8 @@ async function fetchLiquidationsFromCoinglass(symbol: string, apiKey: string) {
       },
       recentLiquidations: data.data.map((item: any) => ({
         time: item.time,
-        longLiq: item.longLiquidation,
-        shortLiq: item.shortLiquidation,
+        longLiq: parseFloat(item.long_liquidation_usd || item.longLiquidation || 0),
+        shortLiq: parseFloat(item.short_liquidation_usd || item.shortLiquidation || 0),
       })),
       heatmap: data.heatmap || { levels: [] },
       isMockData: false

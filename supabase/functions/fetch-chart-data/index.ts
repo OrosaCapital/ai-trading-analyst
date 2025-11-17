@@ -594,11 +594,10 @@ async function fetchCoinGlassOHLC(
     };
     
     const interval = intervalMap[intervalMinutes] || '1h';
-    const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '');
+    const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
     console.log(`Cleaned symbol: ${cleanSymbol}, Original: ${symbol}`);
     
     const endTime = Date.now();
-    const startTime = endTime - (days * 24 * 60 * 60 * 1000);
     
     // Limit to 30 days max for smaller intervals to avoid API limits
     const maxDays = intervalMinutes < 60 ? 30 : 90;
@@ -607,7 +606,8 @@ async function fetchCoinGlassOHLC(
     
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
     
-    const url = `https://open-api.coinglass.com/public/v2/futures/ohlc-history-aggregated?symbol=${cleanSymbol}&interval=${interval}&start_time=${limitedStartTime}&end_time=${endTime}`;
+    // CoinGlass API v4 endpoint for price OHLC
+    const url = `https://open-api-v4.coinglass.com/api/futures/price/history?exchange=Binance&symbol=${cleanSymbol}&interval=${interval}&start_time=${limitedStartTime}&end_time=${endTime}&limit=1000`;
     console.log(`CoinGlass URL: ${url}`);
     
     const response = await fetch(url, {
@@ -626,18 +626,18 @@ async function fetchCoinGlassOHLC(
 
     const data = await response.json();
     
-    if (!data.success || !data.data || data.data.length === 0) {
-      console.error('CoinGlass returned no data');
+    if (data.code !== '0' || !data.data || data.data.length === 0) {
+      console.error('CoinGlass returned no data or error code:', data.code);
       return null;
     }
 
     // Transform CoinGlass data to our Candle format
     const candles: Candle[] = data.data.map((item: any) => {
-      const close = parseFloat(item.c);
-      const open = parseFloat(item.o);
-      const high = parseFloat(item.h);
-      const low = parseFloat(item.l);
-      const volume = parseFloat(item.v) || 0;
+      const close = parseFloat(item.close);
+      const open = parseFloat(item.open);
+      const high = parseFloat(item.high);
+      const low = parseFloat(item.low);
+      const volume = parseFloat(item.volume_usd) || 0;
       
       // Calculate RSI-like indicator from price change
       const priceChange = close - open;
