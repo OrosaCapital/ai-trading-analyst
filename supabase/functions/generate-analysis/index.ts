@@ -13,10 +13,10 @@ const corsHeaders = {
 
 // Pine Script v6 Template (Solution 3)
 const PINE_SCRIPT_TEMPLATE = `// @version=6
-indicator("Orosa Capital - {{STRATEGY_NAME}}", overlay=true)
+indicator("OCAPX - {{STRATEGY_NAME}}", overlay=true)
 
 // ══════════════════════════════════════════════════════════
-// OROSA CAPITAL BRANDING & CONFIGURATION
+// OCAPX BRANDING & CONFIGURATION
 // ══════════════════════════════════════════════════════════
 
 // Input Parameters
@@ -25,11 +25,11 @@ emaSlowLength = input.int(200, "Slow EMA Length", minval=1)
 rsiLength = input.int(14, "RSI Length", minval=1)
 volumeThreshold = input.float(1.5, "Volume Threshold", minval=0.1)
 
-// Orosa Capital Color Palette
-var color orsaGreen = color.new(#00FF7F, 0)
-var color orsaRed = color.new(#C73E3E, 0)
-var color orsaWhite = color.new(#FFFFFF, 0)
-var color orsaBg = color.new(#0A0F1E, 90)
+// OCAPX Color Palette
+var color ocpaxGreen = color.new(#00FF7F, 0)
+var color ocpaxRed = color.new(#C73E3E, 0)
+var color ocpaxWhite = color.new(#FFFFFF, 0)
+var color ocpaxBg = color.new(#0A0F1E, 90)
 
 // ══════════════════════════════════════════════════════════
 // TECHNICAL INDICATORS
@@ -51,21 +51,21 @@ shortSignal = ta.crossunder(emaFast, emaSlow) and rsiValue < 50
 // VISUALIZATION
 // ══════════════════════════════════════════════════════════
 
-plot(emaFast, "50 EMA", orsaGreen, 2)
-plot(emaSlow, "200 EMA", orsaWhite, 2)
+plot(emaFast, "50 EMA", ocpaxGreen, 2)
+plot(emaSlow, "200 EMA", ocpaxWhite, 2)
 
-plotshape(longSignal, "Long Signal", shape.triangleup, location.belowbar, orsaGreen, size=size.small)
-plotshape(shortSignal, "Short Signal", shape.triangledown, location.abovebar, orsaRed, size=size.small)
+plotshape(longSignal, "Long Signal", shape.triangleup, location.belowbar, ocpaxGreen, size=size.small)
+plotshape(shortSignal, "Short Signal", shape.triangledown, location.abovebar, ocpaxRed, size=size.small)
 
 // Background color based on RSI
-bgcolor(rsiValue > 70 ? color.new(orsaGreen, 95) : rsiValue < 30 ? color.new(orsaRed, 95) : na)
+bgcolor(rsiValue > 70 ? color.new(ocpaxGreen, 95) : rsiValue < 30 ? color.new(ocpaxRed, 95) : na)
 
 // ══════════════════════════════════════════════════════════
 // ALERTS
 // ══════════════════════════════════════════════════════════
 
-alertcondition(longSignal, "Long Entry", "Orosa Capital: Long signal detected")
-alertcondition(shortSignal, "Short Entry", "Orosa Capital: Short signal detected")`;
+alertcondition(longSignal, "Long Entry", "OCAPX: Long signal detected")
+alertcondition(shortSignal, "Short Entry", "OCAPX: Short signal detected")`;
 
 // Request Queue for rate limiting (Solution 2)
 class RequestQueue {
@@ -155,8 +155,8 @@ function validatePineScript(code: string): { valid: boolean; errors: string[] } 
     errors.push('Missing EMA indicators');
   }
   
-  if (!code.includes('Orosa Capital')) {
-    errors.push('Missing Orosa Capital branding');
+  if (!code.includes('OCAPX')) {
+    errors.push('Missing OCAPX branding');
   }
   
   return { valid: errors.length === 0, errors };
@@ -197,7 +197,7 @@ function generateFallbackAnalysis(query: string, symbol: string) {
 async function generateWithRetry(query: string, symbol: string, maxAttempts = 3) {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
-  const systemPrompt = `You are an expert trading analyst and Pine Script v6 developer for Orosa Capital, a premium algorithmic trading firm.
+  const systemPrompt = `You are an expert trading analyst and Pine Script v6 developer for OCAPX, a premium algorithmic trading firm.
 
 ANALYSIS GUIDELINES:
 - Provide 2-3 sentence market analysis focusing on: trend direction, key support/resistance, volume patterns, and momentum
@@ -223,7 +223,7 @@ CONFIDENCE:
 
 PINE SCRIPT V6 REQUIREMENTS:
 - Start with: // @version=6
-- Title: "Orosa Capital - [Strategy Name]"
+- Title: "OCAPX - [Strategy Name]"
 - Include: 50 EMA (color.new(#00FF7F, 0)), 200 EMA (color.new(#FFFFFF, 0))
 - RSI with sentiment zones
 - Volume analysis
@@ -233,7 +233,7 @@ PINE SCRIPT V6 REQUIREMENTS:
 - Use ta.ema(), ta.rsi(), ta.sma() (not ema(), rsi(), sma())
 - Professional comments explaining each section
 
-OROSA CAPITAL COLOR PALETTE:
+OCAPX COLOR PALETTE:
 - Neon Green (Bullish): #00FF7F
 - Red (Bearish): #C73E3E  
 - White (Neutral): #FFFFFF
@@ -289,7 +289,7 @@ Analyze this trading query and generate a complete trading analysis with Pine Sc
                   },
                   pineScript: { 
                     type: "string",
-                    description: "Complete Pine Script v6 code with Orosa branding"
+                    description: "Complete Pine Script v6 code with OCAPX branding"
                   }
                 },
                 required: ["summary", "signal", "sentiment", "confidence", "pineScript"]

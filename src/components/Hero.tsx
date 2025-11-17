@@ -25,7 +25,7 @@ export const Hero = ({ onGetStarted }: { onGetStarted: () => void }) => {
         {/* Main Heading */}
         <h1 className="text-7xl md:text-8xl font-black mb-6 tracking-tight">
           <span className="text-primary drop-shadow-[0_0_30px_hsl(var(--primary))]">
-            OROSA CAPITAL
+            OCAPX
           </span>
         </h1>
 
