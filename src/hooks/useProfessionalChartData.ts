@@ -75,8 +75,13 @@ export function useProfessionalChartData(symbol: string | null) {
     
     setIsLoading(true);
     
-    // For now, we don't fetch data in this hook since we're using CoinGlass data
-    // This hook is only used as fallback when existingChartData is not provided
+    // Generate initial sample data immediately
+    const samplePrice = 50000; // Default BTC price for initial render
+    candles1mRef.current = generateSampleCandles(samplePrice, 100);
+    hasInitializedRef.current = true;
+    
+    // Update chart with sample data
+    updateChartData();
     setIsLoading(false);
   }, [symbol]);
   
