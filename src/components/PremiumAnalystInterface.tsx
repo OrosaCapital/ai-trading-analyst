@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Send, TrendingUp, Zap, Activity, Sparkles, Radio } from "lucide-react";
 import { SentimentGauge } from "./SentimentGauge";
-import { TradingViewChart } from "./TradingViewChart";
+import { ProfessionalTradingChart } from "./ProfessionalTradingChart";
 import { PremiumMarketMetrics } from "./PremiumMarketMetrics";
 import { EnhancedMarketMetrics } from "./EnhancedMarketMetrics";
 import { supabase } from "@/integrations/supabase/client";
@@ -466,8 +466,8 @@ export const PremiumAnalystInterface = () => {
               </div>
             )}
 
-            <div className="h-[720px] rounded-xl overflow-hidden">
-              <TradingViewChart 
+            <div className="rounded-xl overflow-hidden">
+              <ProfessionalTradingChart 
                 symbol={symbol ? symbol.replace('/', '') : 'BTCUSD'}
               />
             </div>
