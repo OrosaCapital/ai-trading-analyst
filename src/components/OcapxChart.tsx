@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createChart, IChartApi, CandlestickSeries, LineSeries } from "lightweight-charts";
+import { createChart, IChartApi, CandlestickSeries, LineSeries, HistogramSeries } from "lightweight-charts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle, Activity, Zap, Target, Shield } from "lucide-react";
@@ -176,11 +176,23 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
         horzLines: { color: 'rgba(0, 255, 255, 0.08)', style: 2 } 
       },
       width: chartContainerRef.current.clientWidth,
-      height: 500,
-      timeScale: { timeVisible: true, secondsVisible: false },
+      height: 650,
+      timeScale: { 
+        timeVisible: true, 
+        secondsVisible: false,
+        barSpacing: 8,
+        minBarSpacing: 4,
+        rightOffset: 12,
+        fixLeftEdge: false,
+        fixRightEdge: false,
+        lockVisibleTimeRangeOnResize: true,
+      },
       crosshair: {
         vertLine: { color: 'hsl(75, 100%, 50%)', width: 2, labelBackgroundColor: 'hsl(75, 100%, 50%)' },
         horzLine: { color: 'hsl(75, 100%, 50%)', width: 2, labelBackgroundColor: 'hsl(75, 100%, 50%)' },
+      },
+      rightPriceScale: {
+        borderColor: 'rgba(0, 255, 255, 0.2)',
       },
     });
 
@@ -209,6 +221,34 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
     });
 
     candlestickSeries.setData(candleData);
+
+    // Add volume histogram
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      color: 'rgba(0, 255, 255, 0.3)',
+      priceFormat: {
+        type: 'volume',
+      },
+      priceScaleId: '',
+    });
+
+    // Map volume data with colors based on candle direction
+    const volumeData = timeframeData.candles.map(c => ({
+      time: c.time as any,
+      value: c.volume || 0,
+      color: c.close >= c.open 
+        ? 'rgba(126, 255, 51, 0.4)'  // Green for up
+        : 'rgba(255, 77, 77, 0.4)'   // Red for down
+    }));
+
+    volumeSeries.setData(volumeData);
+    
+    // Position volume at bottom of chart
+    volumeSeries.priceScale().applyOptions({
+      scaleMargins: {
+        top: 0.8,
+        bottom: 0,
+      },
+    });
 
     if (timeframeData.indicators.ema50) {
       const ema50Series = chart.addSeries(LineSeries, { 
@@ -241,6 +281,22 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
         priceLineVisible: true,
       });
       ema20Series.setData(timeframeData.indicators.ema20.map(p => ({ time: p.time as any, value: p.value })));
+    }
+
+    // Limit visible range based on timeframe
+    const visibleBars = {
+      '1h': 48,   // 2 days
+      '15m': 96,  // 24 hours
+      '5m': 144,  // 12 hours
+      '1m': 180,  // 3 hours
+    }[activeTimeframe];
+
+    if (candleData.length > 0) {
+      const from = Math.max(0, candleData.length - visibleBars);
+      chart.timeScale().setVisibleLogicalRange({
+        from: from,
+        to: candleData.length - 1
+      });
     }
 
     const handleResize = () => {
@@ -330,21 +386,26 @@ export const OcapxChart = ({ symbol, data, isLoading }: OcapxChartProps) => {
         </TabsList>
 
         <TabsContent value="1h">
-          <div ref={chartContainerRef} className="w-full h-[500px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+          <div ref={chartContainerRef} className="w-full h-[650px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
         </TabsContent>
 
         <TabsContent value="15m">
-          <div ref={chartContainerRef} className="w-full h-[500px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+          <div ref={chartContainerRef} className="w-full h-[650px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
         </TabsContent>
 
         <TabsContent value="5m">
-          <div ref={chartContainerRef} className="w-full h-[500px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+          <div ref={chartContainerRef} className="w-full h-[650px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
         </TabsContent>
 
         <TabsContent value="1m">
-          <div ref={chartContainerRef} className="w-full h-[500px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
+          <div ref={chartContainerRef} className="w-full h-[650px] rounded-xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden" />
         </TabsContent>
       </Tabs>
+
+      {/* Zoom Controls Hint */}
+      <div className="text-xs text-muted-foreground text-center mt-2">
+        Scroll to zoom • Drag to pan • Double-click to reset
+      </div>
 
       {/* Multi-Timeframe Analysis Workflow */}
       <div className="mt-8">
