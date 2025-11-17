@@ -1,12 +1,26 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useRef } from "react";
+import { Hero } from "@/components/Hero";
+import { AnalystInterface } from "@/components/AnalystInterface";
 
 const Index = () => {
+  const [showInterface, setShowInterface] = useState(false);
+  const interfaceRef = useRef<HTMLDivElement>(null);
+
+  const handleGetStarted = () => {
+    setShowInterface(true);
+    setTimeout(() => {
+      interfaceRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <Hero onGetStarted={handleGetStarted} />
+      {showInterface && (
+        <div ref={interfaceRef}>
+          <AnalystInterface />
+        </div>
+      )}
     </div>
   );
 };
