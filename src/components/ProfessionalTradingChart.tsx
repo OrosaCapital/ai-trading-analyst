@@ -6,18 +6,14 @@ import {
   Time,
   SeriesMarker,
   CandlestickSeries,
-  AreaSeries,
   LineSeries,
   HistogramSeries,
 } from 'lightweight-charts';
 import { useProfessionalChartData } from '@/hooks/useProfessionalChartData';
 import { calculateTradeSignal, ChartDataForSignal } from '@/lib/signalEngine';
 import { Skeleton } from './ui/skeleton';
-import { TrendingUp, TrendingDown, Activity, Zap } from 'lucide-react';
 import { ChartToolbar } from '@/components/ChartToolbar';
 import { AnnotationConfig } from '@/types/annotations';
-import { getEventsForSymbol, filterEventsByDateRange } from '@/data/cryptoEvents';
-import { AnnotationManager } from '@/lib/annotationManager';
 
 interface MultiTimeframeData {
   timeframes: {
@@ -65,14 +61,12 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<any> | null>(null);
-  const areaSeriesRef = useRef<ISeriesApi<any> | null>(null);
-  const emaSeriesRef = useRef<ISeriesApi<any> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<any> | null>(null);
+  const emaSeriesRef = useRef<ISeriesApi<any> | null>(null);
   const rsiSeriesRef = useRef<ISeriesApi<any> | null>(null);
-  const annotationManagerRef = useRef<AnnotationManager>(new AnnotationManager());
 
   const [activeTimeframe, setActiveTimeframe] = useState<Timeframe>('1H');
-  const [chartMode, setChartMode] = useState<'candlestick' | 'area'>('candlestick');
+  const [chartReady, setChartReady] = useState(false);
   const [annotationConfig, setAnnotationConfig] = useState<AnnotationConfig>({
     showEvents: true,
     showSignals: true,
@@ -90,7 +84,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
   const isLoading = existingChartData ? false : hookLoading;
   const error = existingChartData ? null : hookError;
 
-  const [tradeSignal, setTradeSignal] = useState<ReturnType<typeof calculateTradeSignal> | null>(null);
+  
 
   function convertToChartData(data: MultiTimeframeData): any {
     const candles1h = data.timeframes['1h']?.candles || [];
@@ -130,213 +124,269 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
     };
   }
 
-  // Initialize chart
+  // Effect 1: Initialize chart once
   useEffect(() => {
     if (!chartContainerRef.current || chartRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
-      height: 600,
-      layout: { background: { color: 'transparent' }, textColor: '#d1d5db' },
-      grid: {
-        vertLines: { color: 'rgba(255, 255, 255, 0.05)', style: 1 },
-        horzLines: { color: 'rgba(255, 255, 255, 0.05)', style: 1 },
-      },
-      crosshair: { mode: 1 },
-      rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.2)', scaleMargins: { top: 0.1, bottom: 0.25 } },
-      timeScale: { borderColor: 'rgba(255, 255, 255, 0.2)', timeVisible: true, secondsVisible: false },
-    });
-
-    chartRef.current = chart;
-
-    const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      borderUpColor: '#22c55e',
-      borderDownColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
-    });
-    candleSeriesRef.current = candleSeries;
-
-    const areaSeries = chart.addSeries(AreaSeries, {
-      lineColor: '#8b5cf6',
-      topColor: 'rgba(139, 92, 246, 0.4)',
-      bottomColor: 'rgba(139, 92, 246, 0.01)',
-      lineWidth: 2,
-      visible: false,
-    });
-    areaSeriesRef.current = areaSeries;
-
-    emaSeriesRef.current = chart.addSeries(LineSeries, { color: '#3b82f6', lineWidth: 2 });
-    volumeSeriesRef.current = chart.addSeries(HistogramSeries, {
-      color: '#26a69a',
-      priceFormat: { type: 'volume' },
-      priceScaleId: '',
-    });
-    chart.priceScale('').applyOptions({ scaleMargins: { top: 0.7, bottom: 0 } });
-    rsiSeriesRef.current = chart.addSeries(LineSeries, { color: '#fbbf24', lineWidth: 1, priceScaleId: 'rsi' });
-    chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
-
-    const handleResize = () => {
-      if (chartContainerRef.current && chart) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
-      }
-    };
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      chart.remove();
-      chartRef.current = null;
-    };
-  }, []);
-
-  // Toggle chart mode
-  useEffect(() => {
-    if (!candleSeriesRef.current || !areaSeriesRef.current) return;
-    candleSeriesRef.current.applyOptions({ visible: chartMode === 'candlestick' });
-    areaSeriesRef.current.applyOptions({ visible: chartMode === 'area' });
-  }, [chartMode]);
-
-  // Calculate trade signals from chart data
-  useEffect(() => {
-    if (!chartData || !annotationConfig.showSignals) return;
-
-    const timeframeMap = { '1H': 'candles1h', '15M': 'candles15m', '5M': 'candles5m', '1M': 'candles1m' };
-    const candles = chartData[timeframeMap[activeTimeframe]] || [];
-    if (candles.length < 50) return; // Need enough data for indicators
-
-    const indicators = chartData.indicators?.[activeTimeframe.toLowerCase()];
-    if (!indicators) return;
-
-    // Calculate signals every 15 candles to avoid clutter
-    const signalMarkers: SeriesMarker<Time>[] = [];
-    const step = 15;
+    console.log('📊 Initializing chart...');
     
-    for (let i = 50; i < candles.length; i += step) {
-      const currentCandle = candles[i];
-      
-      // Prepare data for signal calculation
-      const signalData: ChartDataForSignal = {
-        price1h: currentCandle.close,
-        ema501h: indicators.ema50?.slice(0, i + 1) || [],
-        rsi1h: indicators.rsi?.slice(0, i + 1) || [],
-        price15m: currentCandle.close,
-        ema5015m: indicators.ema50?.slice(0, i + 1) || [],
-        rsi15m: indicators.rsi?.slice(0, i + 1) || [],
-        currentVolume: currentCandle.volume || 0,
-        volumeSMA: indicators.volumeSMA?.slice(0, i + 1) || [],
-        coinglassSentiment: chartData.coinglass?.overallSentiment || 'neutral',
-      };
-
-      const signal = calculateTradeSignal(signalData);
-
-      // Only show high-confidence signals
-      if (signal.confidence >= 70) {
-        signalMarkers.push({
-          time: currentCandle.time as Time,
-          position: signal.signal === 'BUY' ? 'belowBar' : 'aboveBar',
-          color: signal.signal === 'BUY' ? '#22c55e' : '#ef4444',
-          shape: signal.signal === 'BUY' ? 'arrowUp' : 'arrowDown',
-          text: `${signal.signal} ${signal.confidence}%`,
-        });
-      }
-    }
-
-    // Set the latest calculated signal for the price line
-    if (signalMarkers.length > 0) {
-      const lastSignal = signalMarkers[signalMarkers.length - 1];
-      setTradeSignal({
-        signal: lastSignal.text?.includes('BUY') ? 'BUY' : 'SELL',
-        confidence: parseInt(lastSignal.text?.match(/\d+/)?.[0] || '0'),
-        reasons: [],
-        failedConditions: [],
-        timestamp: Date.now(),
+    try {
+      const chart = createChart(chartContainerRef.current, {
+        layout: {
+          background: { color: 'transparent' },
+          textColor: '#9CA3AF',
+        },
+        grid: {
+          vertLines: { color: '#1F2937' },
+          horzLines: { color: '#1F2937' },
+        },
+        width: chartContainerRef.current.clientWidth,
+        height: 600,
+        timeScale: {
+          borderColor: '#1F2937',
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        rightPriceScale: {
+          borderColor: '#1F2937',
+        },
       });
-    }
 
-    // Apply markers to the series
-    if (candleSeriesRef.current && signalMarkers.length > 0) {
-      (candleSeriesRef.current as any).setMarkers(signalMarkers);
-    }
-  }, [chartData, activeTimeframe, annotationConfig.showSignals]);
-
-  // Update chart data with annotations
-  useEffect(() => {
-    if (!chartData || !candleSeriesRef.current || !areaSeriesRef.current) return;
-
-    const timeframeMap = { '1H': 'candles1h', '15M': 'candles15m', '5M': 'candles5m', '1M': 'candles1m' };
-    const candles = chartData[timeframeMap[activeTimeframe]] || [];
-    if (candles.length === 0) return;
-
-    candleSeriesRef.current.setData(candles);
-    areaSeriesRef.current.setData(candles.map((c: any) => ({ time: c.time, value: c.close })));
-
-    const indicators = chartData.indicators?.[activeTimeframe.toLowerCase()];
-    if (indicators?.ema50) {
-      emaSeriesRef.current?.setData(candles.map((c: any, i: number) => ({ time: c.time, value: indicators.ema50[i] || c.close })));
-    }
-    if (indicators?.rsi) {
-      rsiSeriesRef.current?.setData(candles.map((c: any, i: number) => ({ time: c.time, value: indicators.rsi[i] || 50 })));
-    }
-    volumeSeriesRef.current?.setData(candles.map((c: any) => ({ time: c.time, value: c.volume || 0, color: c.close >= c.open ? '#22c55e80' : '#ef444480' })));
-
-    // Add annotations (using price lines for events)
-    const events = getEventsForSymbol(symbol);
-    if (events.length > 0) {
-      const startDate = new Date((candles[0].time as number) * 1000);
-      const endDate = new Date((candles[candles.length - 1].time as number) * 1000);
-      const relevantEvents = filterEventsByDateRange(events, startDate, endDate).filter(e => {
-        if (e.type === 'event') return annotationConfig.showEvents;
-        if (e.type === 'news') return annotationConfig.showNews;
-        if (e.type === 'milestone') return annotationConfig.showMilestones;
-        return true;
+      // Add candlestick series
+      const candleSeries = chart.addSeries(CandlestickSeries, {
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+        borderVisible: false,
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
       });
-      annotationManagerRef.current.clearAnnotations();
-      annotationManagerRef.current.addAnnotations(relevantEvents);
-      
-      // Add price lines for annotations
-      relevantEvents.forEach(event => {
-        if (event.price && candleSeriesRef.current) {
-          candleSeriesRef.current.createPriceLine({
-            price: event.price,
-            color: event.type === 'milestone' ? '#FFA726' : '#2196F3',
-            lineWidth: 1,
-            lineStyle: 2,
-            axisLabelVisible: true,
-            title: event.title.substring(0, 15),
+
+      // Add volume series
+      const volumeSeries = chart.addSeries(HistogramSeries, {
+        color: '#3b82f680',
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
+      });
+
+      chart.priceScale('volume').applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+      });
+
+      // Add EMA series
+      const emaSeries = chart.addSeries(LineSeries, {
+        color: '#f59e0b',
+        lineWidth: 2,
+        title: 'EMA 50',
+      });
+
+      // Add RSI series (separate pane)
+      const rsiSeries = chart.addSeries(LineSeries, {
+        color: '#8b5cf6',
+        lineWidth: 2,
+        priceScaleId: 'rsi',
+      });
+
+      chart.priceScale('rsi').applyOptions({
+        scaleMargins: { top: 0.85, bottom: 0 },
+      });
+
+      // Store references
+      chartRef.current = chart;
+      candleSeriesRef.current = candleSeries;
+      volumeSeriesRef.current = volumeSeries;
+      emaSeriesRef.current = emaSeries;
+      rsiSeriesRef.current = rsiSeries;
+
+      // Handle resize
+      const handleResize = () => {
+        if (chartContainerRef.current && chartRef.current) {
+          chartRef.current.applyOptions({
+            width: chartContainerRef.current.clientWidth,
           });
         }
-      });
-    }
-  }, [chartData, activeTimeframe, annotationConfig, chartMode, symbol]);
+      };
 
-  if (isLoading) return <Skeleton className="h-[600px] w-full" />;
-  if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
+      window.addEventListener('resize', handleResize);
+
+      setChartReady(true);
+      console.log('✅ Chart initialized successfully');
+
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        chart.remove();
+        chartRef.current = null;
+        setChartReady(false);
+      };
+    } catch (err) {
+      console.error('❌ Chart initialization failed:', err);
+    }
+  }, []);
+
+  // Effect 2: Load and display data
+  useEffect(() => {
+    if (!chartReady || !chartData || !candleSeriesRef.current) {
+      console.log('⏳ Waiting for chart or data...', { chartReady, hasData: !!chartData });
+      return;
+    }
+
+    try {
+      const timeframeMap = { '1H': 'candles1h', '15M': 'candles15m', '5M': 'candles5m', '1M': 'candles1m' };
+      const candles = chartData[timeframeMap[activeTimeframe]] || [];
+
+      if (candles.length === 0) {
+        console.warn('⚠️ No candles available for timeframe:', activeTimeframe);
+        return;
+      }
+
+      console.log(`📈 Updating chart with ${candles.length} candles for ${activeTimeframe}`);
+
+      // Update candlestick data
+      candleSeriesRef.current.setData(candles.map((c: any) => ({
+        time: c.time as Time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      })));
+
+      // Update volume data
+      if (volumeSeriesRef.current) {
+        volumeSeriesRef.current.setData(candles.map((c: any) => ({
+          time: c.time as Time,
+          value: c.volume || 0,
+          color: c.close >= c.open ? '#22c55e80' : '#ef444480',
+        })));
+      }
+
+      // Update EMA data
+      const indicators = chartData.indicators?.[activeTimeframe.toLowerCase()];
+      if (emaSeriesRef.current && indicators?.ema50) {
+        const emaData = candles.map((c: any, i: number) => ({
+          time: c.time as Time,
+          value: indicators.ema50[i] || c.close,
+        }));
+        emaSeriesRef.current.setData(emaData);
+      }
+
+      // Update RSI data
+      if (rsiSeriesRef.current && indicators?.rsi) {
+        const rsiData = candles.map((c: any, i: number) => ({
+          time: c.time as Time,
+          value: indicators.rsi[i] || 50,
+        }));
+        rsiSeriesRef.current.setData(rsiData);
+      }
+
+      console.log('✅ Chart data updated successfully');
+    } catch (err) {
+      console.error('❌ Failed to update chart data:', err);
+    }
+  }, [chartReady, chartData, activeTimeframe]);
+
+  // Effect 3: Calculate and display trade signals
+  useEffect(() => {
+    if (!chartReady || !chartData || !candleSeriesRef.current || !annotationConfig.showSignals) {
+      return;
+    }
+
+    try {
+      const timeframeMap = { '1H': 'candles1h', '15M': 'candles15m', '5M': 'candles5m', '1M': 'candles1m' };
+      const candles = chartData[timeframeMap[activeTimeframe]] || [];
+      
+      if (candles.length < 50) {
+        console.log('⏳ Need at least 50 candles for signal calculation');
+        return;
+      }
+
+      const indicators = chartData.indicators?.[activeTimeframe.toLowerCase()];
+      if (!indicators) {
+        console.log('⏳ Waiting for indicators...');
+        return;
+      }
+
+      console.log('🎯 Calculating trade signals...');
+      const signalMarkers: SeriesMarker<Time>[] = [];
+      const step = 15; // Calculate every 15 candles to avoid clutter
+
+      for (let i = 50; i < candles.length; i += step) {
+        const currentCandle = candles[i];
+        
+        const signalData: ChartDataForSignal = {
+          price1h: currentCandle.close,
+          ema501h: indicators.ema50?.slice(0, i + 1) || [],
+          rsi1h: indicators.rsi?.slice(0, i + 1) || [],
+          price15m: currentCandle.close,
+          ema5015m: indicators.ema50?.slice(0, i + 1) || [],
+          rsi15m: indicators.rsi?.slice(0, i + 1) || [],
+          currentVolume: currentCandle.volume || 0,
+          volumeSMA: indicators.volumeSMA?.slice(0, i + 1) || [],
+          coinglassSentiment: chartData.coinglass?.overallSentiment || 'neutral',
+        };
+
+        const signal = calculateTradeSignal(signalData);
+
+        // Only show high-confidence signals
+        if (signal.confidence >= 70 && signal.signal !== 'NO TRADE') {
+          signalMarkers.push({
+            time: currentCandle.time as Time,
+            position: signal.signal === 'BUY' ? 'belowBar' : 'aboveBar',
+            color: signal.signal === 'BUY' ? '#22c55e' : '#ef4444',
+            shape: signal.signal === 'BUY' ? 'arrowUp' : 'arrowDown',
+            text: `${signal.signal} ${signal.confidence}%`,
+          });
+        }
+      }
+
+      // Apply signals to chart
+      if (signalMarkers.length > 0) {
+        (candleSeriesRef.current as any).setMarkers(signalMarkers);
+        console.log(`✅ Added ${signalMarkers.length} trade signals to chart`);
+      } else {
+        console.log('ℹ️ No high-confidence signals found');
+      }
+    } catch (err) {
+      console.error('❌ Failed to calculate signals:', err);
+    }
+  }, [chartReady, chartData, activeTimeframe, annotationConfig.showSignals]);
+
+  if (isLoading) {
+    return <Skeleton className="h-[600px] w-full" />;
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-destructive">
+        Error loading chart: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <ChartToolbar
         config={annotationConfig}
         onConfigChange={setAnnotationConfig}
-        chartMode={chartMode}
-        onChartModeChange={setChartMode}
+        chartMode="candlestick"
+        onChartModeChange={() => {}}
       />
-      <div className="flex gap-2">
-        {(['1H', '15M', '5M', '1M'] as Timeframe[]).map(tf => (
+
+      <div className="flex gap-2 mb-4">
+        {(['1M', '5M', '15M', '1H'] as Timeframe[]).map((tf) => (
           <button
             key={tf}
             onClick={() => setActiveTimeframe(tf)}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTimeframe === tf ? 'bg-primary text-primary-foreground' : 'bg-card/50 hover:bg-card'
+              activeTimeframe === tf
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
             {tf}
           </button>
         ))}
       </div>
-      <div ref={chartContainerRef} className="bg-card/30 rounded-lg border border-border min-h-[600px]" />
+
+      <div ref={chartContainerRef} className="w-full h-[600px] rounded-lg bg-card" />
     </div>
   );
 };
