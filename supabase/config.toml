@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.health-check]
 verify_jwt = false
+
+[functions.fetch-funding-rate]
+verify_jwt = false
+
+[functions.fetch-open-interest]
+verify_jwt = false
+
+[functions.fetch-liquidations]
+verify_jwt = false
+
+[functions.fetch-market-overview]
+verify_jwt = false
