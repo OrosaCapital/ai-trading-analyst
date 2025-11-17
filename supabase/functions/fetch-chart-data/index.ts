@@ -562,51 +562,24 @@ async function fetchCoinGlassOHLC(
     
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
     
-    // Try multiple CoinGlass API v4 endpoints for reliability
-    const endpoints = [
-      `/api/futures/price-ohlc/history`,
-      `/api/futures/ohlc/history`,
-      `/api/index/price-ohlc/history`
-    ];
-
-    let data = null;
-    let successfulEndpoint = null;
-
-    for (const endpoint of endpoints) {
-      const url = `https://open-api-v4.coinglass.com${endpoint}?symbol=${cleanSymbol}&interval=${interval}&limit=1000`;
-      console.log(`Trying: ${url}`);
-      
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'accept': 'application/json',
-            'CG-API-KEY': apiKey
-          }
-        });
-        
-        if (response.ok) {
-          const jsonData = await response.json();
-          if (jsonData.code === '0' && jsonData.data?.length > 0) {
-            data = jsonData;
-            successfulEndpoint = endpoint;
-            console.log(`✅ SUCCESS: ${endpoint} returned ${jsonData.data.length} candles`);
-            break;
-          } else {
-            console.log(`⚠️ ${endpoint} returned code ${jsonData.code}: ${jsonData.msg}`);
-          }
-        } else {
-          console.log(`❌ ${endpoint} returned ${response.status}: ${await response.text()}`);
-        }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.log(`❌ ${endpoint} failed: ${errorMsg}`);
+    // CoinGlass API v4 correct endpoint for OHLC data
+    const url = `https://open-api-v4.coinglass.com/api/futures/price/history?exchange=Binance&symbol=${cleanSymbol}&interval=${interval}&limit=1000`;
+    console.log(`Fetching from CoinGlass: ${url}`);
+    
+    const response = await fetch(url, {
+      headers: {
+        'accept': 'application/json',
+        'CG-API-KEY': apiKey
       }
-    }
+    });
 
-    if (!data) {
-      console.error('❌ All CoinGlass endpoints failed');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ CoinGlass API error ${response.status}: ${errorText}`);
       return null;
     }
+
+    const data = await response.json();
     
     if (data.code !== '0' || !data.data || data.data.length === 0) {
       console.error('CoinGlass error details:', {

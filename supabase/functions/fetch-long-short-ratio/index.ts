@@ -15,8 +15,9 @@ async function fetchLongShortFromCoinglass(symbol: string, apiKey: string) {
     const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
     
     // CoinGlass API v4 endpoint for global long/short account ratio
+    // Hobbyist plan requires >=4h interval
     const response = await fetch(
-      `https://open-api-v4.coinglass.com/api/futures/global-long-short-account-ratio/history?symbol=${cleanSymbol}&interval=1h&limit=24`,
+      `https://open-api-v4.coinglass.com/api/futures/global-long-short-account-ratio/history?exchange=Binance&symbol=${cleanSymbol}&interval=4h&limit=24`,
       {
         headers: {
           'accept': 'application/json',
