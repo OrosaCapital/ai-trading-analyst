@@ -47,7 +47,22 @@ export const MarketMetrics = ({ symbol }: MarketMetricsProps) => {
 
       if (error) throw error;
 
-      setData(overviewData);
+      // Transform the data structure to match component expectations
+      const transformedData = {
+        fundingRate: {
+          ...overviewData.metrics.fundingRate,
+          sentiment: overviewData.metrics.fundingRate.trend === 'RISING' ? 'BULLISH' : 'BEARISH'
+        },
+        openInterest: overviewData.metrics.openInterest,
+        liquidations: {
+          total: overviewData.metrics.liquidations24h.total,
+          ratio: overviewData.metrics.liquidations24h.longShortRatio
+        },
+        marketHealth: overviewData.marketHealth,
+        isMockData: overviewData.isMockData
+      };
+
+      setData(transformedData);
       setLastUpdate(new Date());
     } catch (error) {
       console.error('Error fetching market metrics:', error);

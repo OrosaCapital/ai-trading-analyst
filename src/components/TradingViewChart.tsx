@@ -100,9 +100,19 @@ export const TradingViewChart = ({ symbol = "BTCUSD" }: TradingViewChartProps) =
     loadTradingViewWidget();
 
     return () => {
-      if (widgetRef.current && widgetRef.current.remove) {
-        widgetRef.current.remove();
+      // Safe cleanup: only remove if widget exists and has a remove method
+      try {
+        if (widgetRef.current && typeof widgetRef.current.remove === 'function') {
+          widgetRef.current.remove();
+        }
+        // Clear the container as a fallback
+        if (containerRef.current) {
+          containerRef.current.innerHTML = "";
+        }
+      } catch (error) {
+        console.warn('TradingView widget cleanup warning:', error);
       }
+      widgetRef.current = null;
     };
   }, [symbol]);
 
