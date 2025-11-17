@@ -563,7 +563,7 @@ async function fetchCoinGlassOHLC(
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
     
     // Import shared client function
-    const { fetchFromCoinglassV2 } = await import('./_shared/coinglassClient.ts');
+    const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
     
     // Use database lookup for endpoint
     let data;
