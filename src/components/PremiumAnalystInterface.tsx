@@ -474,6 +474,7 @@ export const PremiumAnalystInterface = () => {
             <div className="rounded-xl overflow-hidden">
               <ProfessionalTradingChart 
                 symbol={symbol ? symbol.replace('/', '') : 'BTCUSD'}
+                existingChartData={chartData}
               />
             </div>
           </div>

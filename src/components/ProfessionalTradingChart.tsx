@@ -14,13 +14,50 @@ import { calculateTradeSignal, ChartDataForSignal } from '@/lib/signalEngine';
 import { Skeleton } from './ui/skeleton';
 import { TrendingUp, TrendingDown, Activity, Zap } from 'lucide-react';
 
+// Import types from PremiumAnalystInterface
+interface MultiTimeframeData {
+  timeframes: {
+    '1h': TimeframeData;
+    '15m': TimeframeData;
+    '5m': TimeframeData;
+  };
+  metadata: {
+    rule: string;
+    trend1h: 'bullish' | 'bearish' | 'neutral';
+    validSignals: number;
+    invalidSignals: number;
+    entryPoints: number;
+    dataSource?: string;
+    assetType?: 'crypto' | 'stock';
+  };
+}
+
+interface TimeframeData {
+  candles: Array<{
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+    sentiment: number;
+    rsi: number;
+  }>;
+  trend?: 'bullish' | 'bearish' | 'neutral';
+  indicators: {
+    ema50: Array<{ time: number; value: number }>;
+    ema200: Array<{ time: number; value: number }>;
+  };
+}
+
 interface ProfessionalTradingChartProps {
   symbol: string;
+  existingChartData?: MultiTimeframeData | null;
 }
 
 type Timeframe = '1H' | '15M' | '5M' | '1M';
 
-export const ProfessionalTradingChart = ({ symbol }: ProfessionalTradingChartProps) => {
+export const ProfessionalTradingChart = ({ symbol, existingChartData }: ProfessionalTradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<any> | null>(null);
@@ -29,9 +66,63 @@ export const ProfessionalTradingChart = ({ symbol }: ProfessionalTradingChartPro
   const rsiSeriesRef = useRef<ISeriesApi<any> | null>(null);
   
   const [activeTimeframe, setActiveTimeframe] = useState<Timeframe>('1H');
-  const { chartData, isLoading, error } = useProfessionalChartData(symbol);
+  
+  // Use existing chart data if provided, otherwise fetch with hook
+  const shouldFetchData = !existingChartData;
+  const { chartData: hookChartData, isLoading: hookLoading, error: hookError } = useProfessionalChartData(
+    shouldFetchData ? symbol : null
+  );
+  
+  // Use existing data if available, otherwise use hook data
+  const chartData = existingChartData ? convertToChartData(existingChartData) : hookChartData;
+  const isLoading = existingChartData ? false : hookLoading;
+  const error = existingChartData ? null : hookError;
   
   const [tradeSignal, setTradeSignal] = useState<ReturnType<typeof calculateTradeSignal> | null>(null);
+  
+  // Helper function to convert MultiTimeframeData to ChartData format
+  function convertToChartData(data: MultiTimeframeData): any {
+    const candles1h = data.timeframes['1h']?.candles || [];
+    
+    return {
+      candles1m: candles1h, // Use 1h as fallback for now
+      candles5m: candles1h,
+      candles15m: candles1h,
+      candles1h: candles1h.map(c => ({
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        volume: c.volume,
+      })),
+      indicators: {
+        '1h': {
+          ema50: data.timeframes['1h']?.indicators?.ema50?.map(e => e.value) || [],
+          rsi: candles1h.map(c => c.rsi || 50),
+          volumeSMA: [],
+        },
+        '15m': {
+          ema50: [],
+          rsi: [],
+          volumeSMA: [],
+        },
+      },
+      coinglass: {
+        fundingRate: 0,
+        fundingSentiment: 'neutral' as const,
+        openInterest: 0,
+        oiChange: 0,
+        liquidations: { longs: 0, shorts: 0 },
+        longShortRatio: 1,
+        overallSentiment: 'neutral' as const,
+      },
+      levels: { support: [], resistance: [] },
+      liquiditySweeps: [],
+      candleCount: candles1h.length,
+      dataSource: 'coinglass' as const,
+    };
+  }
   
   // Initialize chart
   useEffect(() => {
