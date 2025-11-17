@@ -30,6 +30,7 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<any>(null);
   const emaSeriesRef = useRef<any>(null);
+  const volumeSeriesRef = useRef<any>(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('1h');
 
   // Convert price logs to candlesticks
@@ -139,7 +140,7 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
         horzLines: { color: 'rgba(0, 255, 255, 0.08)' },
       },
       width: chartContainerRef.current.clientWidth,
-      height: 600,
+      height: 650,
       crosshair: {
         mode: 1,
         vertLine: {
@@ -157,6 +158,12 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
         borderColor: 'rgba(0, 255, 255, 0.2)',
         timeVisible: true,
         secondsVisible: false,
+        barSpacing: 8,
+        minBarSpacing: 4,
+        rightOffset: 12,
+        fixLeftEdge: false,
+        fixRightEdge: false,
+        lockVisibleTimeRangeOnResize: true,
       },
       rightPriceScale: {
         borderColor: 'rgba(0, 255, 255, 0.2)',
@@ -170,6 +177,7 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
       borderDownColor: 'hsl(5, 85%, 60%)',
       wickUpColor: 'hsl(75, 100%, 50%)',
       wickDownColor: 'hsl(5, 85%, 60%)',
+      priceLineVisible: false,
     });
 
     const emaSeries = chart.addSeries('Line' as any, {
@@ -178,9 +186,23 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
       title: 'EMA 50',
     });
 
+    // Add volume histogram series
+    const volumeSeries = chart.addSeries('Histogram' as any, {
+      color: 'rgba(0, 255, 255, 0.3)',
+      priceFormat: {
+        type: 'volume',
+      },
+      priceScaleId: '',
+      scaleMargins: {
+        top: 0.8,
+        bottom: 0,
+      },
+    } as any);
+
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
     emaSeriesRef.current = emaSeries;
+    volumeSeriesRef.current = volumeSeries;
 
     const handleResize = () => {
       if (chartContainerRef.current) {
@@ -198,14 +220,38 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
 
   // Update chart data when timeframe or data changes
   useEffect(() => {
-    if (!candleSeriesRef.current || !emaSeriesRef.current) return;
+    if (!candleSeriesRef.current || !emaSeriesRef.current || !volumeSeriesRef.current) return;
 
     const chartData = getChartData();
     const emaData = getEmaData();
 
     if (chartData.length > 0) {
       candleSeriesRef.current.setData(chartData);
-      chartRef.current?.timeScale().fitContent();
+      
+      // Show limited visible range based on timeframe
+      const visibleBars = selectedTimeframe === '1h' ? 48 : 96;
+      const from = Math.max(0, chartData.length - visibleBars);
+      
+      chartRef.current?.timeScale().setVisibleLogicalRange({
+        from: from,
+        to: chartData.length - 1
+      });
+
+      // Update volume data
+      const volumeData = chartData.map((candle: any) => {
+        const rawData = selectedTimeframe === '1h' 
+          ? priceData?.['1h']?.find((d: any) => d.time === candle.time)
+          : null;
+        
+        return {
+          time: candle.time,
+          value: rawData?.volume || 0,
+          color: candle.close >= candle.open 
+            ? 'rgba(126, 255, 51, 0.4)'
+            : 'rgba(255, 77, 77, 0.4)'
+        };
+      });
+      volumeSeriesRef.current.setData(volumeData);
     }
 
     if (emaData.length > 0) {
@@ -228,7 +274,7 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
       {/* Timeframe Selector Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
-          {(['1h', '15m', '5m', '1m'] as Timeframe[]).map(tf => (
+          {(['1h', '15m'] as const).map(tf => (
             <button
               key={tf}
               className={`px-6 py-3 rounded-lg border transition-all ${
@@ -253,6 +299,11 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
         ref={chartContainerRef}
         className="w-full rounded-xl border border-primary/20 bg-card/30 backdrop-blur-sm overflow-hidden"
       />
+      
+      {/* Zoom Controls Hint */}
+      <div className="text-xs text-muted-foreground text-center">
+        Scroll to zoom • Drag to pan • Double-click to reset
+      </div>
     </div>
   );
 }
