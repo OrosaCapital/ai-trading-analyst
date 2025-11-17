@@ -5,60 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Generate mock liquidation data
-function generateMockLiquidations(symbol: string) {
-  const totalLongs = 80000000 + Math.random() * 80000000; // 80-160M
-  const totalShorts = 50000000 + Math.random() * 50000000; // 50-100M
-  const total = totalLongs + totalShorts;
-  const longRatio = (totalLongs / total * 100).toFixed(1);
-
-  const recentLiquidations = Array.from({ length: 24 }, (_, i) => {
-    const timestamp = Date.now() - (23 - i) * 3600000;
-    return {
-      time: timestamp,
-      longLiq: Math.random() * 5000000,
-      shortLiq: Math.random() * 5000000,
-    };
-  });
-
-  const majorEvents = [
-    {
-      time: new Date(Date.now() - 3 * 3600000).toISOString(),
-      amount: `${(Math.random() * 40 + 20).toFixed(1)}M`,
-      type: 'LONG',
-      price: 42000 + Math.random() * 2000
-    },
-    {
-      time: new Date(Date.now() - 8 * 3600000).toISOString(),
-      amount: `${(Math.random() * 30 + 15).toFixed(1)}M`,
-      type: 'SHORT',
-      price: 41500 + Math.random() * 2000
-    }
-  ];
-
-  const heatmap = {
-    levels: [
-      { price: 42000, liquidity: `${(Math.random() * 100 + 50).toFixed(0)}M`, type: 'LONG' },
-      { price: 42500, liquidity: `${(Math.random() * 80 + 40).toFixed(0)}M`, type: 'LONG' },
-      { price: 43000, liquidity: `${(Math.random() * 120 + 60).toFixed(0)}M`, type: 'SHORT' },
-      { price: 43500, liquidity: `${(Math.random() * 90 + 45).toFixed(0)}M`, type: 'SHORT' },
-    ]
-  };
-
-  return {
-    last24h: {
-      totalLongs: `${(totalLongs / 1000000).toFixed(1)}M`,
-      totalShorts: `${(totalShorts / 1000000).toFixed(1)}M`,
-      total: `${(total / 1000000).toFixed(1)}M`,
-      ratio: `${longRatio}% longs`,
-      longShortRatio: (totalLongs / totalShorts).toFixed(2),
-      majorEvents
-    },
-    recentLiquidations,
-    heatmap,
-    isMockData: true
-  };
-}
+// Mock data removed - only using live CoinGlass API data
 
 // Fetch real liquidation data from Coinglass
 async function fetchLiquidationsFromCoinglass(symbol: string, apiKey: string) {
@@ -174,18 +121,16 @@ Deno.serve(async (req) => {
     console.log('❌ Cache miss, fetching liquidations data');
 
     const COINGLASS_API_KEY = Deno.env.get('COINGLASS_API_KEY');
-    let result;
-
+    
     if (!COINGLASS_API_KEY) {
-      console.warn('⚠️ COINGLASS_API_KEY not set, using mock data');
-      result = generateMockLiquidations(symbol);
-    } else {
-      try {
-        result = await fetchLiquidationsFromCoinglass(symbol, COINGLASS_API_KEY);
-      } catch (error) {
-        console.warn('⚠️ Coinglass fetch failed, falling back to mock data');
-        result = generateMockLiquidations(symbol);
-      }
+      throw new Error('CoinGlass API key not configured. Please add COINGLASS_API_KEY secret.');
+    }
+
+    let result;
+    try {
+      result = await fetchLiquidationsFromCoinglass(symbol, COINGLASS_API_KEY);
+    } catch (error) {
+      throw new Error(`Failed to fetch liquidations for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     // Cache the result
@@ -202,12 +147,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('❌ Error in fetch-liquidations:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        ...generateMockLiquidations('BTC')
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Failed to fetch liquidations data'
       }),
       {
-        status: 200,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

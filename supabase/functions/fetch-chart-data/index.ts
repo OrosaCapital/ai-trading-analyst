@@ -94,62 +94,7 @@ interface EntryPoint {
   validation?: EntryValidation;
 }
 
-function generateMockOHLCV(symbol: string, days: number = 90, intervalMinutes: number = 1440): Candle[] {
-  const candles: Candle[] = [];
-  const basePrices: Record<string, number> = {
-    'BTCUSD': 42000, 'BTC': 42000, 'ETHUSD': 2800, 'ETH': 2800,
-    'SOLUSD': 120, 'SOL': 120, 'AAPL': 180, 'TSLA': 240, 'GOOGL': 140,
-  };
-  
-  let currentPrice = basePrices[symbol] || basePrices['BTCUSD'];
-  let currentOI = currentPrice * 50000;
-  const now = Date.now();
-  const interval = intervalMinutes * 60 * 1000;
-  const numCandles = Math.floor((days * 24 * 60) / intervalMinutes);
-  
-  for (let i = numCandles - 1; i >= 0; i--) {
-    const time = Math.floor((now - (i * interval)) / 1000);
-    const volatility = currentPrice * 0.03;
-    const trend = Math.sin(i / 10) * volatility * 0.5;
-    const randomWalk = (Math.random() - 0.5) * volatility;
-    
-    const open = currentPrice;
-    const change = trend + randomWalk;
-    const close = open + change;
-    const high = Math.max(open, close) + Math.abs(change) * Math.random();
-    const low = Math.min(open, close) - Math.abs(change) * Math.random();
-    
-    const baseVolume = currentPrice * 1000;
-    const volumeSpike = (i % 13 === 0) ? 2.5 : 1;
-    const volume = baseVolume * (0.5 + Math.random()) * volumeSpike;
-    
-    const oiChange = (close - open) * 100 + (volumeSpike > 2 ? 5000 : 0);
-    currentOI = currentOI + oiChange;
-    
-    const priceChange = close - open;
-    const rsi = 50 + (priceChange / volatility) * 20;
-    const clampedRSI = Math.max(0, Math.min(100, rsi));
-    
-    let sentiment = 5;
-    if (clampedRSI < 30) sentiment -= 2;
-    else if (clampedRSI > 70) sentiment += 2;
-    if (volumeSpike > 2) sentiment += (priceChange > 0 ? 1 : -1);
-    if (close > open) sentiment += 0.5;
-    else sentiment -= 0.5;
-    sentiment = Math.max(0, Math.min(10, sentiment));
-    
-    candles.push({
-      time, open: Number(open.toFixed(2)), high: Number(high.toFixed(2)),
-      low: Number(low.toFixed(2)), close: Number(close.toFixed(2)),
-      volume: Math.floor(volume), sentiment: Number(sentiment.toFixed(1)),
-      rsi: Number(clampedRSI.toFixed(2)), oi: Math.floor(currentOI),
-    });
-    
-    currentPrice = close;
-  }
-  
-  return candles;
-}
+// Mock data removed - only using live CoinGlass API data
 
 function calculateEMA(candles: Candle[], period: number): number[] {
   const ema: number[] = [];
@@ -717,43 +662,33 @@ serve(async (req) => {
     const assetType = detectAssetType(symbol);
     const COINGLASS_API_KEY = Deno.env.get('COINGLASS_API_KEY');
     
-    let dataSource = 'mock';
+    let dataSource = 'coinglass';
     let candles1h: Candle[];
     let candles15m: Candle[];
     let candles5m: Candle[];
     let candles1m: Candle[];
     
-    // Try to fetch live data for crypto
-    if (assetType === 'crypto' && COINGLASS_API_KEY) {
-      console.log(`Attempting to fetch live data for crypto symbol: ${symbol}`);
-      
-      const liveCandles1h = await fetchCoinGlassOHLC(symbol, 60, days, COINGLASS_API_KEY);
-      const liveCandles15m = await fetchCoinGlassOHLC(symbol, 15, days, COINGLASS_API_KEY);
-      const liveCandles5m = await fetchCoinGlassOHLC(symbol, 5, days, COINGLASS_API_KEY);
-      const liveCandles1m = await fetchCoinGlassOHLC(symbol, 1, days, COINGLASS_API_KEY);
-      
-      // Use live data if available, otherwise fallback to mock
-      if (liveCandles1h && liveCandles15m && liveCandles5m && liveCandles1m) {
-        candles1h = liveCandles1h;
-        candles15m = liveCandles15m;
-        candles5m = liveCandles5m;
-        candles1m = liveCandles1m;
-        dataSource = 'coinglass';
-        console.log('Using live CoinGlass data');
-      } else {
-        console.log('Falling back to mock data');
-        candles1h = generateMockOHLCV(symbol, days, 60);
-        candles15m = generateMockOHLCV(symbol, days, 15);
-        candles5m = generateMockOHLCV(symbol, days, 5);
-        candles1m = generateMockOHLCV(symbol, days, 1);
-      }
-    } else {
-      console.log(`Using mock data for ${assetType} symbol: ${symbol}`);
-      candles1h = generateMockOHLCV(symbol, days, 60);
-      candles15m = generateMockOHLCV(symbol, days, 15);
-      candles5m = generateMockOHLCV(symbol, days, 5);
-      candles1m = generateMockOHLCV(symbol, days, 1);
+    // Only fetch live CoinGlass data for crypto - NO MOCK DATA
+    if (!COINGLASS_API_KEY) {
+      throw new Error('CoinGlass API key not configured. Please add COINGLASS_API_KEY secret.');
     }
+    
+    if (assetType !== 'crypto') {
+      throw new Error(`Symbol ${symbol} is not a supported cryptocurrency. Only crypto symbols are supported (BTC, ETH, XRP, etc).`);
+    }
+    
+    console.log(`Fetching live CoinGlass data for ${symbol}`);
+    const liveCandles1h = await fetchCoinGlassOHLC(symbol, 60, days, COINGLASS_API_KEY);
+    
+    if (!liveCandles1h || liveCandles1h.length === 0) {
+      throw new Error(`Failed to fetch CoinGlass data for ${symbol}. Please verify the symbol is a valid cryptocurrency.`);
+    }
+    
+    candles1h = liveCandles1h;
+    candles15m = await fetchCoinGlassOHLC(symbol, 15, days, COINGLASS_API_KEY) || candles1h;
+    candles5m = await fetchCoinGlassOHLC(symbol, 5, days, COINGLASS_API_KEY) || candles1h;
+    candles1m = await fetchCoinGlassOHLC(symbol, 1, days, COINGLASS_API_KEY) || candles1h;
+    console.log('✅ Using live CoinGlass data');
     
     const ema50_1h = calculateEMA(candles1h, 50);
     const ema200_1h = calculateEMA(candles1h, 200);

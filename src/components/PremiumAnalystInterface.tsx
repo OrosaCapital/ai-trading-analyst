@@ -90,6 +90,7 @@ export const PremiumAnalystInterface = () => {
   const [chartData, setChartData] = useState<MultiTimeframeData | null>(null);
   const [isLoadingChart, setIsLoadingChart] = useState(false);
   const [streamingEnabled, setStreamingEnabled] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Real-time price streaming
   const { priceData, connectionStatus, isConnected, lastUpdateTime, isPolling } = useRealtimePriceStream(
@@ -177,6 +178,39 @@ export const PremiumAnalystInterface = () => {
     return "BTCUSD";
   };
 
+  // Format symbol display: BTCUSD -> BTC/USD, ETHUSD -> ETH/USD
+  const formatSymbolDisplay = (sym: string): string => {
+    if (!sym) return '';
+    
+    // For crypto pairs ending in USD/USDT
+    if (sym.includes('USD')) {
+      const base = sym.replace('USD', '').replace('T', '');
+      return `${base}/USD`;
+    }
+    
+    // For regular stock symbols
+    return sym;
+  };
+
+  // Get current price from real-time data or latest chart candle
+  const getCurrentPrice = (): number => {
+    // Priority 1: Real-time WebSocket price
+    if (priceData?.price && priceData.price > 0) {
+      return priceData.price;
+    }
+    
+    // Priority 2: Latest candle from chart
+    if (chartData?.timeframes?.['1h']?.candles?.length > 0) {
+      const candles = chartData.timeframes['1h'].candles;
+      const lastCandle = candles[candles.length - 1];
+      if (lastCandle?.close && lastCandle.close > 0) {
+        return lastCandle.close;
+      }
+    }
+    
+    return 0;
+  };
+
   const handleAnalyze = async (symbolInput?: string) => {
     const targetSymbol = symbolInput || extractSymbol(input);
     if (!targetSymbol && !input.trim()) {
@@ -226,17 +260,23 @@ export const PremiumAnalystInterface = () => {
       if (!symbol) return;
       
       setIsLoadingChart(true);
+      setApiError(null);
       try {
         const { data, error } = await supabase.functions.invoke('fetch-chart-data', {
           body: { symbol, days: 7 }
         });
 
-        if (error) throw error;
+        if (error) {
+          setApiError(`Failed to load chart data: ${error.message}`);
+          setChartData(null);
+          return;
+        }
         
         setChartData(data);
       } catch (error) {
         console.error('Chart data fetch error:', error);
-        toast.error("Failed to load chart data");
+        setApiError(error instanceof Error ? error.message : 'Unable to connect to data service');
+        setChartData(null);
       } finally {
         setIsLoadingChart(false);
       }
@@ -339,9 +379,21 @@ export const PremiumAnalystInterface = () => {
         {symbol && (
           <div className="glass rounded-2xl p-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
               <div className="flex items-center gap-3">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-bold">{symbol} Chart</h2>
+                <h2 className="text-xl font-bold">
+                  {formatSymbolDisplay(symbol)}
+                </h2>
+                {getCurrentPrice() > 0 && (
+                  <span className="text-xl font-semibold text-primary">
+                    current price ${getCurrentPrice().toLocaleString(undefined, { 
+                      minimumFractionDigits: 2, 
+                      maximumFractionDigits: 2 
+                    })}
+                  </span>
+                )}
+              </div>
                 {priceData && isConnected && (
                   <div className={`flex items-center gap-2 ml-4 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 transition-all duration-300 ${
                     showFlash ? 'scale-110 bg-primary/20 border-primary/40' : ''
@@ -394,12 +446,18 @@ export const PremiumAnalystInterface = () => {
                     )}
                   </div>
                 )}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Zap className="w-4 h-4" />
-                  Real-time Data
-                </div>
               </div>
             </div>
+
+            {/* Error Display */}
+            {apiError && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-red-400">{apiError}</span>
+                </div>
+              </div>
+            )}
+
             <div className="h-[600px] rounded-xl overflow-hidden">
               <OcapxChart 
                 symbol={symbol} 
