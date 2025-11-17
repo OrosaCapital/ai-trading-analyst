@@ -14,7 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analysis_cache: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          query_hash: string
+          result: Json
+          symbol: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          query_hash: string
+          result: Json
+          symbol: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          query_hash?: string
+          result?: Json
+          symbol?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -7,6 +7,8 @@ import { Send, Sparkles, TrendingUp, Activity } from "lucide-react";
 import { SentimentLegend } from "./SentimentLegend";
 import { TradingViewChart } from "./TradingViewChart";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AnalysisResult {
   summary: string;
@@ -66,103 +68,71 @@ export const AnalystInterface = () => {
     return "BTCUSD"; // Default
   };
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
+    if (!query.trim()) {
+      toast.error("Please enter a trading query");
+      return;
+    }
+
     setIsAnalyzing(true);
-    
-    // Extract symbol from query
     const detectedSymbol = extractSymbol(query);
     setSymbol(detectedSymbol);
     
-    // Mock analysis result
-    setTimeout(() => {
-      setResult({
-        summary: "Bitcoin is showing strong bullish momentum with price above 50 EMA and 200 EMA. Volume bubbles indicate accumulation at key support levels. Market sentiment is in MILD GREED territory with funding rates neutral. Open interest is rising steadily, suggesting new money entering long positions. Long entry recommended on pullback to $95,000 support zone.",
-        signal: "LONG",
-        sentiment: "MILD GREED",
-        confidence: "78%",
-        pineScript: `// @version=6
-indicator("Orosa Capital - Market Sentiment", overlay=true)
-
-// User Inputs
-emaFastLength = input.int(50, "Fast EMA Length", minval=1)
-emaSlowLength = input.int(200, "Slow EMA Length", minval=1)
-rsiLength = input.int(14, "RSI Length", minval=1)
-
-// Calculate EMAs
-emaFast = ta.ema(close, emaFastLength)
-emaSlow = ta.ema(close, emaSlowLength)
-
-// Calculate RSI for sentiment
-rsi = ta.rsi(close, rsiLength)
-
-// Determine sentiment based on RSI
-var string sentiment = "NEUTRAL"
-var color sentimentColor = color.new(color.yellow, 0)
-
-if rsi >= 80
-    sentiment := "MAX EUPHORIA"
-    sentimentColor := color.new(#E88C9C, 0)
-else if rsi >= 70
-    sentiment := "EXTREME GREED"
-    sentimentColor := color.new(#C73E3E, 0)
-else if rsi >= 60
-    sentiment := "HIGH GREED"
-    sentimentColor := color.new(#D97339, 0)
-else if rsi >= 55
-    sentiment := "GREED"
-    sentimentColor := color.new(#D9A339, 0)
-else if rsi >= 50
-    sentiment := "MILD GREED"
-    sentimentColor := color.new(#D9D339, 0)
-else if rsi >= 45
-    sentiment := "NEUTRAL"
-    sentimentColor := color.new(#C9D339, 0)
-else if rsi >= 40
-    sentiment := "MILD CAUTION"
-    sentimentColor := color.new(#7B3FD9, 0)
-else if rsi >= 30
-    sentiment := "CAUTION"
-    sentimentColor := color.new(#0039D9, 0)
-else if rsi >= 25
-    sentiment := "CONCERN"
-    sentimentColor := color.new(#39A39A, 0)
-else if rsi >= 20
-    sentiment := "FEAR"
-    sentimentColor := color.new(#39C9D9, 0)
-else
-    sentiment := "MAX FEAR"
-    sentimentColor := color.new(#00FF7F, 0)
-
-// Plot EMAs
-plot(emaFast, "Fast EMA", color=color.new(#00FF7F, 0), linewidth=2)
-plot(emaSlow, "Slow EMA", color=color.new(color.white, 0), linewidth=2)
-
-// Generate signals
-longSignal = ta.crossover(emaFast, emaSlow) and rsi < 70
-shortSignal = ta.crossunder(emaFast, emaSlow) and rsi > 30
-
-// Plot signals
-plotshape(longSignal, "Long Entry", shape.triangleup, location.belowbar, 
-          color.new(#00FF7F, 0), size=size.small)
-plotshape(shortSignal, "Short Entry", shape.triangledown, location.abovebar, 
-          color.new(#C73E3E, 0), size=size.small)
-
-// Display sentiment on chart
-var label sentimentLabel = na
-if barstate.islast
-    label.delete(sentimentLabel)
-    sentimentLabel := label.new(bar_index, high, sentiment, 
-                     style=label.style_label_down, 
-                     color=sentimentColor, 
-                     textcolor=color.white, 
-                     size=size.large)
-
-// Alert conditions
-alertcondition(longSignal, "Long Entry", "Orosa Capital: LONG signal triggered")
-alertcondition(shortSignal, "Short Entry", "Orosa Capital: SHORT signal triggered")`
+    // Phase 1: Quick summary (fast response)
+    try {
+      const { data: quickData, error: quickError } = await supabase.functions.invoke('generate-quick-summary', {
+        body: { query: query.trim(), symbol: detectedSymbol }
       });
+      
+      if (quickError) throw quickError;
+      
+      if (quickData.error) {
+        toast.error(quickData.error);
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      // Show partial results immediately
+      setResult({
+        summary: quickData.summary,
+        signal: quickData.signal,
+        sentiment: quickData.sentiment,
+        confidence: quickData.confidence,
+        pineScript: '// Generating Pine Script code...\n// This may take a few seconds...'
+      });
+      
+      toast.success("Analysis ready! Loading Pine Script...");
+      
+    } catch (error) {
+      console.error('Quick summary error:', error);
+      toast.error("Failed to generate summary");
       setIsAnalyzing(false);
-    }, 2000);
+      return;
+    }
+    
+    // Phase 2: Full analysis with Pine Script (background)
+    try {
+      const { data: fullData, error: fullError } = await supabase.functions.invoke('generate-analysis', {
+        body: { query: query.trim(), symbol: detectedSymbol }
+      });
+      
+      if (fullError) throw fullError;
+      
+      if (fullData.error) {
+        toast.warning(fullData.error);
+        return;
+      }
+      
+      // Update with complete results
+      setResult(fullData);
+      toast.success("Pine Script generated!");
+      
+    } catch (error) {
+      console.error('Full analysis error:', error);
+      toast.warning("Analysis complete, but Pine Script generation encountered an issue");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
