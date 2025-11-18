@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.1';
-import { fetchFromCoinglassV2 } from '../_shared/coinglassClient.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +13,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const coinglassApiKey = Deno.env.get('COINGLASS_API_KEY')!;
+    const cmcApiKey = Deno.env.get('CMC_API_KEY')!;
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -34,24 +33,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log('Fetching Fear & Greed Index from Coinglass');
+    console.log('Fetching Fear & Greed Index from CoinMarketCap API');
 
-    // Fetch from Coinglass API
-    const data = await fetchFromCoinglassV2(
-      'fear_greed_index',
-      {},
-      coinglassApiKey
-    );
+    // Fetch from CoinMarketCap API
+    const response = await fetch('https://pro-api.coinmarketcap.com/v3/fear-and-greed/latest', {
+      headers: {
+        'X-CMC_PRO_API_KEY': cmcApiKey,
+        'Accept': 'application/json',
+      },
+    });
 
-    console.log('Coinglass Fear & Greed response:', JSON.stringify(data));
+    if (!response.ok) {
+      throw new Error(`CMC API error: ${response.status} ${response.statusText}`);
+    }
 
-    // Parse the response
+    const data = await response.json();
+    console.log('CoinMarketCap Fear & Greed response:', JSON.stringify(data));
+
+    // Parse the CoinMarketCap response
+    const fngData = data.data;
     const responseData = {
-      index: data.data?.fearGreedIndex || 50,
-      value: data.data?.fearGreedIndexValue || 'NEUTRAL',
-      updateTime: data.data?.updateTime || Date.now(),
-      sentiment: getSentiment(data.data?.fearGreedIndex || 50),
-      isMockData: false
+      value: fngData?.value || 50,
+      valueClassification: fngData?.value_classification || 'Neutral',
+      timestamp: fngData?.timestamp || new Date().toISOString(),
+      timeUntilUpdate: fngData?.time_until_update,
+      isMockData: false,
+      change24h: 0, // CMC doesn't provide 24h change in this endpoint
     };
 
     console.log('✅ Fear & Greed Index:', responseData);
@@ -76,12 +83,12 @@ Deno.serve(async (req) => {
     
     // Return fallback data on error
     const fallbackData = {
-      index: 50,
-      value: 'NEUTRAL',
-      updateTime: Date.now(),
-      sentiment: 'NEUTRAL',
+      value: 50,
+      valueClassification: 'Neutral',
+      timestamp: new Date().toISOString(),
       isMockData: true,
       unavailable: true,
+      change24h: 0,
       message: 'Fear & Greed Index temporarily unavailable'
     };
 
@@ -90,11 +97,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-
-function getSentiment(index: number): string {
-  if (index >= 75) return 'EXTREME GREED';
-  if (index >= 60) return 'GREED';
-  if (index >= 45) return 'NEUTRAL';
-  if (index >= 25) return 'FEAR';
-  return 'EXTREME FEAR';
-}
