@@ -1,6 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle2, XCircle, Info, Zap, Database, Shield, Activity } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle, Info, Zap, Database, Shield, Activity, TrendingUp } from "lucide-react";
 
 export function SystemAlerts() {
   const alerts = [
@@ -59,6 +59,13 @@ export function SystemAlerts() {
       title: "WebSocket Connected",
       message: "Real-time price stream active with 3 active connections",
       timestamp: new Date(Date.now() - 2100000).toLocaleTimeString(),
+    },
+    {
+      type: "success",
+      icon: TrendingUp,
+      title: "Trade History Monitoring",
+      message: "47 trades logged in last 24h - All signals tracked successfully",
+      timestamp: new Date(Date.now() - 2400000).toLocaleTimeString(),
     },
   ];
 
