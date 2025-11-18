@@ -35,10 +35,25 @@ NEVER FORCE A TRADE. Only trade when ALL conditions align.
      * Upside liquidity swept
    - If unclear → NO TRADE
 
-3. VOLUME CONFIRMATION
-   - LONG: rising bullish volume, green delta > previous red delta
-   - SHORT: rising bearish volume, red delta > previous green delta
-   - If weak or inconsistent → NO TRADE
+3. VOLUME CONFIRMATION (CMC 24H DATA)
+   - Access volume data from volumeData.cmc.volume24h and volumeData.analysis
+   - LONG requires:
+     * 24h volume > $500M for BTC (or > 5% of market cap for altcoins)
+     * Volume increasing with price (volumeData.analysis.priceVolumeCorrelation = BULLISH_CONFIRMATION or STRONG_BULLISH)
+     * Volume strength: NORMAL, HIGH, or EXTREME (not LOW)
+     * Volume trend: increasing or neutral (NOT decreasing during entry)
+   - SHORT requires:
+     * 24h volume > $500M for BTC (sufficient liquidity to execute)
+     * Volume increasing while price falls (volumeData.analysis.priceVolumeCorrelation = BEARISH_PRESSURE or STRONG_BEARISH)
+     * Volume strength: NORMAL or higher
+     * Volume spike on bearish price action
+   - Volume Warnings (AUTO NO TRADE):
+     * If volume24h < $200M for BTC → NO TRADE (insufficient liquidity)
+     * If volume24h < 3% of market cap for altcoins → NO TRADE
+     * If volumeStrength = LOW → NO TRADE (too illiquid)
+     * If volume declining during breakout → NO TRADE (weak signal)
+   - Calculate volume-to-market-cap ratio: volume24h / marketCap
+   - Strong signal: volume spike + price momentum aligned
 
 4. LIQUIDITY CONDITIONS
    - Do NOT enter into liquidity
