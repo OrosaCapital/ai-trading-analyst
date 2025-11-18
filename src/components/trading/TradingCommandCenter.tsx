@@ -29,9 +29,9 @@ export function TradingCommandCenter({
   return (
     <div className="relative glass-panel border-b border-border/50 p-3 shadow-elevated">
       <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-        {/* Left - Symbol Search */}
-        <div className="flex items-center gap-3 flex-1">
-          <div className="relative flex-1 max-w-md group">
+        {/* Left - Symbol Search and Price */}
+        <div className="flex items-center gap-2 flex-1">
+          <div className="relative max-w-xs group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <input
               type="text"
@@ -42,22 +42,22 @@ export function TradingCommandCenter({
               className="w-full pl-10 pr-4 py-2 bg-input/50 border border-border/50 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:shadow-[0_0_20px_hsl(var(--primary)/0.3)] transition-all backdrop-blur-sm"
             />
           </div>
-        </div>
-
-        {/* Center - Current Price Display */}
-        {currentPrice && (
-          <div className="flex items-center gap-3 px-4 py-1.5 glass rounded-lg border border-primary/20">
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-0.5 uppercase tracking-wider">Current Price</div>
-              <div className="text-xl font-bold text-primary glow-primary">
-                ${currentPrice.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+          
+          {/* Current Price Display */}
+          {currentPrice && (
+            <div className="flex items-center gap-2 px-3 py-2 glass rounded-lg border border-primary/20">
+              <div className="text-left">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none mb-1">Price</div>
+                <div className="text-lg font-bold text-primary glow-primary leading-none">
+                  ${currentPrice.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Right - Timeframe Selector */}
         <div className="flex items-center gap-1.5 p-1 glass rounded-lg">
