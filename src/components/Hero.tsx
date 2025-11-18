@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp, Activity, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Hero = ({ onGetStarted }: { onGetStarted: () => void }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Gradient background */}
@@ -58,11 +60,11 @@ export const Hero = ({ onGetStarted }: { onGetStarted: () => void }) => {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mx-auto">
           <Button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate(user ? '/dashboard' : '/auth')}
             size="lg"
             className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg px-8 py-6 rounded-full font-bold shadow-[0_0_30px_hsl(var(--primary)/0.5)] hover:shadow-[0_0_40px_hsl(var(--primary)/0.7)] transition-all"
           >
-            Launch Dashboard
+            {user ? 'Go to Dashboard' : 'Get Started'}
             <ArrowRight className="ml-2 w-5 h-5" />
           </Button>
           <Button
