@@ -78,6 +78,7 @@ export type Database = {
       }
       ai_trading_signals: {
         Row: {
+          analysis_method: string | null
           coinglass_explanation: string | null
           confidence: number
           created_at: string | null
@@ -99,6 +100,7 @@ export type Database = {
           watchlist_id: string | null
         }
         Insert: {
+          analysis_method?: string | null
           coinglass_explanation?: string | null
           confidence: number
           created_at?: string | null
@@ -120,6 +122,7 @@ export type Database = {
           watchlist_id?: string | null
         }
         Update: {
+          analysis_method?: string | null
           coinglass_explanation?: string | null
           confidence?: number
           created_at?: string | null
