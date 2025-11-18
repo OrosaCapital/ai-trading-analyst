@@ -64,16 +64,16 @@ Deno.serve(async (req) => {
 
     const hasEnoughData = existingLogs && existingLogs.length >= 15;
 
-    // Step 2: If insufficient data, trigger Tatum historical data fetch and wait for completion
+    // Step 2: If insufficient data, trigger CoinGecko historical data fetch and wait for completion
     if (!hasEnoughData) {
-      console.log(`[Watchlist Analysis] Insufficient data for ${symbol}. Triggering Tatum historical fetch...`);
+      console.log(`[Watchlist Analysis] Insufficient data for ${symbol}. Triggering CoinGecko historical fetch...`);
       
       const backfillResponse = await supabase.functions.invoke('fetch-binance-historical', {
         body: { symbol, lookback_hours: 24 }
       });
 
       if (backfillResponse.error) {
-        console.error('[Watchlist Analysis] Tatum fetch failed:', backfillResponse.error);
+        console.error('[Watchlist Analysis] CoinGecko fetch failed:', backfillResponse.error);
         return new Response(
           JSON.stringify({
             success: false,
@@ -89,12 +89,12 @@ Deno.serve(async (req) => {
       }
 
       if (backfillResponse.data?.success && backfillResponse.data.totalRecordsAdded > 0) {
-        console.log(`[Watchlist Analysis] ✅ Tatum fetched ${backfillResponse.data.totalRecordsAdded} historical records`);
+        console.log(`[Watchlist Analysis] ✅ CoinGecko fetched ${backfillResponse.data.totalRecordsAdded} historical records`);
         
         // Wait for data to be fully written to database
         await new Promise(resolve => setTimeout(resolve, 2000));
       } else {
-        console.warn('[Watchlist Analysis] Tatum fetch returned no data');
+        console.warn('[Watchlist Analysis] CoinGecko fetch returned no data');
         return new Response(
           JSON.stringify({
             success: false,

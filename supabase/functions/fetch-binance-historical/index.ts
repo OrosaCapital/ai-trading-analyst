@@ -21,64 +21,77 @@ interface BinanceKline {
   takerBuyQuoteVolume: string;
 }
 
-// Fetch candles from Tatum (replaces Binance due to geo-restrictions)
-async function fetchTatumCandles(
-  apiKey: string,
+// Fetch candles from CoinGecko (free, no geo-restrictions)
+async function fetchCoinGeckoCandles(
   symbol: string,
   interval: string,
   limit: number = 1000
 ): Promise<BinanceKline[]> {
-  // Map intervals to Tatum format
-  const tatumIntervalMap: Record<string, string> = {
-    '1m': 'MIN_1',
-    '5m': 'MIN_5', 
-    '15m': 'MIN_15',
-    '1h': 'HOUR_1'
+  // Map symbols to CoinGecko IDs
+  const coinGeckoIdMap: Record<string, string> = {
+    'BTC': 'bitcoin',
+    'ETH': 'ethereum',
+    'BNB': 'binancecoin',
+    'SOL': 'solana',
+    'XRP': 'ripple',
+    'ADA': 'cardano',
+    'DOGE': 'dogecoin',
+    'LINK': 'chainlink',
+    'MATIC': 'matic-network',
+    'DOT': 'polkadot'
   };
   
-  const tatumInterval = tatumIntervalMap[interval];
-  if (!tatumInterval) {
-    throw new Error(`Unsupported interval: ${interval}`);
-  }
+  const coinId = coinGeckoIdMap[symbol] || symbol.toLowerCase();
   
-  console.log(`📊 Fetching ${interval} candles for ${symbol}/USD from Tatum`);
+  // Calculate days based on interval and limit
+  // CoinGecko free tier limits: max 365 days
+  const intervalMinutes = interval === '1m' ? 1 : interval === '5m' ? 5 : interval === '15m' ? 15 : 60;
+  const days = Math.min(Math.ceil((limit * intervalMinutes) / (60 * 24)), 90); // Cap at 90 days for free tier
   
-  const url = `https://api.tatum.io/v4/data/ohlcv?symbol=${symbol}&basePair=USD&interval=${tatumInterval}&limit=${limit}`;
+  console.log(`📊 Fetching ${interval} candles for ${symbol} (${coinId}) from CoinGecko (${days} days)`);
+  
+  const url = `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`;
   
   const response = await fetch(url, {
     method: 'GET',
     headers: {
-      'accept': 'application/json',
-      'x-api-key': apiKey
+      'accept': 'application/json'
     },
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Tatum API error [${response.status}]: ${errorText}`);
+    throw new Error(`CoinGecko API error [${response.status}]: ${errorText}`);
   }
 
   const rawData = await response.json();
   
-  // Transform Tatum OHLCV format to our interface
-  return rawData.map((candle: any) => {
-    const time = new Date(candle.time).getTime();
+  if (!Array.isArray(rawData) || rawData.length === 0) {
+    throw new Error(`No data returned from CoinGecko for ${symbol}`);
+  }
+  
+  // CoinGecko returns [timestamp, open, high, low, close]
+  // Transform to our format and limit results
+  const candles = rawData.slice(-limit).map((candle: any) => {
+    const [timestamp, open, high, low, close] = candle;
     const intervalMs = interval === '1m' ? 60000 : interval === '5m' ? 300000 : interval === '15m' ? 900000 : 3600000;
     
     return {
-      openTime: time,
-      open: String(candle.open),
-      high: String(candle.high),
-      low: String(candle.low),
-      close: String(candle.close),
-      volume: String(candle.volume || 0),
-      closeTime: time + intervalMs,
-      quoteVolume: String(candle.volume || 0),
+      openTime: timestamp,
+      open: String(open),
+      high: String(high),
+      low: String(low),
+      close: String(close),
+      volume: '0', // CoinGecko OHLC doesn't include volume
+      closeTime: timestamp + intervalMs,
+      quoteVolume: '0',
       trades: 0,
       takerBuyBaseVolume: '0',
       takerBuyQuoteVolume: '0',
     };
   });
+  
+  return candles;
 }
 
 // Map Binance intervals to our internal intervals
@@ -104,12 +117,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`🚀 Starting Tatum historical data fetch for ${symbol} (${lookback_hours}h lookback)`);
-
-    const tatumApiKey = Deno.env.get('TATUM_API_KEY');
-    if (!tatumApiKey) {
-      throw new Error('TATUM_API_KEY not configured');
-    }
+    console.log(`🚀 Starting CoinGecko historical data fetch for ${symbol} (${lookback_hours}h lookback)`);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -133,14 +141,14 @@ serve(async (req) => {
           1000 // API limit
         );
 
-        const candles = await fetchTatumCandles(tatumApiKey, baseSymbol, binanceInterval, candlesNeeded);
+        const candles = await fetchCoinGeckoCandles(baseSymbol, binanceInterval, candlesNeeded);
         
         if (!candles || candles.length === 0) {
           console.log(`⚠️ No data returned for ${binanceInterval}`);
           return { interval: intervalMap[binanceInterval], count: 0 };
         }
 
-        console.log(`✅ Fetched ${candles.length} ${binanceInterval} candles from Tatum`);
+        console.log(`✅ Fetched ${candles.length} ${binanceInterval} candles from CoinGecko`);
 
         // Transform to our price log format
         const priceLogs = candles.map(candle => ({
