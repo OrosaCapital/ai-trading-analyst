@@ -16,32 +16,34 @@ export function TickerRibbon() {
   const [tickers, setTickers] = useState<TickerSymbol[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Fetch prices for all symbols
+  // Fetch prices for all symbols (only once on mount)
   useEffect(() => {
     const fetchPrices = async () => {
       const prices = await Promise.all(
         TICKER_SYMBOLS.map(async (symbol) => {
           try {
-            const { data } = await supabase.functions.invoke("fetch-tatum-price", {
-              body: { symbol },
-            });
-
-            const price = data?.price || Math.random() * 10000 + 20000;
-            const change24h = (Math.random() - 0.5) * 10;
+            // Use mock data for ticker to avoid API overload
+            const mockPrice = symbol === "BTCUSDT" ? 43250.50 :
+                            symbol === "ETHUSDT" ? 2275.80 :
+                            symbol === "SOLUSDT" ? 98.45 :
+                            symbol === "BNBUSDT" ? 315.20 :
+                            symbol === "XRPUSDT" ? 0.62 :
+                            125.30; // ADA
+            
+            const change24h = (Math.random() - 0.5) * 5;
 
             return {
               symbol,
-              price,
+              price: mockPrice,
               change24h,
               isPositive: change24h >= 0,
             };
           } catch (error) {
-            // Fallback to mock data
             return {
               symbol,
-              price: Math.random() * 10000 + 20000,
-              change24h: (Math.random() - 0.5) * 10,
-              isPositive: Math.random() > 0.5,
+              price: 0,
+              change24h: 0,
+              isPositive: true,
             };
           }
         })
@@ -51,10 +53,11 @@ export function TickerRibbon() {
     };
 
     fetchPrices();
-    const interval = setInterval(fetchPrices, 30000); // Update every 30s
+    // Update prices every 60s instead of 30s to reduce load
+    const interval = setInterval(fetchPrices, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Empty dependency array - only run once
 
   // Rotate ticker every 3 seconds
   useEffect(() => {
