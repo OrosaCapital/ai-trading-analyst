@@ -64,19 +64,48 @@ Deno.serve(async (req) => {
 
     const hasEnoughData = existingLogs && existingLogs.length >= 15;
 
-    // Step 2: If insufficient data, try to backfill from Binance
+    // Step 2: If insufficient data, trigger Binance backfill and wait for completion
     if (!hasEnoughData) {
-      console.log(`[Watchlist Analysis] Insufficient data for ${symbol}. Attempting Binance backfill...`);
+      console.log(`[Watchlist Analysis] Insufficient data for ${symbol}. Triggering Binance backfill...`);
       
       const backfillResponse = await supabase.functions.invoke('fetch-binance-historical', {
         body: { symbol, lookback_hours: 24 }
       });
 
       if (backfillResponse.error) {
-        console.warn('[Watchlist Analysis] Binance backfill failed:', backfillResponse.error);
-        console.log('[Watchlist Analysis] Falling back to accumulation method');
+        console.error('[Watchlist Analysis] Binance backfill failed:', backfillResponse.error);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            status: 'backfill_failed',
+            message: 'Failed to fetch historical data. Please try again.',
+            error: backfillResponse.error.message
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500
+          }
+        );
+      }
+
+      if (backfillResponse.data?.success && backfillResponse.data.totalRecordsAdded > 0) {
+        console.log(`[Watchlist Analysis] ✅ Binance backfilled ${backfillResponse.data.totalRecordsAdded} records`);
+        
+        // Wait for data to be fully written to database
+        await new Promise(resolve => setTimeout(resolve, 2000));
       } else {
-        console.log(`[Watchlist Analysis] Binance backfill successful: ${backfillResponse.data?.totalRecordsAdded} records`);
+        console.warn('[Watchlist Analysis] Binance backfill returned no data');
+        return new Response(
+          JSON.stringify({
+            success: false,
+            status: 'no_data',
+            message: 'Unable to fetch historical data for this symbol.',
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400
+          }
+        );
       }
     } else {
       console.log(`[Watchlist Analysis] Sufficient data already exists for ${symbol}`);
