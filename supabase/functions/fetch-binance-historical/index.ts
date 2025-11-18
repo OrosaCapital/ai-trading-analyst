@@ -43,23 +43,19 @@ async function fetchCoinGeckoCandles(
   
   const coinId = coinGeckoIdMap[symbol] || symbol.toLowerCase();
   
-  // Calculate days based on interval and limit to get enough candles
-  // CoinGecko typically returns ~48-96 candles depending on the days parameter
-  // Request more days to get more candles
-  const intervalMinutes = interval === '1m' ? 1 : interval === '5m' ? 5 : interval === '15m' ? 15 : 60;
+  // Calculate days based on interval - use only CoinGecko supported values
+  // Supported values: 1, 7, 14, 30, 90, 180, 365, max
   let days: number;
   
   if (interval === '1m') {
-    days = 3; // Request 3 days for 1m to get ~200 candles
+    days = 1; // Request 1 day for 1m
   } else if (interval === '5m') {
-    days = 7; // Request 7 days for 5m to get ~200 candles
+    days = 1; // Request 1 day for 5m
   } else if (interval === '15m') {
-    days = 14; // Request 14 days for 15m to get ~100 candles
+    days = 1; // Request 1 day for 15m
   } else { // 1h
-    days = 30; // Request 30 days for 1h to get ~60-100 candles
+    days = 30; // Request 30 days for 1h
   }
-  
-  days = Math.min(days, 90); // Cap at 90 days for free tier
   
   console.log(`📊 Fetching ${interval} candles for ${symbol} (${coinId}) from CoinGecko (${days} days)`);
   
@@ -232,7 +228,7 @@ serve(async (req) => {
       symbol: normalizedSymbol,
       totalRecordsAdded,
       intervalBreakdown: results,
-      message: `Successfully backfilled ${totalRecordsAdded} records from Binance`,
+      message: `Successfully backfilled ${totalRecordsAdded} records from CoinGecko`,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
