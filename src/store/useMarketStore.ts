@@ -197,11 +197,26 @@ export const useMarketStore = create<MarketState>((set, get) => ({
       // Parse open interest
       const openInterest = oiRes.data?.total?.valueRaw || oiRes.data?.value || 0;
       
+      // Helper to parse formatted numbers like "47.3M", "1.2B", "500K"
+      const parseFormattedNumber = (str: string | number | undefined): number => {
+        if (!str || str === 'N/A') return 0;
+        if (typeof str === 'number') return str;
+        
+        const numStr = str.toString().trim().toUpperCase();
+        const num = parseFloat(numStr);
+        if (isNaN(num)) return 0;
+        
+        if (numStr.includes('B')) return num * 1e9;
+        if (numStr.includes('M')) return num * 1e6;
+        if (numStr.includes('K')) return num * 1e3;
+        return num;
+      };
+      
       // Parse liquidations
       let liquidations24h = 0;
       if (liqRes.data?.last24h && liqRes.data.last24h.totalLongs !== 'N/A') {
-        const longs = parseFloat(liqRes.data.last24h.totalLongs) || 0;
-        const shorts = parseFloat(liqRes.data.last24h.totalShorts) || 0;
+        const longs = parseFormattedNumber(liqRes.data.last24h.totalLongs);
+        const shorts = parseFormattedNumber(liqRes.data.last24h.totalShorts);
         liquidations24h = longs + shorts;
       }
       

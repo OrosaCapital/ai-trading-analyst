@@ -152,9 +152,15 @@ export function Sidebar({ symbol }: SidebarProps) {
             {isLoading ? (
               <Skeleton className="h-7 w-24" />
             ) : (
-              <p className="text-lg font-bold text-destructive">
-                {formatLargeNumber(currentMetrics.liquidations24h)}
-              </p>
+              <div>
+                {currentMetrics.liquidations24h > 0 ? (
+                  <p className="text-lg font-bold text-destructive">
+                    {formatLargeNumber(currentMetrics.liquidations24h)}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">N/A</p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
