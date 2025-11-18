@@ -193,16 +193,16 @@ serve(async (req) => {
       .eq('interval', '1m');
 
     if (!count || count < 15) {
-      console.log(`⚠️ Insufficient data: ${count || 0}/15 minutes. Triggering Tatum backfill...`);
+      console.log(`⚠️ Insufficient data: ${count || 0}/15 minutes. Triggering CoinGecko backfill...`);
       
-      // Automatically trigger Tatum backfill for instant historical data
+      // Automatically trigger CoinGecko backfill for instant historical data
       const { data: backfillResult, error: backfillError } = await supabase.functions.invoke(
-        'fetch-binance-historical', // Note: Still named binance but now uses Tatum
+        'fetch-binance-historical', // Note: Still named binance but now uses CoinGecko
         { body: { symbol, lookback_hours: 24 } }
       );
 
       if (backfillError) {
-        console.error('❌ Tatum backfill error:', backfillError);
+        console.error('❌ CoinGecko backfill error:', backfillError);
         return new Response(JSON.stringify({
           status: 'error',
           message: 'Failed to fetch historical data',
@@ -213,7 +213,7 @@ serve(async (req) => {
         });
       }
 
-      console.log(`✅ Tatum backfill triggered (added ${backfillResult?.totalRecordsAdded || 0} new records)`);
+      console.log(`✅ CoinGecko backfill triggered (added ${backfillResult?.totalRecordsAdded || 0} new records)`);
       
       // Wait 3 seconds for data to be fully written and indexed
       await new Promise(resolve => setTimeout(resolve, 3000));
