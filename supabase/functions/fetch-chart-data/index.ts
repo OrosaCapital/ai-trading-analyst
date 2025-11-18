@@ -530,30 +530,24 @@ async function fetchCoinGlassOHLC(
   apiKey: string
 ): Promise<Candle[] | null> {
   try {
-    // Map intervals to CoinGlass format
+    // Map intervals to CoinGlass format - HARDCODED TO 4h FOR HOBBYIST PLAN
+    // CoinGlass Hobbyist plan ONLY supports 4h and 1d intervals
     const intervalMap: Record<number, string> = {
-      1: '1m',
-      5: '5m',
-      15: '15m',
-      60: '1h',
-      1440: '1d'
+      1: '4h',      // Force 1m -> 4h
+      5: '4h',      // Force 5m -> 4h
+      15: '4h',     // Force 15m -> 4h
+      60: '4h',     // Force 1h -> 4h
+      240: '4h',    // 4h supported
+      1440: '1d'    // 1d supported
     };
     
-    // Validate interval for Hobbyist API plan (requires >= 4h)
+    // Hardcoded interval validation for Hobbyist plan
     function getValidInterval(requestedInterval: string): string {
-      const intervalMinutes: Record<string, number> = {
-        '1m': 1, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 240, '1d': 1440
-      };
-      
-      const minutes = intervalMinutes[requestedInterval] || 240;
-      
-      // Hobbyist plan requires >= 4h (240 minutes)
-      if (minutes < 240) {
-        console.log(`⚠️ Hobbyist plan restriction: ${requestedInterval} not supported, using 4h`);
-        return '4h';
-      }
-      
-      return requestedInterval;
+      // CRITICAL: Hobbyist plan requires >= 4h (240 minutes)
+      // Always return 4h for any interval below 1d
+      if (requestedInterval === '1d') return '1d';
+      console.log(`⚠️ Hobbyist plan: Forcing 4h interval (requested: ${requestedInterval})`);
+      return '4h';
     }
     
     const requestedInterval = intervalMap[intervalMinutes] || '1h';
@@ -767,9 +761,18 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error generating chart data:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // User-friendly error response instead of generic 500
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: `Chart data limited by provider. Please use TradingView for detailed charts.`,
+        details: errorMessage,
+        suggestion: 'TradingView Lite provides all chart intervals. Backend chart data uses 4h intervals only.'
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 200 // Return 200 with error message so UI can display it gracefully
+      }
     );
   }
 });

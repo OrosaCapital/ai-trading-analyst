@@ -256,27 +256,8 @@ export const useRealtimePriceStream = (
           return;
         }
 
-        // If Tatum fails, try CoinGlass chart data
-        const { data: chartData, error: chartError } = await supabase.functions.invoke('fetch-chart-data', {
-          body: { symbol, days: 1 }
-        });
-
-        if (!chartError && chartData?.timeframes?.['1m']?.candles?.length > 0) {
-          const latestCandle = chartData.timeframes['1m'].candles[chartData.timeframes['1m'].candles.length - 1];
-          const mockPriceUpdate: PriceUpdate = {
-            type: 'price_update',
-            symbol,
-            price: latestCandle.close,
-            volume: latestCandle.volume,
-            change24h: 0,
-            high24h: latestCandle.high,
-            low24h: latestCandle.low,
-            timestamp: Date.now()
-          };
-          setPriceData(mockPriceUpdate);
-          setLastUpdateTime(Date.now());
-          return;
-        }
+        // No fallback to fetch-chart-data - TradingView handles all chart data
+        console.log(`⚠️ No price data available for ${symbol}, waiting for next poll...`);
 
         console.log('Both Tatum and CoinGlass polling failed, using last known price');
 

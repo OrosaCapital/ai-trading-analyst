@@ -302,38 +302,16 @@ export const PremiumAnalystInterface = () => {
     fetchTatumPrice();
   }, [symbol]);
 
-  // Fetch chart data when symbol changes
+  // Fetch chart data when symbol changes - DISABLED
+  // TradingView Lite provides all chart data, no backend fetch needed
   useEffect(() => {
-    const fetchChartData = async () => {
-      if (!symbol) return;
-      
-      setIsLoadingChart(true);
-      setApiError(null);
-      try {
-        const { data, error } = await supabase.functions.invoke('fetch-chart-data', {
-          body: { symbol, days: 7 }
-        });
-
-        if (error || data?.error) {
-          const errorMsg = data?.error || error?.message || 'Unknown error';
-          setApiError(`Unable to load data for ${symbol}`);
-          setChartData(null);
-          toast.error(`${symbol.replace('USDT', '').replace('USD', '')} data not available. Try BTC, ETH, or SOL.`);
-          console.error('Chart data error:', errorMsg);
-          return;
-        }
-        
-        setChartData(data);
-      } catch (error) {
-        console.error('Chart data fetch error:', error);
-        setApiError(error instanceof Error ? error.message : 'Unable to connect to data service');
-        setChartData(null);
-      } finally {
-        setIsLoadingChart(false);
-      }
-    };
-
-    fetchChartData();
+    if (!symbol) return;
+    
+    // Show info message that we're using TradingView data
+    console.log(`📊 Using TradingView Lite for ${symbol} chart data`);
+    setIsLoadingChart(false);
+    setApiError(null);
+    setChartData(null); // TradingView handles charting
   }, [symbol]);
 
   return (
