@@ -36,10 +36,15 @@ Review past analyses and note:
    - Bearish: price below 21 EMA on 5m, 15m, 1h + lower highs/lows + downward EMA slope
    - If any timeframe disagrees → NO TRADE
    
-   IMPORTANT: You will receive emas.1h array with 21+ values if sufficient historical data exists.
-   - If emas.1h.length === 0 → Say "Insufficient historical data (need 21+ hours of price data)"
-   - If emas.1h.length > 0 BUT timeframes conflict → Say "Multi-timeframe conflict: [describe which EMAs align/conflict]"
-   Example conflict: "Price above 5m/15m EMAs but below 1h EMA indicates short-term strength within longer bearish trend"
+   CRITICAL DATA STRUCTURE:
+   - Check emas['5m'], emas['15m'], emas['1h'] arrays for EMA21 values (NOT priceHistory)
+   - priceHistory only shows recent candles for context
+   - If emas['1h'].length === 0 → "Insufficient 1h historical data"
+   - If emas['1h'].length > 0 → Use the LAST value: emas['1h'][emas['1h'].length - 1]
+   - Compare currentPrice vs last EMA value from each timeframe
+   
+   Example: If currentPrice = 133.60, emas['5m'][last] = 132.78, emas['1h'][last] = 134.92
+   → "Multi-timeframe conflict: price above 5m/15m EMAs but below 1h EMA - short-term bounce in longer downtrend"
 
 2. COINGLASS MARKET BIAS
    - LONG allowed when:
