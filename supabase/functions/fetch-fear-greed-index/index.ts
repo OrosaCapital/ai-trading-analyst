@@ -13,9 +13,13 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const cmcApiKey = Deno.env.get('CMC_API_KEY')!;
+    const cmcApiKey = Deno.env.get('COINMARKETCAP_API_KEY') || Deno.env.get('CMC_API_KEY');
     
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    if (!cmcApiKey) {
+      throw new Error('CoinMarketCap API key not configured. Add COINMARKETCAP_API_KEY secret.');
+    }
 
     // Check cache first
     const { data: cachedData } = await supabase
