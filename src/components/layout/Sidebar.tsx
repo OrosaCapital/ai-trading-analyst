@@ -46,7 +46,8 @@ export function Sidebar({ symbol }: SidebarProps) {
     return () => clearInterval(interval);
   }, [symbol]);
 
-  const formatLargeNumber = (num: number) => {
+  const formatLargeNumber = (num: number | null | undefined) => {
+    if (!num || num === 0) return '$0';
     if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
     if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
     if (num >= 1e3) return `$${(num / 1e3).toFixed(0)}K`;
@@ -161,20 +162,22 @@ export function Sidebar({ symbol }: SidebarProps) {
               <>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold tabular-nums">
-                    {formatLargeNumber(liquidations.longs + liquidations.shorts)}
+                    {formatLargeNumber((liquidations.longs || 0) + (liquidations.shorts || 0))}
                   </span>
                   <Activity className="h-3 w-3 text-yellow-400" />
                 </div>
-                <div className="mt-1 flex gap-0.5 h-1">
-                  <div 
-                    className="bg-red-400 rounded-l-full" 
-                    style={{ width: `${(liquidations.longs / (liquidations.longs + liquidations.shorts)) * 100}%` }} 
-                  />
-                  <div 
-                    className="bg-green-400 rounded-r-full" 
-                    style={{ width: `${(liquidations.shorts / (liquidations.longs + liquidations.shorts)) * 100}%` }} 
-                  />
-                </div>
+                {liquidations.longs && liquidations.shorts && (
+                  <div className="mt-1 flex gap-0.5 h-1">
+                    <div 
+                      className="bg-red-400 rounded-l-full" 
+                      style={{ width: `${(liquidations.longs / (liquidations.longs + liquidations.shorts)) * 100}%` }} 
+                    />
+                    <div 
+                      className="bg-green-400 rounded-r-full" 
+                      style={{ width: `${(liquidations.shorts / (liquidations.longs + liquidations.shorts)) * 100}%` }} 
+                    />
+                  </div>
+                )}
               </>
             ) : (
               <span className="text-2xl font-bold">N/A</span>

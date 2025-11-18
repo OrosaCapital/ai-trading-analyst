@@ -22,9 +22,14 @@ export function TickerRibbon() {
       const prices = await Promise.all(
         TICKER_SYMBOLS.map(async (symbol) => {
           try {
+            // Skip if symbol is empty or invalid
+            if (!symbol || symbol.trim() === '') {
+              return { symbol, price: 0, change24h: 0, isPositive: false };
+            }
+
             // First, trigger price logger to ensure data is being collected
             const { data: loggerData } = await supabase.functions.invoke('tatum-price-logger', {
-              body: { symbol }
+              body: { symbol: symbol.trim() }
             });
 
             const currentPrice = loggerData?.price || 0;
