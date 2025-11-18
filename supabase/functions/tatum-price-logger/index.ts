@@ -47,7 +47,9 @@ async function fetchTatumPrice(
   });
 
   if (!response.ok) {
-    throw new Error(`Tatum API error: ${response.status}`);
+    const errorText = await response.text();
+    console.error(`❌ Tatum API error [${response.status}]: ${errorText}`);
+    throw new Error(`Tatum API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
