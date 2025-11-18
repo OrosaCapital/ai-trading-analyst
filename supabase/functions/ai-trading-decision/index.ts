@@ -18,22 +18,20 @@ Before performing ANY analysis, you MUST internally verify these values from the
 1. Internal check - Count the arrays:
    - emas['5m'].length = ? (should be 20+)
    - emas['15m'].length = ? (should be 20+)
-   - emas['1h'].length = ? (MUST be 21+ to proceed)
 
 2. Internal check - Locate the current values:
    - inputData.currentPrice = ? (use this for all comparisons)
    - emas['5m'][emas['5m'].length - 1] = ? (last 5m EMA)
    - emas['15m'][emas['15m'].length - 1] = ? (last 15m EMA)
-   - emas['1h'][emas['1h'].length - 1] = ? (last 1h EMA)
 
 3. Data sufficiency decision:
-   - IF emas['1h'].length < 21 → Output JSON with "NO TRADE - Insufficient 1h EMA data (need 21+ hours of price history)"
-   - IF emas['1h'].length >= 21 → Proceed to full ruleset analysis
+   - IF emas['5m'].length < 20 OR emas['15m'].length < 20 → Output JSON with "NO TRADE - Insufficient EMA data"
+   - IF sufficient data → Proceed to full ruleset analysis
 
 CRITICAL REMINDERS:
 - Do NOT confuse recentCandles arrays with emas arrays
-- recentCandles['1h'] contains 4 recent candles for viewing price patterns ONLY
-- emas['1h'] contains 21+ calculated EMA21 values for trend analysis
+- recentCandles are for viewing price patterns ONLY
+- emas arrays contain calculated EMA21 values for trend analysis
 - ALL trend analysis MUST use the emas arrays, NOT recentCandles
 - Your response MUST be valid JSON only, no text before or after
 
@@ -65,12 +63,10 @@ A. CURRENT PRICE
 B. EMA VALUES (YOUR PRIMARY DATA SOURCE)
    - 5m EMA21 values: inputData.emas['5m'] (array of numbers)
    - 15m EMA21 values: inputData.emas['15m'] (array of numbers)
-   - 1h EMA21 values: inputData.emas['1h'] (array of numbers)
    - Each array contains the calculated EMA21 value for each period
    - The LAST element in each array is the most recent EMA value
    - To get current 5m EMA: emas['5m'][emas['5m'].length - 1]
    - To get current 15m EMA: emas['15m'][emas['15m'].length - 1]
-   - To get current 1h EMA: emas['1h'][emas['1h'].length - 1]
 
 C. RECENT CANDLES (FOR VISUAL CONTEXT ONLY - DO NOT USE FOR EMA ANALYSIS)
    - Located at: inputData.recentCandles['1m'], ['5m'], ['10m'], ['15m']
@@ -80,36 +76,27 @@ C. RECENT CANDLES (FOR VISUAL CONTEXT ONLY - DO NOT USE FOR EMA ANALYSIS)
    - DO NOT use recentCandles for any trend analysis or EMA calculations
 
 TREND ANALYSIS RULES:
-- IF emas['1h'].length < 21 → Output "NO TRADE" with reason: "Insufficient 1h EMA data (need 21+ hours of price history)"
-- IF emas['1h'].length >= 21 → Proceed with trend analysis using the last value from each timeframe:
-  * Current 5m EMA = emas['5m'][emas['5m'].length - 1]
-  * Current 15m EMA = emas['15m'][emas['15m'].length - 1]
-  * Current 1h EMA = emas['1h'][emas['1h'].length - 1]
-  * Current price = inputData.currentPrice
 
 BULLISH TREND REQUIREMENTS (ALL must be true):
 - currentPrice > emas['5m'][last] (price above 5m EMA)
 - currentPrice > emas['15m'][last] (price above 15m EMA)
-- currentPrice > emas['1h'][last] (price above 1h EMA)
 - emas['5m'][last] > emas['5m'][last-5] (5m EMA sloping up)
 - emas['15m'][last] > emas['15m'][last-5] (15m EMA sloping up)
-- emas['1h'][last] > emas['1h'][last-5] (1h EMA sloping up)
 
 BEARISH TREND REQUIREMENTS (ALL must be true):
 - currentPrice < emas['5m'][last]
 - currentPrice < emas['15m'][last]
-- currentPrice < emas['1h'][last]
 - emas['5m'][last] < emas['5m'][last-5] (5m EMA sloping down)
 - emas['15m'][last] < emas['15m'][last-5] (15m EMA sloping down)
-- emas['1h'][last] < emas['1h'][last-5] (1h EMA sloping down)
 
 MULTI-TIMEFRAME CONFLICT (NO TRADE):
 If price is above some EMAs but below others, this is a conflict. Example:
 - currentPrice = 133.60
 - emas['5m'][last] = 132.78 (price above 5m EMA ✓)
 - emas['15m'][last] = 132.78 (price above 15m EMA ✓)
-- emas['1h'][last] = 134.92 (price BELOW 1h EMA ✗)
-→ Output: "NO TRADE - Multi-timeframe conflict: price above 5m/15m EMAs but below 1h EMA. This indicates short-term strength within a longer-term downtrend. Wait for 1h EMA alignment."
+→ For LONG: Both must align (price above both EMAs with positive slopes)
+→ For SHORT: Both must align (price below both EMAs with negative slopes)
+→ If they conflict, output: "NO TRADE - Multi-timeframe conflict: [explain which timeframes conflict]"
 
 2. COINGLASS MARKET BIAS
    - LONG allowed when:
