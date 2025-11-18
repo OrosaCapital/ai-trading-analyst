@@ -75,7 +75,7 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Section 1: Live Price Header */}
         <section>
-          <LivePriceHeader symbol={symbol} />
+          <LivePriceHeader symbol={symbol} marketData={marketData} />
         </section>
 
         {/* Section 2: Key Metrics - Power BI Style */}

@@ -5,9 +5,14 @@ import { Card } from '@/components/ui/card';
 
 interface LivePriceHeaderProps {
   symbol?: string;
+  marketData?: {
+    marketCap?: number;
+    volume24h?: number;
+    percentChange24h?: number;
+  };
 }
 
-export const LivePriceHeader = ({ symbol = 'BTC' }: LivePriceHeaderProps) => {
+export const LivePriceHeader = ({ symbol = 'BTC', marketData }: LivePriceHeaderProps) => {
   const [price, setPrice] = useState<number | null>(null);
   const [previousPrice, setPreviousPrice] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,30 +81,34 @@ export const LivePriceHeader = ({ symbol = 'BTC' }: LivePriceHeaderProps) => {
     return seconds < 60 ? `${seconds}s ago` : `${Math.floor(seconds / 60)}m ago`;
   };
 
+  const formatLargeNumber = (num: number) => {
+    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+    return `$${num.toLocaleString()}`;
+  };
+
   return (
     <Card className="p-3 bg-card border border-border">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          {/* Symbol Label */}
+      <div className="flex items-center justify-between gap-6">
+        {/* Symbol & Price */}
+        <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-xl md:text-2xl font-bold tracking-tight">
               {symbol} <span className="text-muted-foreground text-base">/ USD</span>
             </h1>
-            <div className="flex items-center gap-1">
-              {isLoading ? (
-                <Activity className="w-3 h-3 text-muted-foreground animate-pulse" />
-              ) : error ? (
-                <span className="text-xs text-destructive">{error}</span>
-              ) : (
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-chart-green animate-pulse" />
-                  <span className="text-xs text-muted-foreground">LIVE</span>
-                </div>
-              )}
-            </div>
+            {isLoading ? (
+              <Activity className="w-3 h-3 text-muted-foreground animate-pulse" />
+            ) : error ? (
+              <span className="text-xs text-destructive">{error}</span>
+            ) : (
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-chart-green animate-pulse" />
+                <span className="text-xs text-muted-foreground">LIVE</span>
+              </div>
+            )}
           </div>
 
-          {/* Price Display */}
           <div className="flex items-baseline gap-2">
             {isLoading ? (
               <div className="h-8 w-32 bg-muted animate-pulse rounded" />
@@ -125,26 +134,47 @@ export const LivePriceHeader = ({ symbol = 'BTC' }: LivePriceHeaderProps) => {
               <span className="text-xl text-muted-foreground">--</span>
             )}
           </div>
-
-          {/* Data Source & Update Time */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="px-1.5 py-0.5 bg-accent/10 text-accent rounded text-xs">
-              Tatum Feed
-            </span>
-            {lastUpdate && (
-              <span>Updated {formatTimeSince()}</span>
-            )}
-          </div>
         </div>
 
-        {/* Additional Info */}
-        <div className="text-right space-y-0.5">
-          <div className="text-xs text-muted-foreground">24h Range</div>
-          <div className="text-xs font-mono">
-            <div className="text-chart-green">--</div>
-            <div className="text-chart-red">--</div>
+        {/* Market Metrics */}
+        <div className="grid grid-cols-3 gap-4 text-right">
+          <div className="space-y-0.5">
+            <div className="text-xs text-muted-foreground">Market Cap</div>
+            <div className="text-sm font-bold">
+              {marketData?.marketCap ? formatLargeNumber(marketData.marketCap) : '--'}
+            </div>
+          </div>
+          <div className="space-y-0.5">
+            <div className="text-xs text-muted-foreground">24h Volume</div>
+            <div className="text-sm font-bold">
+              {marketData?.volume24h ? formatLargeNumber(marketData.volume24h) : '--'}
+            </div>
+          </div>
+          <div className="space-y-0.5">
+            <div className="text-xs text-muted-foreground">24h Change</div>
+            <div className={`text-sm font-bold ${
+              marketData?.percentChange24h && marketData.percentChange24h > 0 
+                ? 'text-chart-green' 
+                : marketData?.percentChange24h && marketData.percentChange24h < 0 
+                  ? 'text-chart-red' 
+                  : ''
+            }`}>
+              {marketData?.percentChange24h 
+                ? `${marketData.percentChange24h > 0 ? '+' : ''}${marketData.percentChange24h.toFixed(2)}%` 
+                : '--'}
+            </div>
           </div>
         </div>
+      </div>
+      
+      {/* Data Source */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+        <span className="px-1.5 py-0.5 bg-accent/10 text-accent rounded text-xs">
+          Tatum Feed
+        </span>
+        {lastUpdate && (
+          <span>Updated {formatTimeSince()}</span>
+        )}
       </div>
     </Card>
   );
