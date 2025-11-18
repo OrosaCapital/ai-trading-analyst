@@ -120,6 +120,12 @@ serve(async (req) => {
     }
 
     console.log('🤖 AI Decision Engine analyzing:', inputData.symbol);
+    console.log(`📥 AI received: ema5m=${inputData.emas?.['5m']?.length || 0} vals, ema15m=${inputData.emas?.['15m']?.length || 0} vals, ema1h=${inputData.emas?.['1h']?.length || 0} vals`);
+    if (inputData.emas?.['1h']?.length > 0) {
+      console.log(`✅ 1h EMA available: ${inputData.emas['1h'].length} values, last value: ${inputData.emas['1h'][inputData.emas['1h'].length - 1]}`);
+    } else {
+      console.log(`❌ No 1h EMA data received!`);
+    }
 
     // Call Lovable AI with trading data
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

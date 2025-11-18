@@ -289,6 +289,11 @@ serve(async (req) => {
     const ema5m = prices5m.length >= 21 ? calculateEMA21(prices5m) : [];
     const ema15m = prices15m.length >= 21 ? calculateEMA21(prices15m) : [];
     const ema1h = prices1h.length >= 21 ? calculateEMA21(prices1h) : [];
+    
+    console.log(`📊 EMA Calculations: 5m=${ema5m.length} values, 15m=${ema15m.length} values, 1h=${ema1h.length} values`);
+    if (ema1h.length > 0) {
+      console.log(`✅ 1h EMA21 range: ${ema1h[0].toFixed(2)} to ${ema1h[ema1h.length-1].toFixed(2)} (${ema1h.length} values from ${prices1h.length} candles)`);
+    }
 
     // 5. Fetch CoinGlass metrics (with 4hr cache)
     const [funding, openInterest, liquidations, longShort, takerVolume] = await Promise.all([
@@ -391,6 +396,7 @@ serve(async (req) => {
     };
 
     console.log('🤖 Calling AI Decision Engine...');
+    console.log(`📤 AI Input: symbol=${symbol}, ema5m=${ema5m.length} vals, ema15m=${ema15m.length} vals, ema1h=${ema1h.length} vals, 1h candles=${candles1h.slice(-4).length}`);
     const { data: aiDecision, error: aiError } = await supabase.functions.invoke('ai-trading-decision', {
       body: aiInput
     });
