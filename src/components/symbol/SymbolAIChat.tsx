@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User } from "lucide-react";
+import { Send, Bot, User, Database } from "lucide-react";
 import { toast } from "sonner";
 
 interface Message {
@@ -18,11 +18,12 @@ export function SymbolAIChat({ symbolData }: SymbolAIChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Hi! I'm here to help you analyze ${symbolData.symbol || "this cryptocurrency"}. Ask me anything about the current market conditions, technical indicators, or trading signals.`,
+      content: "Hello! I'm your Dashboard & Data Technical Assistant. I help maintain 99.9% uptime by troubleshooting system issues. Ask me about errors, performance, or API problems.",
     },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [includeSystemLogs, setIncludeSystemLogs] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,8 +34,33 @@ export function SymbolAIChat({ symbolData }: SymbolAIChatProps) {
 
   const streamChat = async (userMessage: Message) => {
     const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/symbol-ai-chat`;
+    const LOGS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-system-logs`;
 
     try {
+      // Fetch system logs if enabled
+      let systemLogs = null;
+      if (includeSystemLogs) {
+        try {
+          const logsResponse = await fetch(LOGS_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ timeRangeMinutes: 60 }),
+          });
+          
+          if (logsResponse.ok) {
+            systemLogs = await logsResponse.json();
+            console.log("System logs fetched:", systemLogs.summary);
+          } else {
+            console.error("Failed to fetch system logs:", await logsResponse.text());
+          }
+        } catch (err) {
+          console.error("Error fetching logs:", err);
+        }
+      }
+
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -65,6 +91,7 @@ export function SymbolAIChat({ symbolData }: SymbolAIChatProps) {
             aiDecision: symbolData.aiDecision,
             aiConfidence: symbolData.aiConfidence,
           },
+          logs: systemLogs,
         }),
       });
 
@@ -157,9 +184,20 @@ export function SymbolAIChat({ symbolData }: SymbolAIChatProps) {
   return (
     <div className="flex flex-col h-[500px] border border-border rounded-lg bg-card">
       {/* Header */}
-      <div className="flex items-center gap-2 p-4 border-b border-border">
-        <Bot className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-foreground">AI Market Analyst</h3>
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Bot className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold text-foreground">Technical Support Assistant</h3>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIncludeSystemLogs(!includeSystemLogs)}
+          className={includeSystemLogs ? "bg-primary/10" : ""}
+        >
+          <Database className="w-4 h-4 mr-2" />
+          {includeSystemLogs ? "Logs ON" : "Logs OFF"}
+        </Button>
       </div>
 
       {/* Messages */}

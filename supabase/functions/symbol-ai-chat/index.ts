@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, symbolData } = await req.json();
+    const { messages, symbolData, logs } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -46,6 +46,30 @@ Market Sentiment:
 AI Trading Analysis:
 - Decision: ${symbolData.aiDecision || 'Analyzing...'}
 - Confidence: ${symbolData.aiConfidence ?? '--'}%
+
+${logs ? `
+RECENT SYSTEM LOGS (${logs.summary?.timeRange || 'Recent'}):
+Summary:
+- Edge Function Errors: ${logs.summary?.errorCount || 0}
+- Edge Function Warnings: ${logs.summary?.warningCount || 0}
+- Database Errors: ${logs.summary?.dbErrorCount || 0}
+${logs.summary?.apiFailures?.length > 0 ? `- API Issues Detected: ${logs.summary.apiFailures.length}` : ''}
+
+Critical Edge Function Logs:
+${logs.edgeFunctionLogs?.slice(0, 5).map((l: any) => 
+  `  [${new Date(l.timestamp).toLocaleTimeString()}] ${l.level.toUpperCase()}: ${l.message.substring(0, 150)}`
+).join('\n') || '  No critical logs'}
+
+Recent Database Errors:
+${logs.databaseLogs?.slice(0, 5).map((l: any) => 
+  `  [${new Date(l.timestamp).toLocaleTimeString()}] ${l.severity}: ${l.message.substring(0, 150)}`
+).join('\n') || '  No database errors'}
+
+${logs.summary?.apiFailures?.length > 0 ? `
+API Failure Patterns:
+${logs.summary.apiFailures.map((f: string) => `  - ${f}`).join('\n')}
+` : ''}
+` : ''}
 `;
 
     const systemPrompt = `You are a Dashboard and Data Technical Assistant for a cryptocurrency trading platform. Your mission is to help maintain 99.9% uptime by providing expert troubleshooting and operational support.
