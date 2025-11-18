@@ -1,5 +1,5 @@
 import { NavLink } from "../NavLink";
-import { Terminal, LayoutDashboard, ListChecks, Settings, Activity } from "lucide-react";
+import { Terminal, LayoutDashboard, ListChecks, Settings, Activity, Coins } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 export function Navbar() {
@@ -8,10 +8,14 @@ export function Navbar() {
   const navItems = [
     { to: "/", label: "Admin Dashboard", icon: LayoutDashboard },
     { to: "/watchlist", label: "Watchlist", icon: ListChecks },
+    { to: "/symbol/BTC", label: "Symbol Details", icon: Coins },
     { to: "/trading", label: "Trading Dashboard", icon: Activity },
   ];
 
   const getPageTitle = () => {
+    if (location.pathname.startsWith("/symbol/")) {
+      return "SYMBOL DETAILS";
+    }
     switch (location.pathname) {
       case "/":
         return "ADMIN PANEL";
