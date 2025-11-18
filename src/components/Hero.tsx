@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp, Activity, BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const Hero = ({ onGetStarted }: { onGetStarted: () => void }) => {
+  const navigate = useNavigate();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Gradient background */}
@@ -53,15 +55,25 @@ export const Hero = ({ onGetStarted }: { onGetStarted: () => void }) => {
           </div>
         </div>
 
-        {/* CTA Button */}
-        <Button
-          onClick={onGetStarted}
-          size="lg"
-          className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg px-8 py-6 rounded-full font-bold shadow-[0_0_30px_hsl(var(--primary)/0.5)] hover:shadow-[0_0_40px_hsl(var(--primary)/0.7)] transition-all"
-        >
-          Get Started
-          <ArrowRight className="ml-2 w-5 h-5" />
-        </Button>
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <Button
+            onClick={() => navigate('/dashboard')}
+            size="lg"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg px-8 py-6 rounded-full font-bold shadow-[0_0_30px_hsl(var(--primary)/0.5)] hover:shadow-[0_0_40px_hsl(var(--primary)/0.7)] transition-all"
+          >
+            Launch Dashboard
+            <ArrowRight className="ml-2 w-5 h-5" />
+          </Button>
+          <Button
+            onClick={onGetStarted}
+            size="lg"
+            variant="outline"
+            className="text-lg px-8 py-6 rounded-full font-bold"
+          >
+            Learn More
+          </Button>
+        </div>
       </div>
     </section>
   );
