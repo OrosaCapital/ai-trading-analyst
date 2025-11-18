@@ -32,8 +32,8 @@ Review past analyses and note:
    - 15m must align with 1h trend
    - 5m must agree with 15m
    - 1m provides entry trigger
-   - Bullish: price above 50 EMA on 5m, 15m, 1h + higher highs/lows + upward EMA slope
-   - Bearish: price below 50 EMA on 5m, 15m, 1h + lower highs/lows + downward EMA slope
+   - Bullish: price above 21 EMA on 5m, 15m, 1h + higher highs/lows + upward EMA slope
+   - Bearish: price below 21 EMA on 5m, 15m, 1h + lower highs/lows + downward EMA slope
    - If any timeframe disagrees → NO TRADE
 
 2. COINGLASS MARKET BIAS
