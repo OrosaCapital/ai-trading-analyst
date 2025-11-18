@@ -213,23 +213,12 @@ serve(async (req) => {
         });
       }
 
-      if (!backfillResult?.success || backfillResult.totalRecordsAdded === 0) {
-        console.error('❌ Binance backfill returned no data');
-        return new Response(JSON.stringify({
-          status: 'error',
-          message: 'Unable to fetch historical data for this symbol'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      console.log(`✅ Binance backfilled ${backfillResult.totalRecordsAdded} records across all intervals`);
+      console.log(`✅ Binance backfill triggered (added ${backfillResult?.totalRecordsAdded || 0} new records)`);
       
       // Wait 3 seconds for data to be fully written and indexed
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Verify data is now available
+      // Re-verify data is now available (this is the critical check)
       const { count: newCount } = await supabase
         .from('tatum_price_logs')
         .select('id', { count: 'exact', head: true })
@@ -237,12 +226,12 @@ serve(async (req) => {
         .eq('interval', '1m');
 
       if (!newCount || newCount < 15) {
-        console.error(`❌ Still insufficient data after backfill (${newCount || 0}/15)`);
+        console.error(`❌ Still insufficient data after backfill (${newCount || 0}/15 minutes)`);
         return new Response(JSON.stringify({
           status: 'error',
-          message: 'Data backfill completed but insufficient data available'
+          message: `Unable to fetch sufficient historical data for ${symbol}. Found ${newCount || 0}/15 minutes.`
         }), {
-          status: 500,
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
