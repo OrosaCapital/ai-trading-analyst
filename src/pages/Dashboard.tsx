@@ -1,51 +1,27 @@
-import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { AppShell } from '@/components/layout/AppShell';
-import { SymbolSummaryPanel } from '@/components/panels/SymbolSummaryPanel';
-import { MainChart } from '@/components/charts/MainChart';
-import { AIAnalysisPanel } from '@/components/dashboard/AIAnalysisPanel';
-import { CoinglassPanel } from '@/components/dashboard/CoinglassPanel';
-import { useMarketStore } from '@/store/useMarketStore';
+import { MainChart } from "../components/charts/MainChart";
+import { SymbolSummaryPanel } from "../components/panels/SymbolSummaryPanel";
+import { DataValidationPanel } from "../components/panels/DataValidationPanel";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import { ErrorState } from "../components/ui/ErrorState";
+import { useMarketData } from "../hooks/useMarketData";
 
-const Dashboard = () => {
-  const [searchParams] = useSearchParams();
-  const { symbol, setSymbol, loadMarketData } = useMarketStore();
-
-  // Update symbol from URL params
-  useEffect(() => {
-    const urlSymbol = searchParams.get('symbol');
-    if (urlSymbol && urlSymbol !== symbol) {
-      setSymbol(urlSymbol);
-    }
-  }, [searchParams]);
-
-  // Load market data on mount and periodically
-  useEffect(() => {
-    loadMarketData();
-    const interval = setInterval(loadMarketData, 120000); // Every 2 minutes
-    return () => clearInterval(interval);
-  }, [symbol]);
+export function Dashboard() {
+  const { snapshot, validation, isLoading, error } = useMarketData();
 
   return (
-    <AppShell>
-      {/* Live Price Header */}
-      <SymbolSummaryPanel symbol={symbol} />
+    <div className="flex h-full flex-col gap-4">
+      {isLoading && <LoadingSpinner />}
+      {error && <ErrorState message={error} />}
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        {/* Left Column - Chart */}
-        <div className="lg:col-span-2 space-y-6">
-          <MainChart />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <MainChart snapshot={snapshot} />
         </div>
-
-        {/* Right Column - Analysis Panels */}
-        <div className="space-y-6">
-          <AIAnalysisPanel symbol={symbol} />
-          <CoinglassPanel symbol={symbol} />
+        <div className="space-y-4">
+          <SymbolSummaryPanel snapshot={snapshot} />
+          <DataValidationPanel validation={validation} />
         </div>
       </div>
-    </AppShell>
+    </div>
   );
-};
-
-export default Dashboard;
+}
