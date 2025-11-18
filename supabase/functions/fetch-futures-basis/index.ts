@@ -19,6 +19,34 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Check if this symbol-endpoint combo is supported
+    const { isEndpointSupported } = await import('../_shared/symbolFormatter.ts');
+    const supportCheck = isEndpointSupported(symbol, 'futures_basis');
+
+    if (!supportCheck.supported) {
+      console.log(`🚫 Blocked API call: ${symbol} not supported for futures_basis - ${supportCheck.reason}`);
+      
+      const blockedResponse = {
+        symbol,
+        currentBasis: null,
+        basisPercent: null,
+        structure: 'N/A',
+        signal: 'N/A',
+        history: [],
+        timestamp: Date.now(),
+        blocked: true,
+        upgradeRequired: true,
+        reason: supportCheck.reason || 'Not supported on Hobbyist plan',
+        message: `Futures basis data unavailable - ${supportCheck.reason}`,
+        isMockData: false
+      };
+      
+      return new Response(JSON.stringify(blockedResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
     // Check cache first
     const { data: cachedData } = await supabase
       .from('coinglass_metrics_cache')

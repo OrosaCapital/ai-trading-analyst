@@ -19,6 +19,32 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Check if this symbol-endpoint combo is supported
+    const { isEndpointSupported } = await import('../_shared/symbolFormatter.ts');
+    const supportCheck = isEndpointSupported(symbol, 'funding_rate_list');
+
+    if (!supportCheck.supported) {
+      console.log(`🚫 Blocked API call: ${symbol} not supported for funding_rate_list - ${supportCheck.reason}`);
+      
+      const blockedResponse = {
+        symbol,
+        exchanges: [],
+        avgRate: null,
+        sentiment: 'N/A',
+        timestamp: Date.now(),
+        blocked: true,
+        upgradeRequired: true,
+        reason: supportCheck.reason || 'Not supported on Hobbyist plan',
+        message: `Funding rate list data unavailable - ${supportCheck.reason}`,
+        isMockData: false
+      };
+      
+      return new Response(JSON.stringify(blockedResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
     // Check cache first
     const { data: cachedData } = await supabase
       .from('coinglass_metrics_cache')
