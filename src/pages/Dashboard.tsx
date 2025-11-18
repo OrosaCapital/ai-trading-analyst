@@ -4,9 +4,10 @@ import { CoinglassPanel } from '@/components/dashboard/CoinglassPanel';
 import { AIAnalysisPanel } from '@/components/dashboard/AIAnalysisPanel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, BookmarkPlus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { NavLink } from '@/components/NavLink';
 const Dashboard = () => {
   const [symbol, setSymbol] = useState('BTC');
   const [inputValue, setInputValue] = useState('BTC');
@@ -57,9 +58,20 @@ const Dashboard = () => {
       {/* Navigation Bar */}
       <nav className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-accent">OCAPX</h1>
-            <span className="text-sm text-muted-foreground">Trading Dashboard</span>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black text-accent">OCAPX</h1>
+              <span className="text-sm text-muted-foreground">Trading Dashboard</span>
+            </div>
+            
+            <NavLink 
+              to="/watchlist" 
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              activeClassName="text-accent font-medium"
+            >
+              <BookmarkPlus className="w-4 h-4" />
+              <span>Watchlist</span>
+            </NavLink>
           </div>
 
           {/* Symbol Search */}
