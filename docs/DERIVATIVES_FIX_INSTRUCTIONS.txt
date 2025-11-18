@@ -1,0 +1,106 @@
+
+LOVABLE_DERIVATIVES_INDICATORS_FIX_INSTRUCTIONS
+==============================================
+
+ROLE
+- You are Lovable, the AI for this trading dashboard.
+- Your job is to keep derivatives + indicators data valid and available.
+
+PROBLEM PATTERN
+- Metrics show N/A for: funding, open interest, taker volume, RSI, liquidations.
+- AI analysis stuck on "Analyzing..." with 0% confidence.
+- Root cause: missing/invalid upstream data from Coinglass / price stream / indicators.
+
+SECTION 1 – QUICK CHECKS
+------------------------
+1) Coinglass
+- Verify env: COINGLASS_API_KEY is set and valid.
+- Check 401/403/429/5xx in:
+  - supabase/functions/fetch-funding-rate
+  - supabase/functions/fetch-open-interest
+  - supabase/functions/fetch-liquidations
+  - supabase/functions/fetch-taker-volume
+- Confirm endpoints and params in: _shared/services/coinglassService.ts
+
+2) WebSocket Price Stream
+- Ensure symbols are base only: BTC, ETH, SOL, XRP (no BTCUSDT, BTC-USD, etc.).
+- Confirm symbolFormatter in: _shared/utils/symbolFormatter.ts
+- Check that websocket-price-stream function receives and forwards price/volume.
+
+3) Indicators
+- Confirm OHLCV source (historical + live) is not N/A or empty.
+- Files to inspect:
+  - supabase/functions/fetch-historical-prices
+  - _shared/calculations/technicalIndicators.ts
+- Ensure indicators do not run when inputs are missing or NaN.
+
+SECTION 2 – REQUIRED FIXES
+--------------------------
+F1 – Symbol Enforcement
+- All external calls, WebSockets, and indicators must use normalized base symbols via symbolFormatter.
+
+F2 – Retry + Backoff
+- Wrap all external API calls (Coinglass, Tatum, CMC) with:
+  - 3 retries
+  - exponential backoff
+- Implement in service layer:
+  - _shared/services/coinglassService.ts
+  - _shared/services/tatumService.ts
+  - _shared/services/cmcService.ts
+
+F3 – Cache
+- Wrap derivatives fetchers with cache middleware:
+  - _shared/middleware/cacheMiddleware.ts
+- Recommended TTL: 30–60 seconds.
+- If live call fails, serve last cached value instead of N/A.
+
+F4 – Fallback Logic
+- If Coinglass fails repeatedly:
+  - Use last known good value from repositories:
+    - _shared/repositories/priceLogRepository.ts
+- If WebSocket fails:
+  - Switch to polling mode using existing fetch price functions.
+
+F5 – Logging
+- All failures, retries, and N/A results must log via:
+  - _shared/monitoring/logger.ts
+- Log fields:
+  - source, symbol, statusCode, errorMessage, attempt, fallbackUsed.
+
+F6 – Metrics
+- Track:
+  - coinglass_failure_count
+  - derivatives_na_count
+  - indicator_na_count
+  - ws_disconnect_count
+- Use:
+  - _shared/monitoring/metrics.ts
+
+F7 – Health Checks
+- Add/verify health functions:
+  - supabase/functions/health-derivatives
+  - supabase/functions/health-indicators
+- Each should:
+  - Call Coinglass
+  - Validate non-empty numeric data
+  - Return simple JSON: { ok: boolean, reason?: string }
+
+F8 – Frontend Handling
+- In React components:
+  - If data is temporarily missing, show "Refreshing data…" not raw N/A.
+  - Only show AI analysis once all required inputs are present.
+
+SECTION 3 – ENFORCEMENT RULES
+-----------------------------
+- No indicator or AI analysis runs on N/A or NaN inputs.
+- No WebSocket subscription uses non-normalized symbols.
+- All derivatives/indicator data paths must pass through:
+  - services → middleware → repositories → calculations.
+- All external APIs use retry + cache + logging.
+- Lovable must treat repeated N/A states as a critical incident:
+  - Inspect upstream
+  - Log cause
+  - Attempt automated recovery (retry, fallback, cache).
+
+END OF INSTRUCTIONS
+==============================================

@@ -81,8 +81,12 @@ export function TechMetricCard({
         {/* Value */}
         <div className="flex items-baseline gap-2">
           <span className={`text-2xl font-bold ${getTrendColor()}`}>
-            {value !== null && value !== undefined ? value : "--"}
-            {unit && <span className="text-sm ml-1 text-muted-foreground">{unit}</span>}
+            {value !== null && value !== undefined && value !== "N/A" && value !== "Unavailable" 
+              ? value 
+              : <span className="text-lg text-muted-foreground">Refreshing...</span>}
+            {value && value !== "N/A" && value !== "Unavailable" && unit && (
+              <span className="text-sm ml-1 text-muted-foreground">{unit}</span>
+            )}
           </span>
         </div>
 
