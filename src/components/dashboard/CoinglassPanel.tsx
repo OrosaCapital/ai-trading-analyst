@@ -41,10 +41,9 @@ export const CoinglassPanel = ({ symbol }: CoinglassPanelProps) => {
       </div>
 
       {loading.coinglass ? (
-        <Card className="p-6 text-center">
-          <LoadingSpinner className="mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Loading data...</p>
-        </Card>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
       ) : (
         <div className="grid gap-6">
           {/* Long/Short Ratio */}

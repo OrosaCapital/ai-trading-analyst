@@ -22,7 +22,7 @@ export function useMarketData() {
         if (!snapRes.ok) {
           setData({
             isLoading: false,
-            error: snapRes.error.message,
+            error: "Failed to fetch market data",
           });
           return;
         }

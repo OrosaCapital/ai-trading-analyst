@@ -17,25 +17,24 @@ export async function getCoinglassKlines(params: SymbolTimeframe): Promise<ApiRe
     symbol,
   )}&interval=${encodeURIComponent(timeframe)}`;
 
-  return httpClient
-    .get<CoinglassKlineResponse>(url, {
-      headers: {
-        coinglassSecret: env.coinglassApiKey ?? "",
-      },
-    })
-    .then((res) => {
-      if (!res.ok) return res;
+  const result = await httpClient.get<CoinglassKlineResponse>(url, {
+    headers: {
+      coinglassSecret: env.coinglassApiKey ?? "",
+    },
+  });
 
-      const candles: Candle[] =
-        res.data.data.list.map((row) => ({
-          timestamp: row[0],
-          open: row[1],
-          high: row[2],
-          low: row[3],
-          close: row[4],
-          volume: row[5],
-        })) ?? [];
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
 
-      return { ok: true, data: candles };
-    });
+  const candles: Candle[] = result.data.data.list.map((row) => ({
+    timestamp: row[0],
+    open: row[1],
+    high: row[2],
+    low: row[3],
+    close: row[4],
+    volume: row[5],
+  }));
+
+  return { ok: true, data: candles };
 }

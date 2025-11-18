@@ -1,8 +1,13 @@
-export function LoadingSpinner() {
+interface ErrorStateProps {
+  message: string;
+}
+
+export function ErrorState({ message }: ErrorStateProps) {
   return (
-    <div className="flex items-center justify-center py-8 text-sm text-gray-400">
-      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
-      Loading market data…
+    <div className="flex items-center justify-center py-8 text-sm text-red-400">
+      <div className="rounded-md bg-red-950/30 border border-red-800 px-4 py-3">
+        {message}
+      </div>
     </div>
   );
 }

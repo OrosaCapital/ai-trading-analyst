@@ -12,39 +12,22 @@ interface AIAnalysisPanelProps {
 }
 
 export const AIAnalysisPanel = ({ symbol }: AIAnalysisPanelProps) => {
-  const { data, isLoading, error } = useMarketData(symbol);
+  const { snapshot, validation, isLoading, error } = useMarketData();
 
-  if (isLoading || data?.status === 'accumulating') {
-    return (
-      <div className="space-y-4">
-        {data?.progress ? (
-          <DataValidationPanel 
-            message={data.message || "Accumulating data..."}
-            progress={data.progress}
-          />
-        ) : (
-          <Card className="p-6 glass">
-            <Skeleton className="h-4 w-24 mb-4" />
-            <Skeleton className="h-8 w-full mb-2" />
-            <Skeleton className="h-20 w-full" />
-          </Card>
-        )}
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="p-6 glass">
-            <Skeleton className="h-4 w-24 mb-4" />
-            <Skeleton className="h-8 w-full mb-2" />
-            <Skeleton className="h-20 w-full" />
-          </Card>
-        ))}
+  if (isLoading) {
+    return <div className="flex items-center justify-center py-8">
+      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
+      <span className="text-sm text-gray-400">Loading market data…</span>
+    </div>;
+  }
+
+  if (error) {
+    return <div className="flex items-center justify-center py-8 text-sm text-red-400">
+      <div className="rounded-md bg-red-950/30 border border-red-800 px-4 py-3">
+        {error}
       </div>
-    );
+    </div>;
   }
-
-  if (error || !data?.aiSignal) {
-    return <ErrorState message={error || "Failed to load AI analysis"} />;
-  }
-
-  const { decision, confidence, summary, action } = data.aiSignal;
   
   // Calculate sentiment score based on confidence and decision
   const sentimentScore = decision === 'LONG' ? Math.min(50 + confidence / 2, 100) : 
