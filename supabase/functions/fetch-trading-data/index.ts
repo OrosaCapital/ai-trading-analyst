@@ -193,19 +193,22 @@ serve(async (req) => {
       .eq('interval', '1m');
 
     if (!count || count < 15) {
-      console.log(`⚠️ Insufficient data: ${count || 0}/15 minutes. Attempting API Ninjas backfill...`);
+      console.log(`⚠️ Insufficient data: ${count || 0}/15 minutes. Triggering Binance backfill...`);
       
-      // Try to backfill historical data from API Ninjas
+      // Automatically trigger Binance backfill for instant historical data
       try {
         const { data: backfillResult, error: backfillError } = await supabase.functions.invoke(
-          'fetch-historical-prices',
+          'fetch-binance-historical',
           { body: { symbol, lookback_hours: 24 } }
         );
 
         if (backfillError) {
-          console.error('❌ Backfill error:', backfillError);
+          console.error('❌ Binance backfill error:', backfillError);
         } else if (backfillResult?.success) {
-          console.log(`✅ Backfilled ${backfillResult.records_added} records using ${backfillResult.api_calls_used} API calls`);
+          console.log(`✅ Binance backfilled ${backfillResult.totalRecordsAdded} records across all intervals`);
+          
+          // Wait 2 seconds for data to be fully written
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           // Re-check data availability after backfill
           const { count: newCount } = await supabase
@@ -228,7 +231,7 @@ serve(async (req) => {
             });
           }
         } else {
-          console.log('⏳ Backfill not successful, falling back to accumulation');
+          console.log('⏳ Binance backfill not successful, falling back to accumulation');
           return new Response(JSON.stringify({
             status: 'accumulating',
             message: `Collecting data... ${count || 0}/15 minutes`,
@@ -238,7 +241,7 @@ serve(async (req) => {
           });
         }
       } catch (backfillException) {
-        console.error('❌ Exception during backfill:', backfillException);
+        console.error('❌ Exception during Binance backfill:', backfillException);
         return new Response(JSON.stringify({
           status: 'accumulating',
           message: `Collecting data... ${count || 0}/15 minutes`,
