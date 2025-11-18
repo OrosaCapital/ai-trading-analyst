@@ -1,4 +1,5 @@
 import { useEffect, useRef, memo } from 'react';
+import { normalizeSymbol } from '@/lib/symbolUtils';
 
 interface TradingViewChartProps {
   symbol: string;
@@ -41,8 +42,10 @@ export const TradingViewChart = memo(({ symbol }: TradingViewChartProps) => {
         containerRef.current.innerHTML = '';
       }
 
-      // Convert symbol format (BTCUSDT -> BTCUSD or keep as is)
-      const tvSymbol = symbol.includes('USDT') ? symbol.replace('USDT', 'USD') : symbol;
+      // Normalize symbol: remove slashes and ensure USDT suffix for TradingView
+      // Examples: "BTC/USDT" -> "BTCUSDT", "XRP" -> "XRPUSDT", "BTCUSDT" -> "BTCUSDT"
+      const cleanSymbol = symbol.replace(/\//g, '').toUpperCase();
+      const tvSymbol = cleanSymbol.includes('USDT') ? cleanSymbol : `${normalizeSymbol(cleanSymbol)}USDT`;
       
       // Sanitize symbol for DOM ID (remove special characters)
       const sanitizedSymbol = symbol.replace(/[^a-zA-Z0-9]/g, '_');
