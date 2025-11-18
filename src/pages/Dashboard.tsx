@@ -1,16 +1,12 @@
 import { Activity, Shield, Terminal } from "lucide-react";
-import { DataValidationPanel } from "../components/panels/DataValidationPanel";
 import { SystemOverview } from "../components/admin/SystemOverview";
 import { SystemAlerts } from "../components/admin/SystemAlerts";
 import { AICreditsMonitor } from "../components/admin/AICreditsMonitor";
 import { BackendStatus } from "../components/admin/BackendStatus";
 import { EdgeFunctionsList } from "../components/admin/EdgeFunctionsList";
 import { EnvironmentInfo } from "../components/admin/EnvironmentInfo";
-import { useMarketData } from "../hooks/useMarketData";
 
 export function Dashboard() {
-  const { snapshot, validation, isLoading, error } = useMarketData();
-
   return (
     <div className="flex h-full flex-col gap-6 pb-8">
       {/* Header */}
@@ -46,7 +42,6 @@ export function Dashboard() {
         {/* Left Column - 2/3 width */}
         <div className="lg:col-span-2 space-y-4">
           <SystemAlerts />
-          <DataValidationPanel validation={validation} isLoading={isLoading} error={error} />
         </div>
 
         {/* Right Column - 1/3 width */}
