@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 const sentiments = [
   { label: "MAX FEAR", color: "hsl(152, 100%, 50%)", angle: -90 },
   { label: "FEAR", color: "hsl(187, 64%, 53%)", angle: -70 },
@@ -15,22 +13,13 @@ const sentiments = [
 ];
 
 export const SentimentGauge = () => {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const currentSentiment = 5; // Neutral - would be dynamic in real app
 
   return (
-    <div className="glass rounded-2xl p-8 space-y-6">
-      <div className="text-center space-y-2">
-        <h3 className="text-2xl font-bold">Market Sentiment Index</h3>
-        <p className="text-sm text-muted-foreground">
-          Real-time emotional cycle mapping from fear to euphoria
-        </p>
-      </div>
-
-      {/* Circular Gauge */}
-      <div className="relative w-full max-w-md mx-auto aspect-square">
-        <svg viewBox="0 0 200 120" className="w-full h-auto">
-          {/* Background arc */}
+    <div className="space-y-2">
+      {/* Compact Gauge */}
+      <div className="relative w-full mx-auto">
+        <svg viewBox="0 0 200 110" className="w-full h-auto">
           <defs>
             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               {sentiments.map((s, i) => (
@@ -43,80 +32,54 @@ export const SentimentGauge = () => {
             </linearGradient>
           </defs>
           
-          {/* Main arc */}
           <path
-            d="M 20,100 A 80,80 0 0,1 180,100"
+            d="M 20,95 A 80,80 0 0,1 180,95"
             fill="none"
             stroke="url(#gaugeGradient)"
-            strokeWidth="12"
+            strokeWidth="8"
             strokeLinecap="round"
-            className="drop-shadow-[0_0_10px_hsl(var(--primary)/0.5)]"
+            opacity="0.9"
           />
 
-          {/* Needle */}
-          <g transform={`rotate(${sentiments[currentSentiment].angle}, 100, 100)`}>
+          <g transform={`rotate(${sentiments[currentSentiment].angle}, 100, 95)`}>
             <line
               x1="100"
-              y1="100"
+              y1="95"
               x2="100"
               y2="30"
               stroke="hsl(var(--foreground))"
-              strokeWidth="3"
+              strokeWidth="2"
               strokeLinecap="round"
-              className="drop-shadow-lg"
             />
             <circle
               cx="100"
-              cy="100"
-              r="6"
+              cy="95"
+              r="4"
               fill="hsl(var(--primary))"
-              className="drop-shadow-[0_0_10px_hsl(var(--primary)/0.8)]"
             />
           </g>
 
-          {/* Center label */}
           <text
             x="100"
-            y="110"
+            y="105"
             textAnchor="middle"
-            className="text-xs font-bold fill-current"
+            className="text-[9px] font-semibold fill-foreground"
           >
             {sentiments[currentSentiment].label}
           </text>
         </svg>
       </div>
 
-      {/* Sentiment Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {sentiments.map((sentiment, idx) => (
-          <button
-            key={sentiment.label}
-            onMouseEnter={() => setHoveredIndex(idx)}
-            onMouseLeave={() => setHoveredIndex(null)}
-            className={`glass-strong rounded-lg p-4 transition-all ${
-              idx === currentSentiment ? 'ring-2 ring-primary scale-105' : ''
-            } ${hoveredIndex === idx ? 'scale-105 bg-primary/5' : ''}`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-4 h-4 rounded-full shrink-0"
-                style={{
-                  backgroundColor: sentiment.color,
-                  boxShadow: `0 0 10px ${sentiment.color}`,
-                }}
-              ></div>
-              <span className="text-xs font-medium text-left">{sentiment.label}</span>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      <div className="glass-strong rounded-lg p-4 text-sm text-muted-foreground">
-        <p>
-          <strong className="text-foreground">How it works:</strong> The sentiment index combines RSI, 
-          funding rates, volume patterns, and open interest to map market psychology. Extreme fear 
-          often signals buying opportunities, while euphoria indicates caution zones.
-        </p>
+      {/* Minimal Key */}
+      <div className="grid grid-cols-2 gap-1 text-[8px]">
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sentiments[0].color }} />
+          <span className="text-muted-foreground">Fear</span>
+        </div>
+        <div className="flex items-center gap-1 justify-end">
+          <span className="text-muted-foreground">Greed</span>
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sentiments[10].color }} />
+        </div>
       </div>
     </div>
   );
