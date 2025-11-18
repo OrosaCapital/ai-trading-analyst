@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { TradingCommandCenter } from "@/components/trading/TradingCommandCenter";
 import { TradingViewChart } from "@/components/TradingViewChart";
@@ -11,6 +11,8 @@ import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("");
   const [timeframe, setTimeframe] = useState<"1m" | "5m" | "15m" | "1h" | "4h" | "1d">("1h");
+  const [dataStartTime, setDataStartTime] = useState<Date | null>(null);
+  const [realtimeMinutes, setRealtimeMinutes] = useState(0);
 
   // Normalize symbol to ensure it has USDT suffix for API calls
   const normalizeSymbol = (sym: string) => {
@@ -39,7 +41,29 @@ export default function TradingDashboard() {
     hasInsufficientData(aiError) ||
     hasInsufficientData(chartError);
 
-  // Extract minutes collected from error message
+  // Start tracking time when accumulation begins
+  useEffect(() => {
+    if (isAccumulating && !dataStartTime) {
+      setDataStartTime(new Date());
+    } else if (!isAccumulating && dataStartTime) {
+      setDataStartTime(null);
+      setRealtimeMinutes(0);
+    }
+  }, [isAccumulating, dataStartTime]);
+
+  // Real-time minute counter
+  useEffect(() => {
+    if (!dataStartTime) return;
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((new Date().getTime() - dataStartTime.getTime()) / 60000);
+      setRealtimeMinutes(elapsed);
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [dataStartTime]);
+
+  // Extract minutes collected from backend
   const extractMinutes = (error: string | null | undefined): number => {
     if (!error) return 0;
     const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
@@ -47,9 +71,12 @@ export default function TradingDashboard() {
     return match ? parseInt(match[1]) : 0;
   };
 
-  const minutesCollected = aiData?.progress 
+  // Use backend data or real-time calculation, whichever is higher
+  const backendMinutes = aiData?.progress 
     ? Math.floor((aiData.progress / 100) * 15) 
     : extractMinutes(aiError) || extractMinutes(chartError);
+  
+  const minutesCollected = Math.max(backendMinutes, realtimeMinutes);
 
   // Only show real errors, not accumulation status
   const hasRealError = (error: string | null | undefined): boolean => {
