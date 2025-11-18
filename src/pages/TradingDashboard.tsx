@@ -4,6 +4,7 @@ import { ProfessionalTradingChart } from "@/components/ProfessionalTradingChart"
 import { MetricsColumn } from "@/components/trading/MetricsColumn";
 import { AIDecisionPanel } from "@/components/trading/AIDecisionPanel";
 import { AdvancedAnalyticsTabs } from "@/components/trading/AdvancedAnalyticsTabs";
+import { DataAccumulationBanner } from "@/components/trading/DataAccumulationBanner";
 import { useAITradingData } from "@/hooks/useAITradingData";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 
@@ -17,6 +18,22 @@ export default function TradingDashboard() {
   // Safely get current price
   const currentPrice = chartData?.candles1h?.[chartData.candles1h.length - 1]?.close;
 
+  // Check if we're in data accumulation phase
+  const isAccumulating = aiData?.status === "accumulating" || 
+    (aiError?.includes("Found") && aiError?.includes("minutes")) ||
+    (chartError?.includes("Found") && chartError?.includes("minutes"));
+
+  // Extract minutes collected from error message
+  const extractMinutes = (error: string | null) => {
+    if (!error) return 0;
+    const match = error.match(/Found (\d+)\/(\d+) minutes/);
+    return match ? parseInt(match[1]) : 0;
+  };
+
+  const minutesCollected = aiData?.progress 
+    ? Math.floor((aiData.progress / 100) * 15) 
+    : extractMinutes(aiError) || extractMinutes(chartError);
+
   return (
     <div className="flex h-full flex-col gap-4 pb-8">
       {/* Top Command Center */}
@@ -27,6 +44,15 @@ export default function TradingDashboard() {
         onTimeframeChange={setTimeframe}
         currentPrice={currentPrice}
       />
+
+      {/* Show accumulation banner if needed */}
+      {isAccumulating && (
+        <DataAccumulationBanner 
+          symbol={symbol}
+          minutesCollected={minutesCollected}
+          minutesRequired={15}
+        />
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
