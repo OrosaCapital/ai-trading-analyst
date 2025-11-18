@@ -23,25 +23,53 @@ interface Candle {
   volume: number;
 }
 
-// Build 1hr candles from 1m logs
+// Build 1hr candles from 1m logs (improved to handle gaps)
 function build1hrCandles(logs1m: PriceLog[]): Candle[] {
-  const hourlyCandles: Candle[] = [];
+  // Group logs by hour timestamp
+  const hourlyGroups = new Map<number, PriceLog[]>();
   
-  for (let i = 0; i < logs1m.length; i += 60) {
-    const chunk = logs1m.slice(i, i + 60);
-    if (chunk.length < 60) break; // Need full hour
-    
-    hourlyCandles.push({
-      time: Math.floor(new Date(chunk[0].timestamp).getTime() / 1000),
-      open: chunk[0].price,
-      high: Math.max(...chunk.map(c => c.price)),
-      low: Math.min(...chunk.map(c => c.price)),
-      close: chunk[chunk.length - 1].price,
-      volume: chunk.reduce((sum, c) => sum + c.volume, 0)
-    });
+  for (const log of logs1m) {
+    const hourTimestamp = Math.floor(new Date(log.timestamp).getTime() / (1000 * 3600));
+    if (!hourlyGroups.has(hourTimestamp)) {
+      hourlyGroups.set(hourTimestamp, []);
+    }
+    hourlyGroups.get(hourTimestamp)!.push(log);
   }
   
-  return hourlyCandles;
+  // Build candles from each hour's data
+  const candles = Array.from(hourlyGroups.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([hourTimestamp, logs]) => ({
+      time: hourTimestamp * 3600,
+      open: logs[0].price,
+      high: Math.max(...logs.map(l => l.price)),
+      low: Math.min(...logs.map(l => l.price)),
+      close: logs[logs.length - 1].price,
+      volume: logs.reduce((sum, l) => sum + (l.volume || 0), 0)
+    }));
+    
+  return candles;
+}
+
+// Calculate RSI (Relative Strength Index)
+function calculateRSI(prices: number[], period: number = 14): number {
+  if (prices.length < period + 1) return 50; // Neutral if not enough data
+  
+  const changes: number[] = [];
+  for (let i = 1; i < prices.length; i++) {
+    changes.push(prices[i] - prices[i - 1]);
+  }
+  
+  const recentChanges = changes.slice(-period);
+  const gains = recentChanges.filter(c => c > 0);
+  const losses = recentChanges.filter(c => c < 0).map(Math.abs);
+  
+  const avgGain = gains.length > 0 ? gains.reduce((a, b) => a + b, 0) / period : 0;
+  const avgLoss = losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / period : 0;
+  
+  if (avgLoss === 0) return avgGain > 0 ? 100 : 50;
+  const rs = avgGain / avgLoss;
+  return 100 - (100 / (1 + rs));
 }
 
 // Calculate EMA 21 (better for intraday trading)
@@ -459,16 +487,36 @@ serve(async (req) => {
 
     // ===== LOCAL SIGNAL ENGINE (0 CREDITS) =====
     console.log('🎯 Using local signal engine (FREE)');
+    
+    // Calculate RSI for both timeframes
+    const rsi1h = prices1h.length >= 15 ? calculateRSI(prices1h, 14) : 50;
+    const rsi15m = prices15m.length >= 15 ? calculateRSI(prices15m, 14) : 50;
+    
+    // Get volume SMA (approximate as 80% of current volume)
+    const currentVolume = volumeAnalysis.volume24h || 1000000;
+    const volumeSMA = currentVolume * 0.8;
+    
+    console.log('📊 Signal Engine Input:', {
+      price1h: prices1h[prices1h.length - 1],
+      price15m: prices15m[prices15m.length - 1],
+      ema1h: ema1h.length,
+      ema15m: ema15m.length,
+      rsi1h,
+      rsi15m,
+      volume: currentVolume,
+      sentiment: longShort?.sentiment
+    });
+    
     const localSignal = calculateLocalTradeSignal({
-      price1h: ema15m[ema15m.length - 1] || currentPrice,
-      ema501h: ema15m,
-      rsi1h: [50],
-      price15m: ema15m[ema15m.length - 1] || currentPrice,
+      price1h: prices1h[prices1h.length - 1] || currentPrice,
+      ema501h: ema1h,
+      rsi1h: [rsi1h],
+      price15m: prices15m[prices15m.length - 1] || currentPrice,
       ema5015m: ema15m,
-      rsi15m: [50],
-      currentVolume: 1000000,
-      volumeSMA: [750000],
-      coinglassSentiment: longShort?.sentiment || 'neutral',
+      rsi15m: [rsi15m],
+      currentVolume: currentVolume,
+      volumeSMA: [volumeSMA],
+      coinglassSentiment: longShort?.sentiment || 'NEUTRAL',
     });
     
     console.log(`✅ Local signal: ${localSignal.signal} (${localSignal.confidence}%)`);
