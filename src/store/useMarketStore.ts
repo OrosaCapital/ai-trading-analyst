@@ -181,11 +181,35 @@ export const useMarketStore = create<MarketState>((set, get) => ({
         }),
       ]);
       
+      // Parse long/short ratio from API response
+      let longShortRatio = 1; // Default to 1:1
+      if (lsRes.data && typeof lsRes.data.long_percent === 'string' && lsRes.data.long_percent !== 'N/A') {
+        const longPercent = parseFloat(lsRes.data.long_percent);
+        const shortPercent = parseFloat(lsRes.data.short_percent);
+        if (!isNaN(longPercent) && !isNaN(shortPercent) && shortPercent > 0) {
+          longShortRatio = longPercent / shortPercent;
+        }
+      }
+      
+      // Parse funding rate
+      const fundingRate = fundingRes.data?.current?.rateValue || fundingRes.data?.rate || 0;
+      
+      // Parse open interest
+      const openInterest = oiRes.data?.total?.valueRaw || oiRes.data?.value || 0;
+      
+      // Parse liquidations
+      let liquidations24h = 0;
+      if (liqRes.data?.last24h && liqRes.data.last24h.totalLongs !== 'N/A') {
+        const longs = parseFloat(liqRes.data.last24h.totalLongs) || 0;
+        const shorts = parseFloat(liqRes.data.last24h.totalShorts) || 0;
+        liquidations24h = longs + shorts;
+      }
+      
       const metrics: MarketMetrics = {
-        fundingRate: fundingRes.data?.rate || 0,
-        openInterest: oiRes.data?.value || 0,
-        longShortRatio: lsRes.data?.ratio || 1,
-        liquidations24h: liqRes.data?.total || 0,
+        fundingRate,
+        openInterest,
+        longShortRatio,
+        liquidations24h,
         volume24h: oiRes.data?.volume || 0,
         timestamp: now,
       };
@@ -196,7 +220,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
         lastFetch: { ...get().lastFetch, metrics: now },
       });
       
-      console.log("✅ Fetched metrics for", symbol);
+      console.log("✅ Fetched metrics for", symbol, metrics);
     } catch (error) {
       console.error("Error fetching metrics:", error);
       set({ loading: { ...get().loading, metrics: false } });
