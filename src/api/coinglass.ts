@@ -1,39 +1,60 @@
 import { httpClient } from "./httpClient";
 import { env } from "../config/env";
-import type { ApiResult, ApiError } from "../types/api";
+import type { ApiResult } from "../types/api";
 import type { Candle, SymbolTimeframe } from "../types/market";
 
-interface CoinglassKlineResponse {
-  data: {
-    symbol: string;
-    list: [number, number, number, number, number, number][];
-  };
+// Map your timeframe selectors to Coinglass intervals
+const INTERVAL_MAP: Record<SymbolTimeframe["timeframe"], string> = {
+  "1m": "4h", // Not allowed → fallback
+  "5m": "4h", // Not allowed → fallback
+  "15m": "4h", // Not allowed → fallback
+  "1h": "4h", // Not allowed → fallback
+  "4h": "4h",
+  "1d": "1d",
+};
+
+interface CoinglassOhlcResponse {
+  code: number;
+  msg: string;
+  data: Array<{
+    timestamp: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }>;
 }
 
 export async function getCoinglassKlines(params: SymbolTimeframe): Promise<ApiResult<Candle[]>> {
   const { symbol, timeframe } = params;
 
-  const url = `https://open-api.coinglass.com/public/v2/kline?symbol=${encodeURIComponent(
-    symbol,
-  )}&interval=${encodeURIComponent(timeframe)}`;
+  // Force supported interval (Hobbyist limitation)
+  const interval = INTERVAL_MAP[timeframe] ?? "4h";
 
-  const result = await httpClient.get<CoinglassKlineResponse>(url, {
+  const url =
+    `https://open-api-v4.coinglass.com/api/price/ohlc-history` +
+    `?symbol=${encodeURIComponent(symbol)}` +
+    `&interval=${interval}` +
+    `&exchange=binance`;
+
+  const response = await httpClient.get<CoinglassOhlcResponse>(url, {
     headers: {
-      coinglassSecret: env.coinglassApiKey ?? "",
+      "CG-API-KEY": env.coinglassApiKey ?? "",
     },
   });
 
-  if (!result.ok) {
-    return result as { ok: false; error: ApiError };
-  }
+  if (!response.ok) return response;
 
-  const candles: Candle[] = result.data.data.list.map((row) => ({
-    timestamp: row[0],
-    open: row[1],
-    high: row[2],
-    low: row[3],
-    close: row[4],
-    volume: row[5],
+  const rows = response.data.data;
+
+  const candles: Candle[] = rows.map((row) => ({
+    timestamp: row.timestamp,
+    open: row.open,
+    high: row.high,
+    low: row.low,
+    close: row.close,
+    volume: row.volume,
   }));
 
   return { ok: true, data: candles };
