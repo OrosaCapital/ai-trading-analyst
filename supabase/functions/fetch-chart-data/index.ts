@@ -566,43 +566,29 @@ async function fetchCoinGlassOHLC(
     
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
     
-    // Import shared client function
-    const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
+    // Use improved chart service with retry and fallback
+    const { fetchChartDataWithFallback } = await import('../_shared/services/coinglassChartService.ts');
     
-    // Use database lookup for endpoint
-    let data;
+    let chartResponse;
     try {
-      data = await fetchFromCoinglassV2(
-        'price_history',
-        {
-          exchange: 'Binance',
-          symbol: cleanSymbol,
-          interval: interval,
-          limit: '1000'
-        },
-        apiKey
-      );
+      chartResponse = await fetchChartDataWithFallback(symbol, intervalMinutes, days, apiKey);
     } catch (error) {
-      console.error(`❌ CoinGlass API error:`, error);
+      console.error(`❌ Chart data fetch failed:`, error);
+      const { createChartErrorResponse, getValidChartInterval } = await import('../_shared/services/coinglassChartService.ts');
+      const intervalConfig = getValidChartInterval(intervalMinutes);
+      console.error('Error details:', createChartErrorResponse(symbol, intervalConfig, error as Error));
       return null;
     }
     
-    if (data.code !== '0' || !data.data || data.data.length === 0) {
-      console.error('CoinGlass error details:', {
-        code: data.code,
-        msg: data.msg,
-        symbol: cleanSymbol,
-        interval: interval,
-        dataLength: data.data?.length
-      });
-      
-      // If error due to interval restriction and not already using 4h
-      if (data.code === '400' && interval !== '4h') {
-        console.log('⚠️ Retrying with 4h interval due to API plan restrictions...');
-        return await fetchCoinGlassOHLC(symbol, 240, days, apiKey);
-      }
-      
+    if (!chartResponse.success || !chartResponse.data || chartResponse.data.length === 0) {
+      console.error('No chart data available');
       return null;
+    }
+    
+    const data = { code: '0', data: chartResponse.data };
+    
+    if (chartResponse.usedFallback) {
+      console.log(`✅ Using fallback interval: ${chartResponse.interval}`);
     }
 
     // Transform CoinGlass data to our Candle format
