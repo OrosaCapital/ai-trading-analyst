@@ -21,45 +21,64 @@ interface BinanceKline {
   takerBuyQuoteVolume: string;
 }
 
-// Fetch candles from Binance
-async function fetchBinanceCandles(
+// Fetch candles from Tatum (replaces Binance due to geo-restrictions)
+async function fetchTatumCandles(
+  apiKey: string,
   symbol: string,
   interval: string,
   limit: number = 1000
 ): Promise<BinanceKline[]> {
-  const binanceSymbol = `${symbol}USDT`;
-  const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`;
+  // Map intervals to Tatum format
+  const tatumIntervalMap: Record<string, string> = {
+    '1m': 'MIN_1',
+    '5m': 'MIN_5', 
+    '15m': 'MIN_15',
+    '1h': 'HOUR_1'
+  };
   
-  console.log(`📊 Fetching ${interval} candles for ${binanceSymbol} from Binance`);
+  const tatumInterval = tatumIntervalMap[interval];
+  if (!tatumInterval) {
+    throw new Error(`Unsupported interval: ${interval}`);
+  }
+  
+  console.log(`📊 Fetching ${interval} candles for ${symbol}/USD from Tatum`);
+  
+  const url = `https://api.tatum.io/v4/data/ohlcv?symbol=${symbol}&basePair=USD&interval=${tatumInterval}&limit=${limit}`;
   
   const response = await fetch(url, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
+      'accept': 'application/json',
+      'x-api-key': apiKey
     },
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Binance API error [${response.status}]: ${errorText}`);
+    throw new Error(`Tatum API error [${response.status}]: ${errorText}`);
   }
 
   const rawData = await response.json();
   
-  // Transform Binance kline format to our interface
-  return rawData.map((k: any) => ({
-    openTime: k[0],
-    open: k[1],
-    high: k[2],
-    low: k[3],
-    close: k[4],
-    volume: k[5],
-    closeTime: k[6],
-    quoteVolume: k[7],
-    trades: k[8],
-    takerBuyBaseVolume: k[9],
-    takerBuyQuoteVolume: k[10],
-  }));
+  // Transform Tatum OHLCV format to our interface
+  return rawData.map((candle: any) => {
+    const time = new Date(candle.time).getTime();
+    const intervalMs = interval === '1m' ? 60000 : interval === '5m' ? 300000 : interval === '15m' ? 900000 : 3600000;
+    
+    return {
+      openTime: time,
+      open: String(candle.open),
+      high: String(candle.high),
+      low: String(candle.low),
+      close: String(candle.close),
+      volume: String(candle.volume || 0),
+      closeTime: time + intervalMs,
+      quoteVolume: String(candle.volume || 0),
+      trades: 0,
+      takerBuyBaseVolume: '0',
+      takerBuyQuoteVolume: '0',
+    };
+  });
 }
 
 // Map Binance intervals to our internal intervals
@@ -85,7 +104,12 @@ serve(async (req) => {
       });
     }
 
-    console.log(`🚀 Starting Binance backfill for ${symbol} (${lookback_hours}h lookback)`);
+    console.log(`🚀 Starting Tatum historical data fetch for ${symbol} (${lookback_hours}h lookback)`);
+
+    const tatumApiKey = Deno.env.get('TATUM_API_KEY');
+    if (!tatumApiKey) {
+      throw new Error('TATUM_API_KEY not configured');
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -106,17 +130,17 @@ serve(async (req) => {
         // Calculate limit based on lookback hours
         const candlesNeeded = Math.min(
           Math.ceil(lookback_hours * 60 / parseInt(binanceInterval)),
-          1000 // Binance max
+          1000 // API limit
         );
 
-        const candles = await fetchBinanceCandles(baseSymbol, binanceInterval, candlesNeeded);
+        const candles = await fetchTatumCandles(tatumApiKey, baseSymbol, binanceInterval, candlesNeeded);
         
         if (!candles || candles.length === 0) {
           console.log(`⚠️ No data returned for ${binanceInterval}`);
           return { interval: intervalMap[binanceInterval], count: 0 };
         }
 
-        console.log(`✅ Fetched ${candles.length} ${binanceInterval} candles from Binance`);
+        console.log(`✅ Fetched ${candles.length} ${binanceInterval} candles from Tatum`);
 
         // Transform to our price log format
         const priceLogs = candles.map(candle => ({
