@@ -1,12 +1,28 @@
 import { NavLink } from "../NavLink";
 import { Terminal, LayoutDashboard, ListChecks, Settings, Activity } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 export function Navbar() {
+  const location = useLocation();
+  
   const navItems = [
     { to: "/", label: "Admin Dashboard", icon: LayoutDashboard },
     { to: "/watchlist", label: "Watchlist", icon: ListChecks },
     { to: "/trading", label: "Trading Dashboard", icon: Activity },
   ];
+
+  const getPageTitle = () => {
+    switch (location.pathname) {
+      case "/":
+        return "ADMIN PANEL";
+      case "/trading":
+        return "TRADING DASHBOARD";
+      case "/watchlist":
+        return "WATCHLIST";
+      default:
+        return "OCAPX AI";
+    }
+  };
 
   return (
     <nav className="flex items-center justify-between border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-3">
@@ -17,7 +33,7 @@ export function Navbar() {
             <Terminal className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            ADMIN PANEL
+            {getPageTitle()}
           </span>
         </div>
       </div>
