@@ -1,20 +1,89 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Activity, Droplets, BarChart3, Target } from "lucide-react";
-import { mockAIAnalysis, mockSentiment } from "@/data/mockAnalysis";
+import { TrendingUp, Activity, Droplets, BarChart3, Target, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/mockDataGenerators";
+import { useAITradingData } from "@/hooks/useAITradingData";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export const AIAnalysisPanel = () => {
-  const { decision, confidence, summary, action } = mockAIAnalysis;
+interface AIAnalysisPanelProps {
+  symbol: string;
+}
+
+export const AIAnalysisPanel = ({ symbol }: AIAnalysisPanelProps) => {
+  const { data, isLoading, error } = useAITradingData(symbol);
+
+  if (isLoading || data?.status === 'accumulating') {
+    return (
+      <div className="space-y-4">
+        <Card className="p-6 glass">
+          <div className="flex items-center gap-3 mb-4">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <div>
+              <div className="text-sm font-semibold">Analyzing Market Data</div>
+              <div className="text-xs text-muted-foreground">
+                {data?.message || "Accumulating data..."}
+              </div>
+            </div>
+          </div>
+          {data?.progress && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Progress</span>
+                <span>{Math.round(data.progress)}%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
+                  style={{ width: `${data.progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </Card>
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="p-6 glass">
+            <Skeleton className="h-4 w-24 mb-4" />
+            <Skeleton className="h-8 w-full mb-2" />
+            <Skeleton className="h-20 w-full" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error || !data?.aiSignal) {
+    return (
+      <Card className="p-6 glass border-destructive/30">
+        <div className="text-sm text-destructive">
+          Failed to load AI analysis. Please try again.
+        </div>
+      </Card>
+    );
+  }
+
+  const { decision, confidence, summary, action } = data.aiSignal;
+  
+  // Calculate sentiment score based on confidence and decision
+  const sentimentScore = decision === 'LONG' ? Math.min(50 + confidence / 2, 100) : 
+                        decision === 'SHORT' ? Math.max(50 - confidence / 2, 0) : 50;
+  const sentimentLabel = sentimentScore > 60 ? 'Bullish' : sentimentScore < 40 ? 'Bearish' : 'Neutral';
 
   return (
     <div className="space-y-4">
       {/* Signal Card */}
-      <Card className="p-6 glass border-chart-green/30 bg-chart-green/5">
+      <Card className={`p-6 glass ${
+        decision === 'LONG' ? 'border-chart-green/30 bg-chart-green/5' : 
+        decision === 'SHORT' ? 'border-chart-red/30 bg-chart-red/5' : 
+        'border-muted/30'
+      }`}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="text-sm text-muted-foreground mb-1">AI Signal</div>
-            <div className="text-3xl font-black text-chart-green">{decision}</div>
+            <div className={`text-3xl font-black ${
+              decision === 'LONG' ? 'text-chart-green' : 
+              decision === 'SHORT' ? 'text-chart-red' : 
+              'text-muted-foreground'
+            }`}>{decision}</div>
           </div>
           <div className="text-right">
             <div className="text-sm text-muted-foreground mb-1">Confidence</div>
@@ -23,7 +92,11 @@ export const AIAnalysisPanel = () => {
         </div>
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div 
-            className="h-full bg-gradient-to-r from-chart-green to-accent rounded-full transition-all duration-1000"
+            className={`h-full rounded-full transition-all duration-1000 ${
+              decision === 'LONG' ? 'bg-gradient-to-r from-chart-green to-accent' :
+              decision === 'SHORT' ? 'bg-gradient-to-r from-chart-red to-destructive' :
+              'bg-gradient-to-r from-muted-foreground to-muted'
+            }`}
             style={{ width: `${confidence}%` }}
           />
         </div>
@@ -33,23 +106,31 @@ export const AIAnalysisPanel = () => {
       <Card className="p-6 glass">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold">Market Sentiment</span>
-          <Badge variant="outline" className="border-chart-green text-chart-green">
-            {mockSentiment.overall}
+          <Badge variant="outline" className={`${
+            sentimentLabel === 'Bullish' ? 'border-chart-green text-chart-green' :
+            sentimentLabel === 'Bearish' ? 'border-chart-red text-chart-red' :
+            'border-muted-foreground text-muted-foreground'
+          }`}>
+            {sentimentLabel}
           </Badge>
         </div>
-        <div className="text-2xl font-bold mb-3">{mockSentiment.score}/100</div>
+        <div className="text-2xl font-bold mb-3">{Math.round(sentimentScore)}/100</div>
         <div className="space-y-2 text-xs">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Social Volume</span>
-            <span className="font-semibold">{mockSentiment.socialVolume}</span>
+            <span className="text-muted-foreground">AI Confidence</span>
+            <span className="font-semibold">{confidence}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">News Impact</span>
-            <span className="font-semibold text-chart-green">{mockSentiment.newsImpact}</span>
+            <span className="text-muted-foreground">Signal Type</span>
+            <span className={`font-semibold ${
+              decision === 'LONG' ? 'text-chart-green' : 
+              decision === 'SHORT' ? 'text-chart-red' : 
+              'text-muted-foreground'
+            }`}>{decision}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Fear & Greed</span>
-            <span className="font-semibold">{mockSentiment.fearGreedIndex}</span>
+            <span className="text-muted-foreground">Analysis Status</span>
+            <span className="font-semibold text-chart-green">Live</span>
           </div>
         </div>
       </Card>
@@ -83,29 +164,46 @@ export const AIAnalysisPanel = () => {
       </Card>
 
       {/* Action Levels */}
-      <Card className="p-6 glass">
-        <h4 className="text-sm font-semibold mb-4">Recommended Action</h4>
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Entry Price</span>
-            <span className="text-lg font-bold text-chart-green">{formatCurrency(action.entry)}</span>
+      {decision !== 'NO TRADE' && action.entry && action.stopLoss && action.takeProfit && (
+        <Card className="p-6 glass">
+          <h4 className="text-sm font-semibold mb-4">Recommended Action</h4>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Entry Price</span>
+              <span className="text-lg font-bold text-chart-green">{formatCurrency(action.entry)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Stop Loss</span>
+              <span className="text-lg font-bold text-chart-red">{formatCurrency(action.stopLoss)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Take Profit</span>
+              <span className="text-lg font-bold text-chart-green">{formatCurrency(action.takeProfit)}</span>
+            </div>
+            {action.entry && action.stopLoss && action.takeProfit && (
+              <>
+                <div className="h-px bg-border my-2" />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold">Risk/Reward</span>
+                  <span className="text-lg font-bold text-accent">
+                    1:{((action.takeProfit - action.entry) / (action.entry - action.stopLoss)).toFixed(2)}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Stop Loss</span>
-            <span className="text-lg font-bold text-chart-red">{formatCurrency(action.stopLoss)}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Take Profit</span>
-            <span className="text-lg font-bold text-chart-green">{formatCurrency(action.takeProfit)}</span>
-          </div>
-          <div className="h-px bg-border my-2" />
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-semibold">Risk/Reward</span>
-            <span className="text-lg font-bold text-accent">1:1.87</span>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground mt-4 leading-relaxed">{action.reason}</p>
-      </Card>
+          {action.reason && (
+            <p className="text-xs text-muted-foreground mt-4 leading-relaxed">{action.reason}</p>
+          )}
+        </Card>
+      )}
+      
+      {decision === 'NO TRADE' && action.reason && (
+        <Card className="p-6 glass border-muted/30">
+          <h4 className="text-sm font-semibold mb-3">Analysis</h4>
+          <p className="text-sm text-muted-foreground leading-relaxed">{action.reason}</p>
+        </Card>
+      )}
     </div>
   );
 };
