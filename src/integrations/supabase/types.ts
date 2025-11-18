@@ -28,7 +28,9 @@ export type Database = {
           symbol: string
           timestamp: string
           trend_analysis: string | null
+          user_id: string | null
           volume_analysis: string | null
+          watchlist_id: string | null
         }
         Insert: {
           coinglass_analysis?: string | null
@@ -43,7 +45,9 @@ export type Database = {
           symbol: string
           timestamp?: string
           trend_analysis?: string | null
+          user_id?: string | null
           volume_analysis?: string | null
+          watchlist_id?: string | null
         }
         Update: {
           coinglass_analysis?: string | null
@@ -58,9 +62,19 @@ export type Database = {
           symbol?: string
           timestamp?: string
           trend_analysis?: string | null
+          user_id?: string | null
           volume_analysis?: string | null
+          watchlist_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_analysis_history_watchlist_id_fkey"
+            columns: ["watchlist_id"]
+            isOneToOne: false
+            referencedRelation: "user_watchlists"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_trading_signals: {
         Row: {
@@ -70,6 +84,7 @@ export type Database = {
           decision: string
           entry_price: number | null
           entry_trigger_explanation: string | null
+          execution_notes: string | null
           id: string
           liquidity_explanation: string | null
           reasoning: Json
@@ -78,7 +93,10 @@ export type Database = {
           take_profit: number | null
           timestamp: string | null
           trend_explanation: string | null
+          user_id: string | null
           volume_explanation: string | null
+          was_executed: boolean | null
+          watchlist_id: string | null
         }
         Insert: {
           coinglass_explanation?: string | null
@@ -87,6 +105,7 @@ export type Database = {
           decision: string
           entry_price?: number | null
           entry_trigger_explanation?: string | null
+          execution_notes?: string | null
           id?: string
           liquidity_explanation?: string | null
           reasoning: Json
@@ -95,7 +114,10 @@ export type Database = {
           take_profit?: number | null
           timestamp?: string | null
           trend_explanation?: string | null
+          user_id?: string | null
           volume_explanation?: string | null
+          was_executed?: boolean | null
+          watchlist_id?: string | null
         }
         Update: {
           coinglass_explanation?: string | null
@@ -104,6 +126,7 @@ export type Database = {
           decision?: string
           entry_price?: number | null
           entry_trigger_explanation?: string | null
+          execution_notes?: string | null
           id?: string
           liquidity_explanation?: string | null
           reasoning?: Json
@@ -112,9 +135,20 @@ export type Database = {
           take_profit?: number | null
           timestamp?: string | null
           trend_explanation?: string | null
+          user_id?: string | null
           volume_explanation?: string | null
+          was_executed?: boolean | null
+          watchlist_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_trading_signals_watchlist_id_fkey"
+            columns: ["watchlist_id"]
+            isOneToOne: false
+            referencedRelation: "user_watchlists"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       analysis_cache: {
         Row: {
@@ -322,6 +356,74 @@ export type Database = {
           volume?: number | null
         }
         Relationships: []
+      }
+      user_watchlists: {
+        Row: {
+          added_at: string | null
+          id: string
+          is_active: boolean | null
+          nickname: string | null
+          notes: string | null
+          priority: number | null
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nickname?: string | null
+          notes?: string | null
+          priority?: number | null
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nickname?: string | null
+          notes?: string | null
+          priority?: number | null
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      watchlist_analysis_schedule: {
+        Row: {
+          analysis_frequency: string | null
+          created_at: string | null
+          id: string
+          last_analysis_run: string | null
+          next_scheduled_run: string | null
+          watchlist_id: string
+        }
+        Insert: {
+          analysis_frequency?: string | null
+          created_at?: string | null
+          id?: string
+          last_analysis_run?: string | null
+          next_scheduled_run?: string | null
+          watchlist_id: string
+        }
+        Update: {
+          analysis_frequency?: string | null
+          created_at?: string | null
+          id?: string
+          last_analysis_run?: string | null
+          next_scheduled_run?: string | null
+          watchlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watchlist_analysis_schedule_watchlist_id_fkey"
+            columns: ["watchlist_id"]
+            isOneToOne: true
+            referencedRelation: "user_watchlists"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
