@@ -127,7 +127,36 @@ Deno.serve(async (req) => {
     try {
       result = await fetchLiquidationsFromCoinglass(symbol, COINGLASS_API_KEY);
     } catch (error) {
-      throw new Error(`Failed to fetch liquidations for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // If symbol not available on Coinglass, return graceful fallback
+      console.log(`Symbol ${symbol} not available for liquidations data`);
+      const fallbackData = {
+        last24h: {
+          totalLongs: 'N/A',
+          totalShorts: 'N/A',
+          total: 'N/A',
+          ratio: 'N/A',
+          longShortRatio: 'N/A',
+          majorEvents: []
+        },
+        recentLiquidations: [],
+        heatmap: { levels: [] },
+        isMockData: false,
+        unavailable: true,
+        message: 'Derivatives data not available for this symbol'
+      };
+
+      // Cache the result
+      await supabase.from('market_data_cache').insert({
+        data_type: 'liquidations',
+        symbol,
+        interval: null,
+        data: fallbackData,
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      });
+
+      return new Response(JSON.stringify(fallbackData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Cache the result

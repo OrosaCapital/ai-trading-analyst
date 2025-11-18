@@ -65,7 +65,13 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Coinglass Intelligence Panel</h2>
-          <p className="text-sm text-muted-foreground">Real-time derivatives market data</p>
+          <p className="text-sm text-muted-foreground">
+            Real-time derivatives market data 
+            {(longShortRatio?.unavailable || fundingRate?.unavailable || 
+              liquidations?.unavailable || openInterest?.unavailable) && (
+              <span className="text-accent ml-2">• Limited data for this symbol</span>
+            )}
+          </p>
         </div>
         <Activity className="w-6 h-6 text-primary" />
       </div>
@@ -80,32 +86,38 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
             {loading ? (
               <LoadingSkeleton />
             ) : longShortRatio ? (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-chart-green text-sm font-medium">Long</span>
-                  <span className="text-xl font-bold text-chart-green">
-                    {parseFloat(longShortRatio.long_percent || 0).toFixed(1)}%
-                  </span>
+              longShortRatio.unavailable ? (
+                <div className="text-sm text-muted-foreground">
+                  Not available for this symbol
                 </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-chart-green"
-                    style={{ width: `${longShortRatio.long_percent || 0}%` }}
-                  />
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-chart-green text-sm font-medium">Long</span>
+                    <span className="text-xl font-bold text-chart-green">
+                      {parseFloat(longShortRatio.long_percent || 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-chart-green"
+                      style={{ width: `${longShortRatio.long_percent || 0}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-chart-red text-sm font-medium">Short</span>
+                    <span className="text-xl font-bold text-chart-red">
+                      {parseFloat(longShortRatio.short_percent || 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-chart-red"
+                      style={{ width: `${longShortRatio.short_percent || 0}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-chart-red text-sm font-medium">Short</span>
-                  <span className="text-xl font-bold text-chart-red">
-                    {parseFloat(longShortRatio.short_percent || 0).toFixed(1)}%
-                  </span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-chart-red"
-                    style={{ width: `${longShortRatio.short_percent || 0}%` }}
-                  />
-                </div>
-              </div>
+              )
             ) : (
               <p className="text-muted-foreground">No data</p>
             )}

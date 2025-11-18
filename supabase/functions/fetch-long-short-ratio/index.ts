@@ -102,7 +102,32 @@ Deno.serve(async (req) => {
     try {
       ratioData = await fetchLongShortFromCoinglass(symbol, apiKey);
     } catch (error) {
-      throw new Error(`Failed to fetch long/short ratio for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // If symbol not available on Coinglass, return graceful fallback
+      console.log(`Symbol ${symbol} not available for long/short ratio data`);
+      const fallbackData = {
+        symbol,
+        timestamp: new Date().toISOString(),
+        ratio: 'N/A',
+        long_percent: 'N/A',
+        short_percent: 'N/A',
+        sentiment: 'UNAVAILABLE',
+        exchanges: [],
+        historical: [],
+        unavailable: true,
+        message: 'Derivatives data not available for this symbol'
+      };
+
+      // Cache the result
+      await supabase.from('market_data_cache').upsert({
+        symbol,
+        data_type: 'long_short_ratio',
+        data: fallbackData,
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      });
+
+      return new Response(JSON.stringify(fallbackData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Cache the result

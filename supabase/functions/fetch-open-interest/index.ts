@@ -120,7 +120,34 @@ Deno.serve(async (req) => {
     try {
       result = await fetchOpenInterestFromCoinglass(symbol, COINGLASS_API_KEY);
     } catch (error) {
-      throw new Error(`Failed to fetch open interest for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // If symbol not available on Coinglass, return graceful fallback
+      console.log(`Symbol ${symbol} not available for open interest data`);
+      const fallbackData = {
+        total: {
+          value: 'N/A',
+          valueRaw: 0,
+          change24h: 'N/A',
+          sentiment: 'UNAVAILABLE'
+        },
+        byExchange: [],
+        history: [],
+        isMockData: false,
+        unavailable: true,
+        message: 'Derivatives data not available for this symbol'
+      };
+      
+      // Cache the unavailable result
+      await supabase.from('market_data_cache').insert({
+        data_type: 'open_interest',
+        symbol,
+        interval: null,
+        data: fallbackData,
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      });
+
+      return new Response(JSON.stringify(fallbackData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Cache the result
