@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LivePriceHeader } from '@/components/dashboard/LivePriceHeader';
-import { MarketMetricsPanel } from '@/components/dashboard/MarketMetricsPanel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const [symbol, setSymbol] = useState('BTC');
   const [inputValue, setInputValue] = useState('BTC');
+  const [marketData, setMarketData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const handleSymbolChange = () => {
     const cleanSymbol = inputValue.trim().toUpperCase();
@@ -20,6 +23,35 @@ const Dashboard = () => {
     if (e.key === 'Enter') {
       handleSymbolChange();
     }
+  };
+
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        setLoading(true);
+        const { data } = await supabase.functions.invoke('fetch-cmc-data', {
+          body: { symbol: `${symbol}USD` }
+        });
+        if (data) {
+          setMarketData(data);
+        }
+      } catch (err) {
+        console.error('Error fetching market data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMarketData();
+    const interval = setInterval(fetchMarketData, 60000);
+    return () => clearInterval(interval);
+  }, [symbol]);
+
+  const formatLargeNumber = (num: number) => {
+    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+    return `$${num.toLocaleString()}`;
   };
 
   return (
@@ -55,9 +87,101 @@ const Dashboard = () => {
           <LivePriceHeader symbol={symbol} />
         </section>
 
-        {/* Section 2: Market Metrics */}
+        {/* Section 2: Key Metrics - Power BI Style */}
         <section>
-          <MarketMetricsPanel symbol={symbol} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* 24H % Change */}
+            <Card className="p-6 bg-card border border-border">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                  24H % Change
+                </p>
+                {loading ? (
+                  <div className="h-8 bg-muted/20 rounded animate-pulse" />
+                ) : marketData ? (
+                  <div className={`flex items-center gap-2 ${
+                    marketData.percentChange24h >= 0 ? 'text-chart-green' : 'text-chart-red'
+                  }`}>
+                    {marketData.percentChange24h >= 0 ? (
+                      <TrendingUp className="w-6 h-6" />
+                    ) : (
+                      <TrendingDown className="w-6 h-6" />
+                    )}
+                    <span className="text-3xl font-bold">
+                      {marketData.percentChange24h >= 0 ? '+' : ''}
+                      {marketData.percentChange24h.toFixed(2)}%
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-3xl font-bold text-muted-foreground">--</p>
+                )}
+              </div>
+            </Card>
+
+            {/* Market Cap */}
+            <Card className="p-6 bg-card border border-border">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                  Market Cap
+                </p>
+                {loading ? (
+                  <div className="h-8 bg-muted/20 rounded animate-pulse" />
+                ) : marketData ? (
+                  <div>
+                    <p className="text-3xl font-bold text-foreground">
+                      {formatLargeNumber(marketData.marketCap)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Rank #{marketData.rank}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-3xl font-bold text-muted-foreground">--</p>
+                )}
+              </div>
+            </Card>
+
+            {/* Volume (24H) */}
+            <Card className="p-6 bg-card border border-border">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                  Volume (24H)
+                </p>
+                {loading ? (
+                  <div className="h-8 bg-muted/20 rounded animate-pulse" />
+                ) : marketData ? (
+                  <p className="text-3xl font-bold text-foreground">
+                    {formatLargeNumber(marketData.volume24h)}
+                  </p>
+                ) : (
+                  <p className="text-3xl font-bold text-muted-foreground">--</p>
+                )}
+              </div>
+            </Card>
+
+            {/* Circulating Supply */}
+            <Card className="p-6 bg-card border border-border">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                  Circulating Supply
+                </p>
+                {loading ? (
+                  <div className="h-8 bg-muted/20 rounded animate-pulse" />
+                ) : marketData ? (
+                  <div>
+                    <p className="text-3xl font-bold text-foreground">
+                      {(marketData.circulatingSupply / 1000000).toFixed(2)}M
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {marketData.symbol}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-3xl font-bold text-muted-foreground">--</p>
+                )}
+              </div>
+            </Card>
+          </div>
         </section>
 
         {/* Section 3: Chart - Coming Soon */}
@@ -66,7 +190,7 @@ const Dashboard = () => {
             <div className="text-4xl font-bold text-muted-foreground mb-2">📊</div>
             <div className="text-xl font-semibold text-muted-foreground">Chart Coming Soon</div>
             <div className="text-sm text-muted-foreground mt-2">
-              Custom lightweight-charts integration in progress
+              Real-time trading chart in progress
             </div>
           </div>
         </section>
@@ -77,7 +201,7 @@ const Dashboard = () => {
             <div className="text-4xl font-bold text-muted-foreground mb-2">🤖</div>
             <div className="text-xl font-semibold text-muted-foreground">AI Analysis Coming Soon</div>
             <div className="text-sm text-muted-foreground mt-2">
-              Lovable AI-powered market insights in progress
+              AI-powered market insights in progress
             </div>
           </div>
         </section>
