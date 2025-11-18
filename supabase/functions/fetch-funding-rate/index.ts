@@ -16,7 +16,8 @@ function getCacheKey(symbol: string, interval: string): string {
 async function fetchFundingRateFromCoinglass(symbol: string, interval: string, apiKey: string) {
   try {
     // Convert symbol to USDT pair format
-    const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
+    // Fix: Replace USDT first, then USD to avoid corrupting symbols
+    const cleanSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '') + 'USDT';
     
     // Import shared client function
     const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
