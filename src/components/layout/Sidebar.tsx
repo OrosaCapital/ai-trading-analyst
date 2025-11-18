@@ -30,10 +30,24 @@ export function Sidebar({ symbol }: SidebarProps) {
           supabase.functions.invoke('fetch-liquidations', { body: { symbol } })
         ]);
 
-        if (fundingRes.data) setFundingRate(fundingRes.data.fundingRate);
-        if (oiRes.data) setOpenInterest(oiRes.data.openInterest);
-        if (lsRes.data) setLongShortRatio(lsRes.data);
-        if (liqRes.data) setLiquidations(liqRes.data);
+        if (fundingRes.data?.current) {
+          setFundingRate(fundingRes.data.current.rateValue || 0);
+        }
+        if (oiRes.data?.total) {
+          setOpenInterest(oiRes.data.total.valueRaw || 0);
+        }
+        if (lsRes.data && typeof lsRes.data.long_percent === 'string' && lsRes.data.long_percent !== 'N/A') {
+          const longPercent = parseFloat(lsRes.data.long_percent);
+          const shortPercent = parseFloat(lsRes.data.short_percent);
+          if (!isNaN(longPercent) && !isNaN(shortPercent)) {
+            setLongShortRatio({ long: longPercent, short: shortPercent });
+          }
+        }
+        if (liqRes.data?.last24h && liqRes.data.last24h.totalLongs !== 'N/A') {
+          const longs = parseFloat(liqRes.data.last24h.totalLongs) || 0;
+          const shorts = parseFloat(liqRes.data.last24h.totalShorts) || 0;
+          setLiquidations({ longs, shorts });
+        }
       } catch (error) {
         console.error('Error fetching sidebar metrics:', error);
       } finally {
