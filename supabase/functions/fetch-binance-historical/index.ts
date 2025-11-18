@@ -43,10 +43,23 @@ async function fetchCoinGeckoCandles(
   
   const coinId = coinGeckoIdMap[symbol] || symbol.toLowerCase();
   
-  // Calculate days based on interval and limit
-  // CoinGecko free tier limits: max 365 days
+  // Calculate days based on interval and limit to get enough candles
+  // CoinGecko typically returns ~48-96 candles depending on the days parameter
+  // Request more days to get more candles
   const intervalMinutes = interval === '1m' ? 1 : interval === '5m' ? 5 : interval === '15m' ? 15 : 60;
-  const days = Math.min(Math.ceil((limit * intervalMinutes) / (60 * 24)), 90); // Cap at 90 days for free tier
+  let days: number;
+  
+  if (interval === '1m') {
+    days = 3; // Request 3 days for 1m to get ~200 candles
+  } else if (interval === '5m') {
+    days = 7; // Request 7 days for 5m to get ~200 candles
+  } else if (interval === '15m') {
+    days = 14; // Request 14 days for 15m to get ~100 candles
+  } else { // 1h
+    days = 30; // Request 30 days for 1h to get ~60-100 candles
+  }
+  
+  days = Math.min(days, 90); // Cap at 90 days for free tier
   
   console.log(`📊 Fetching ${interval} candles for ${symbol} (${coinId}) from CoinGecko (${days} days)`);
   
@@ -135,11 +148,17 @@ serve(async (req) => {
     const intervals = ['1m', '5m', '15m', '1h'];
     const fetchPromises = intervals.map(async (binanceInterval) => {
       try {
-        // Calculate limit based on lookback hours
-        const candlesNeeded = Math.min(
-          Math.ceil(lookback_hours * 60 / parseInt(binanceInterval)),
-          1000 // API limit
-        );
+        // Calculate limit - request more candles from CoinGecko
+        let candlesNeeded: number;
+        if (binanceInterval === '1m') {
+          candlesNeeded = 1440; // 24 hours
+        } else if (binanceInterval === '5m') {
+          candlesNeeded = 500;
+        } else if (binanceInterval === '15m') {
+          candlesNeeded = 200;
+        } else { // 1h
+          candlesNeeded = 100;
+        }
 
         const candles = await fetchCoinGeckoCandles(baseSymbol, binanceInterval, candlesNeeded);
         
