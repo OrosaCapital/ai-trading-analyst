@@ -28,7 +28,7 @@ export const DashboardPreview = () => {
 
           {/* Right Panel - AI Analysis */}
           <div className="lg:col-span-3">
-            <AIAnalysisPanel />
+            <AIAnalysisPanel symbol="BTC" />
           </div>
         </div>
       </div>
