@@ -5,8 +5,6 @@ import { TradingViewChart } from "@/components/TradingViewChart";
 import { MetricsColumn } from "@/components/trading/MetricsColumn";
 import { AIDecisionPanel } from "@/components/trading/AIDecisionPanel";
 import { AdvancedAnalyticsTabs } from "@/components/trading/AdvancedAnalyticsTabs";
-import { SentimentGauge } from "@/components/SentimentGauge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAITradingData } from "@/hooks/useAITradingData";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 
@@ -84,16 +82,6 @@ export default function TradingDashboard() {
           <div className="h-[450px]">
             <TradingViewChart symbol={normalizedSymbol} />
           </div>
-          
-          {/* Market Sentiment Below Chart */}
-          <Card className="glass-panel border border-border/50">
-            <CardHeader className="pb-3 pt-3">
-              <CardTitle className="text-sm">Market Sentiment</CardTitle>
-            </CardHeader>
-            <CardContent className="pb-3">
-              <SentimentGauge />
-            </CardContent>
-          </Card>
         </div>
 
         {/* Center - Market Metrics (20%) */}
