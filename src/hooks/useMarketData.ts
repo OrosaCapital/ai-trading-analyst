@@ -1,44 +1,59 @@
-import { useEffect } from 'react';
-import { useMarketStore } from '@/store/useMarketStore';
-import { toast } from 'sonner';
+import { useEffect } from "react";
+import { useMarketStore } from "../store/useMarketStore";
+import { fetchMarketSnapshot, buildDataValidation } from "../services/marketDataService";
 
-export const useMarketData = (symbol: string | null) => {
-  const store = useMarketStore();
+export function useMarketData() {
+  const { symbol, timeframe, snapshot, validation, isLoading, error, setData } = useMarketStore();
 
   useEffect(() => {
-    if (!symbol) return;
+    let cancelled = false;
 
-    // Set symbol and load initial data
-    if (symbol !== store.symbol) {
-      store.setSymbol(symbol);
+    async function load() {
+      setData({ isLoading: true, error: undefined });
+
+      try {
+        const [snapRes, validationRes] = await Promise.all([
+          fetchMarketSnapshot({ symbol, timeframe }),
+          buildDataValidation({ symbol, timeframe }),
+        ]);
+
+        if (cancelled) return;
+
+        if (!snapRes.ok) {
+          setData({
+            isLoading: false,
+            error: snapRes.error.message,
+          });
+          return;
+        }
+
+        setData({
+          snapshot: snapRes.data,
+          validation: validationRes,
+          isLoading: false,
+          error: undefined,
+        });
+      } catch (err: any) {
+        if (cancelled) return;
+        setData({
+          isLoading: false,
+          error: err?.message ?? "Unexpected error",
+        });
+      }
     }
 
-    // Start price logging
-    store.startPriceLogging();
-
-    // Load trading data initially
-    store.loadTradingData();
-
-    // Poll trading data based on status
-    const interval = setInterval(() => {
-      store.loadTradingData();
-    }, store.tradingData?.status === 'accumulating' ? 60000 : 600000);
-
-    return () => clearInterval(interval);
-  }, [symbol, store.tradingData?.status]);
-
-  // Show toast when analysis is ready
-  useEffect(() => {
-    if (store.tradingData?.status === 'ready' && store.tradingData.aiSignal) {
-      toast.success('AI analysis complete!');
-    }
-  }, [store.tradingData?.status]);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol, timeframe, setData]);
 
   return {
-    data: store.tradingData,
-    isLoading: store.loading.trading,
-    error: store.tradingData?.status === 'ready' && !store.tradingData.aiSignal 
-      ? 'Failed to load trading data' 
-      : null,
+    symbol,
+    timeframe,
+    snapshot,
+    validation,
+    isLoading,
+    error,
   };
-};
+}
