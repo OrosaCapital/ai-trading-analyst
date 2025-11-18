@@ -1,8 +1,8 @@
 import { Activity, Shield, Terminal } from "lucide-react";
-import { SymbolSummaryPanel } from "../components/panels/SymbolSummaryPanel";
 import { DataValidationPanel } from "../components/panels/DataValidationPanel";
 import { SystemOverview } from "../components/admin/SystemOverview";
 import { SystemAlerts } from "../components/admin/SystemAlerts";
+import { AICreditsMonitor } from "../components/admin/AICreditsMonitor";
 import { BackendStatus } from "../components/admin/BackendStatus";
 import { EdgeFunctionsList } from "../components/admin/EdgeFunctionsList";
 import { EnvironmentInfo } from "../components/admin/EnvironmentInfo";
@@ -51,7 +51,7 @@ export function Dashboard() {
 
         {/* Right Column - 1/3 width */}
         <div className="space-y-4">
-          <SymbolSummaryPanel snapshot={snapshot} />
+          <AICreditsMonitor />
           <BackendStatus />
           <EdgeFunctionsList />
         </div>
