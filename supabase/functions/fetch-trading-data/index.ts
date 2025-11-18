@@ -268,7 +268,35 @@ serve(async (req) => {
     // 8. Check liquidity sweep
     const liquiditySweep = await checkLiquiditySweep(liquidations);
 
-    // 9. Call AI Decision Engine
+    // 9. Fetch historical analysis for context (last 10 analyses)
+    console.log('📚 Fetching historical analysis...');
+    const { data: historicalAnalyses, error: historyError } = await supabase
+      .from('ai_analysis_history')
+      .select('*')
+      .eq('symbol', symbol)
+      .order('timestamp', { ascending: false })
+      .limit(10);
+
+    if (historyError) {
+      console.error('Error fetching history:', historyError);
+    }
+
+    const recentHistory = (historicalAnalyses || []).map((h: any) => ({
+      timestamp: h.timestamp,
+      decision: h.decision,
+      confidence: h.confidence,
+      price: h.price_at_analysis,
+      summary: {
+        trend: h.trend_analysis,
+        volume: h.volume_analysis,
+        liquidity: h.liquidity_analysis,
+        coinglass: h.coinglass_analysis
+      }
+    }));
+
+    console.log(`📚 Found ${recentHistory.length} past analyses for context`);
+
+    // 10. Call AI Decision Engine
     const currentPrice = priceData1m[priceData1m.length - 1]?.price || 0;
     
     const aiInput = {
@@ -292,6 +320,10 @@ serve(async (req) => {
           marketCap: cmcData?.marketCap || 0,
         },
         analysis: volumeAnalysis
+      },
+      historicalContext: {
+        recentAnalyses: recentHistory,
+        analysisCount: recentHistory.length
       }
     };
 
@@ -322,7 +354,7 @@ serve(async (req) => {
       }
     };
 
-    // 8. Store AI signal in database
+    // 11. Store AI signal in database
     await supabase.from('ai_trading_signals').insert({
       symbol,
       decision: finalDecision.decision,
@@ -337,6 +369,22 @@ serve(async (req) => {
       coinglass_explanation: finalDecision.summary.coinglass,
       entry_trigger_explanation: finalDecision.summary.entryTrigger
     });
+
+    // 12. Store analysis in history for future reference
+    await supabase.from('ai_analysis_history').insert({
+      symbol,
+      decision: finalDecision.decision,
+      confidence: finalDecision.confidence,
+      price_at_analysis: currentPrice,
+      trend_analysis: finalDecision.summary.trend,
+      volume_analysis: finalDecision.summary.volume,
+      liquidity_analysis: finalDecision.summary.liquidity,
+      coinglass_analysis: finalDecision.summary.coinglass,
+      entry_trigger_analysis: finalDecision.summary.entryTrigger,
+      full_reasoning: finalDecision
+    });
+
+    console.log('✅ Analysis logged to history');
 
     // 10. Return everything to frontend
     return new Response(JSON.stringify({

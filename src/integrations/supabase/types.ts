@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_analysis_history: {
+        Row: {
+          coinglass_analysis: string | null
+          confidence: number
+          created_at: string
+          decision: string
+          entry_trigger_analysis: string | null
+          full_reasoning: Json | null
+          id: string
+          liquidity_analysis: string | null
+          price_at_analysis: number
+          symbol: string
+          timestamp: string
+          trend_analysis: string | null
+          volume_analysis: string | null
+        }
+        Insert: {
+          coinglass_analysis?: string | null
+          confidence: number
+          created_at?: string
+          decision: string
+          entry_trigger_analysis?: string | null
+          full_reasoning?: Json | null
+          id?: string
+          liquidity_analysis?: string | null
+          price_at_analysis: number
+          symbol: string
+          timestamp?: string
+          trend_analysis?: string | null
+          volume_analysis?: string | null
+        }
+        Update: {
+          coinglass_analysis?: string | null
+          confidence?: number
+          created_at?: string
+          decision?: string
+          entry_trigger_analysis?: string | null
+          full_reasoning?: Json | null
+          id?: string
+          liquidity_analysis?: string | null
+          price_at_analysis?: number
+          symbol?: string
+          timestamp?: string
+          trend_analysis?: string | null
+          volume_analysis?: string | null
+        }
+        Relationships: []
+      }
       ai_trading_signals: {
         Row: {
           coinglass_explanation: string | null
