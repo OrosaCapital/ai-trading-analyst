@@ -4,13 +4,20 @@
 
 /**
  * Format symbol for Coinglass derivatives APIs
- * Coinglass Hobbyist plan only supports major perpetual USDT pairs
- * @param symbol - Base symbol (e.g., BTC, ETH, XLM)
- * @returns Formatted symbol for Coinglass (e.g., BTCUSDT)
+ * Coinglass APIs expect the base symbol only (e.g., BTC, ETH)
+ * NOT pair formats like BTCUSDT or BTCUSD
+ * @param symbol - Input symbol in any format (BTC, BTCUSD, BTCUSDT, BTC/USD)
+ * @returns Base symbol only (e.g., BTC, ETH)
  */
 export function formatForCoinglass(symbol: string): string {
-  const cleanSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '');
-  return `${cleanSymbol}USDT`;
+  // Strip all possible suffixes and separators
+  const cleanSymbol = symbol
+    .toUpperCase()
+    .replace(/\/USD$|\/USDT$/, '')  // Remove /USD or /USDT
+    .replace(/USDT$/, '')            // Remove USDT suffix
+    .replace(/USD$/, '');            // Remove USD suffix
+  
+  return cleanSymbol;  // Return base symbol only (e.g., "ETH")
 }
 
 /**
