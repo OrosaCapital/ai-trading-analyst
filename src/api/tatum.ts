@@ -1,32 +1,24 @@
-import { callEdgeFunction } from './httpClient';
-import { supabase } from '@/integrations/supabase/client';
-import type { TradingData, MarketData } from '@/types/market';
-import type { PriceData } from '@/types/api';
+import { httpClient } from "./httpClient";
+import { env } from "../config/env";
+import type { ApiResult } from "../types/api";
 
-export const startPriceLogger = (symbol: string) => 
-  callEdgeFunction('tatum-price-logger', { symbol });
+interface TatumPriceResponse {
+  symbol: string;
+  price: string;
+}
 
-export const fetchTradingData = (symbol: string) => 
-  callEdgeFunction<TradingData>('fetch-trading-data', { symbol });
+export async function getTatumSpotPrice(symbol: string): Promise<ApiResult<number>> {
+  const url = `https://api.tatum.io/v3/market/value/${encodeURIComponent(symbol)}`;
 
-export const fetchTatumPrice = (symbol: string) =>
-  callEdgeFunction<PriceData>('fetch-tatum-price', { symbol: `${symbol}USD` });
-
-export const fetchMarketOverview = (symbol: string) =>
-  callEdgeFunction<MarketData>('fetch-market-overview', { symbol });
-
-export async function fetchPriceOneMinuteAgo(symbol: string): Promise<number | null> {
-  const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
-  const { data: logData, error } = await supabase
-    .from('tatum_price_logs')
-    .select('price')
-    .eq('symbol', `${symbol}USD`)
-    .eq('interval', '1m')
-    .lte('timestamp', oneMinuteAgo.toISOString())
-    .order('timestamp', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (error || !logData) return null;
-  return logData.price;
+  return httpClient
+    .get<TatumPriceResponse>(url, {
+      headers: {
+        "x-api-key": env.tatumApiKey ?? "",
+      },
+    })
+    .then((res) => {
+      if (!res.ok) return res;
+      const price = Number(res.data.price);
+      return { ok: true, data: price };
+    });
 }
