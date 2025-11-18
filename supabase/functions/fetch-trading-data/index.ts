@@ -135,6 +135,34 @@ async function checkLiquiditySweep(liquidations: any): Promise<any> {
   return { swept: false, direction: 'none', amount: 0 };
 }
 
+// Calculate volume strength based on volume-to-market-cap ratio
+function calculateVolumeStrength(volume24h: number, marketCap: number): string {
+  if (!volume24h || !marketCap) return 'UNKNOWN';
+  
+  const volumeToMcapRatio = volume24h / marketCap;
+  
+  if (volumeToMcapRatio > 0.15) return 'EXTREME';
+  if (volumeToMcapRatio > 0.08) return 'HIGH';
+  if (volumeToMcapRatio > 0.03) return 'NORMAL';
+  return 'LOW';
+}
+
+// Analyze price-volume correlation
+function analyzePriceVolumeCorrelation(
+  priceChange24h: number | undefined,
+  priceChange1h: number | undefined
+): string {
+  if (priceChange24h === undefined) return 'UNKNOWN';
+  
+  // Positive correlation: price up = bullish confirmation
+  // Negative: price down = bearish pressure
+  if (priceChange24h > 2) return 'STRONG_BULLISH';
+  if (priceChange24h > 0) return 'BULLISH_CONFIRMATION';
+  if (priceChange24h < -2) return 'STRONG_BEARISH';
+  if (priceChange24h < 0) return 'BEARISH_PRESSURE';
+  return 'NEUTRAL';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -208,10 +236,39 @@ serve(async (req) => {
       fetchCoinglassMetric(supabase, symbol, 'takervolume', 'fetch-taker-volume'),
     ]);
 
-    // 6. Check liquidity sweep
+    // 6. Fetch CMC market data for volume analysis
+    console.log('📊 Fetching CMC volume data...');
+    const { data: cmcData, error: cmcError } = await supabase.functions.invoke('fetch-cmc-data', {
+      body: { symbol }
+    });
+
+    if (cmcError) {
+      console.error('CMC fetch error:', cmcError);
+    }
+
+    // 7. Calculate volume analysis
+    const volumeAnalysis = {
+      volume24h: cmcData?.volume24h || 0,
+      volumeUSD: cmcData?.volume24h || 0,
+      volumeTrend: cmcData?.percentChange24h ? 
+        (cmcData.percentChange24h > 0 ? 'increasing' : 'decreasing') : 'neutral',
+      volumeStrength: calculateVolumeStrength(cmcData?.volume24h, cmcData?.marketCap),
+      priceVolumeCorrelation: analyzePriceVolumeCorrelation(
+        cmcData?.percentChange24h,
+        cmcData?.percentChange1h
+      )
+    };
+
+    console.log('📊 Volume Analysis:', {
+      volume24h: `$${(volumeAnalysis.volume24h / 1e9).toFixed(2)}B`,
+      strength: volumeAnalysis.volumeStrength,
+      correlation: volumeAnalysis.priceVolumeCorrelation
+    });
+
+    // 8. Check liquidity sweep
     const liquiditySweep = await checkLiquiditySweep(liquidations);
 
-    // 7. Call AI Decision Engine
+    // 9. Call AI Decision Engine
     const currentPrice = priceData1m[priceData1m.length - 1]?.price || 0;
     
     const aiInput = {
@@ -226,7 +283,16 @@ serve(async (req) => {
       },
       emas: { '5m': ema5m, '15m': ema15m, '1h': ema1h },
       coinglass: { funding, openInterest, liquidations, longShort, takerVolume },
-      liquiditySweep
+      liquiditySweep,
+      volumeData: {
+        cmc: {
+          volume24h: cmcData?.volume24h || 0,
+          percentChange1h: cmcData?.percentChange1h || 0,
+          percentChange24h: cmcData?.percentChange24h || 0,
+          marketCap: cmcData?.marketCap || 0,
+        },
+        analysis: volumeAnalysis
+      }
     };
 
     console.log('🤖 Calling AI Decision Engine...');
@@ -272,7 +338,7 @@ serve(async (req) => {
       entry_trigger_explanation: finalDecision.summary.entryTrigger
     });
 
-    // 9. Return everything to frontend
+    // 10. Return everything to frontend
     return new Response(JSON.stringify({
       status: 'ready',
       aiSignal: finalDecision,
@@ -286,6 +352,7 @@ serve(async (req) => {
       emas: { '5m': ema5m, '15m': ema15m, '1h': ema1h },
       coinglass: { funding, openInterest, liquidations, longShort, takerVolume },
       liquiditySweep,
+      volumeData: volumeAnalysis,
       currentPrice,
       lastUpdate: new Date().toISOString()
     }), {
