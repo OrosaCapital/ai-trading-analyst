@@ -144,6 +144,35 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Check if this symbol-endpoint combo is supported
+    const { isEndpointSupported } = await import('./../_shared/symbolFormatter.ts');
+    const supportCheck = isEndpointSupported(symbol, 'open_interest');
+
+    if (!supportCheck.supported) {
+      console.log(`🚫 Blocked API call: ${symbol} not supported for open_interest - ${supportCheck.reason}`);
+      
+      const blockedResponse = {
+        total: {
+          value: 'N/A',
+          valueRaw: null,
+          change24h: 'N/A',
+          sentiment: 'N/A'
+        },
+        byExchange: [],
+        history: [],
+        blocked: true,
+        upgradeRequired: true,
+        reason: supportCheck.reason || 'Not supported on Hobbyist plan',
+        message: `Open interest data unavailable - ${supportCheck.reason}`,
+        isMockData: false
+      };
+      
+      return new Response(JSON.stringify(blockedResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
     // Check cache
     const { data: cached } = await supabase
       .from('market_data_cache')

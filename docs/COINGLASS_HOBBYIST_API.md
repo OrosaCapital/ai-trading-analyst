@@ -22,6 +22,71 @@ CG-API-KEY: your_api_key_here
 
 ---
 
+## Symbol Support Matrix (Hobbyist Plan)
+
+### ⚠️ Important: Not All Symbols Are Supported for All Endpoints
+
+The Coinglass Hobbyist plan has **different levels of symbol support** depending on the endpoint. Our system **automatically blocks API calls** for unsupported symbol-endpoint combinations to conserve API quota and provide instant feedback.
+
+### Tier 1: Major Derivatives Symbols (Full Support)
+**Symbols**: BTC, ETH, BNB, XRP, ADA, SOL, DOGE, MATIC, DOT, AVAX
+
+**Supported Endpoints**:
+- ✅ RSI (`/api/indicator/rsi_list`)
+- ✅ Funding Rate OHLC (`/api/futures/fundingRate/ohlc-history`)
+- ✅ Open Interest OHLC (`/api/futures/openInterest/ohlc-history`)
+- ✅ Futures Basis History (`/api/futures/basis/history`)
+- ✅ Long/Short Ratio
+- ✅ Taker Buy/Sell Volume
+- ✅ Liquidations
+- ✅ Funding Rate Exchange List
+
+### Tier 2: Extended Symbols (Limited Support)
+**Symbols**: XLM, LINK, UNI, ATOM, LTC, and others
+
+**Supported Endpoints**:
+- ❌ RSI (Blocked - returns "N/A" immediately)
+- ❌ Funding Rate OHLC (Blocked - returns "N/A" immediately)
+- ❌ Open Interest OHLC (Blocked - returns "N/A" immediately)
+- ❌ Futures Basis (Blocked - returns "N/A" immediately)
+- ✅ Long/Short Ratio (Supported)
+- ✅ Taker Buy/Sell Volume (Supported)
+- ✅ Liquidations (Supported)
+- ✅ Funding Rate Exchange List (Supported)
+
+### How It Works
+
+1. **Automatic Detection**: When you request data for a symbol, the system checks if that symbol is supported for the specific endpoint.
+2. **Instant Response for Blocked Endpoints**: If not supported, you get an immediate "N/A" response with an explanation—**no API call is made**.
+3. **API Quota Conservation**: This prevents wasting API calls on requests that will fail with "400: Upgrade plan" errors.
+4. **Response Time**: Blocked requests return in ~50ms vs ~2-3 seconds for failed API calls.
+
+### Example Response for Blocked Endpoint
+
+```json
+{
+  "symbol": "XLM",
+  "rsi14": null,
+  "signal": "N/A",
+  "blocked": true,
+  "upgradeRequired": true,
+  "reason": "XLM requires Coinglass Standard or Professional plan for rsi data. Hobbyist plan only supports: BTC, ETH, BNB, XRP, ADA, and 5 more.",
+  "message": "RSI data unavailable - XLM requires Coinglass Standard or Professional plan for rsi data."
+}
+```
+
+### Testing Symbol Support
+
+You can test any symbol on our Symbol Details page. Unsupported metrics will show "N/A" with a tooltip explaining the plan limitation.
+
+### Upgrade Options
+
+To access all symbols for all endpoints, consider upgrading to:
+- **Standard Plan**: ~$50-100/month
+- **Professional Plan**: Contact CoinGlass for pricing
+
+---
+
 ## Available Endpoints for Hobbyist Plan
 
 ### 1. MARKET DATA

@@ -120,6 +120,34 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Check if this symbol-endpoint combo is supported
+    const { isEndpointSupported } = await import('./../_shared/symbolFormatter.ts');
+    const supportCheck = isEndpointSupported(symbol, 'funding_rate');
+
+    if (!supportCheck.supported) {
+      console.log(`🚫 Blocked API call: ${symbol} not supported for funding_rate - ${supportCheck.reason}`);
+      
+      const blockedResponse = {
+        current: {
+          rate: 'N/A',
+          rateValue: null,
+          nextFunding: null,
+          sentiment: 'N/A'
+        },
+        history: [],
+        blocked: true,
+        upgradeRequired: true,
+        reason: supportCheck.reason || 'Not supported on Hobbyist plan',
+        message: `Funding rate data unavailable - ${supportCheck.reason}`,
+        isMockData: false
+      };
+      
+      return new Response(JSON.stringify(blockedResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
     // Check cache first
     const cacheKey = getCacheKey(symbol, interval);
     const { data: cached } = await supabase
