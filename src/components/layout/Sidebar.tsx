@@ -80,46 +80,52 @@ export function Sidebar({ symbol }: SidebarProps) {
   };
 
   return (
-    <aside className="flex w-64 flex-col border-r border-border bg-card overflow-y-auto">
-      <div className="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">OCAPX AI Desk</div>
+    <aside className="flex w-64 flex-col border-r border-border bg-gradient-to-b from-background to-background/95 overflow-y-auto">
+      <div className="px-6 py-6 border-b border-border/50">
+        <h2 className="text-lg font-bold tracking-tight text-foreground">OCAPX AI</h2>
+        <p className="text-xs text-muted-foreground mt-1">Market Intelligence</p>
+      </div>
       
-      <div className="flex-1 px-2 py-2 space-y-2">
+      <div className="flex-1 px-4 py-4 space-y-3">
         {/* Market Sentiment */}
-        <Card className="glass-panel border border-border/50">
-          <CardHeader className="pb-2 pt-2">
-            <CardTitle className="text-xs">Market Sentiment</CardTitle>
+        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors">
+          <CardHeader className="pb-3 pt-4">
+            <CardTitle className="text-sm font-semibold text-foreground">Market Sentiment</CardTitle>
           </CardHeader>
-          <CardContent className="pb-2">
+          <CardContent className="pb-4">
             <SentimentGauge />
           </CardContent>
         </Card>
 
         {/* Funding Rate */}
-        <Card className="glass-panel border border-border/50">
-          <CardHeader className="pb-1 pt-2">
-            <CardTitle className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Funding Rate</CardTitle>
+        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors">
+          <CardHeader className="pb-2 pt-3">
+            <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-2">
+              <Activity className="h-3 w-3" />
+              Funding Rate
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pb-2">
+          <CardContent className="pb-3">
             {isLoading ? (
-              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-10 w-full rounded-lg" />
             ) : (
               <>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tabular-nums">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-3xl font-bold tabular-nums text-foreground">
                     {fundingRate !== null ? `${(fundingRate * 100).toFixed(4)}%` : 'N/A'}
                   </span>
                   {fundingRate !== null && (
                     fundingRate > 0 ? (
-                      <TrendingUp className="h-3 w-3 text-green-400" />
+                      <TrendingUp className="h-4 w-4 text-green-500" />
                     ) : (
-                      <TrendingDown className="h-3 w-3 text-red-400" />
+                      <TrendingDown className="h-4 w-4 text-red-500" />
                     )
                   )}
                 </div>
                 {fundingRate !== null && (
-                  <div className="mt-1 h-1 bg-muted rounded-full overflow-hidden">
+                  <div className="mt-2 h-1.5 bg-muted/50 rounded-full overflow-hidden">
                     <div 
-                      className={`h-full ${fundingRate > 0 ? 'bg-green-400' : 'bg-red-400'}`}
+                      className={`h-full transition-all duration-300 ${fundingRate > 0 ? 'bg-gradient-to-r from-green-500 to-green-400' : 'bg-gradient-to-r from-red-500 to-red-400'}`}
                       style={{ width: `${Math.min(Math.abs(fundingRate * 100) * 100, 100)}%` }}
                     />
                   </div>
@@ -130,17 +136,19 @@ export function Sidebar({ symbol }: SidebarProps) {
         </Card>
 
         {/* Open Interest */}
-        <Card className="glass-panel border border-border/50">
-          <CardHeader className="pb-1 pt-2">
-            <CardTitle className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Open Interest</CardTitle>
+        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors">
+          <CardHeader className="pb-2 pt-3">
+            <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-2">
+              <DollarSign className="h-3 w-3" />
+              Open Interest
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pb-2">
+          <CardContent className="pb-3">
             {isLoading ? (
-              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-10 w-full rounded-lg" />
             ) : (
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-primary" />
-                <span className="text-2xl font-bold tabular-nums">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold tabular-nums text-foreground">
                   {openInterest !== null ? formatLargeNumber(openInterest) : 'N/A'}
                 </span>
               </div>
@@ -149,83 +157,90 @@ export function Sidebar({ symbol }: SidebarProps) {
         </Card>
 
         {/* Long/Short Ratio */}
-        <Card className="glass-panel border border-border/50">
-          <CardHeader className="pb-1 pt-2">
-            <CardTitle className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Long/Short Ratio</CardTitle>
+        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors">
+          <CardHeader className="pb-2 pt-3">
+            <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-2">
+              <TrendingUp className="h-3 w-3" />
+              Long/Short Ratio
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pb-2">
+          <CardContent className="pb-3">
             {isLoading ? (
-              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-10 w-full rounded-lg" />
             ) : longShortRatio ? (
               <>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tabular-nums">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-3xl font-bold tabular-nums text-green-500">
                     {typeof longShortRatio.long === 'number' ? `${longShortRatio.long.toFixed(0)}%` : 'N/A'}
                   </span>
                   {typeof longShortRatio.long === 'number' && typeof longShortRatio.short === 'number' && (
-                    <span className="text-xs text-muted-foreground">/ {longShortRatio.short.toFixed(0)}%</span>
+                    <span className="text-lg font-semibold text-red-500">/ {longShortRatio.short.toFixed(0)}%</span>
                   )}
                 </div>
                 {typeof longShortRatio.long === 'number' && typeof longShortRatio.short === 'number' && (
-                  <div className="mt-1 flex gap-0.5 h-1">
-                    <div className="bg-green-400 rounded-l-full" style={{ width: `${longShortRatio.long}%` }} />
-                    <div className="bg-red-400 rounded-r-full" style={{ width: `${longShortRatio.short}%` }} />
+                  <div className="mt-2 flex gap-1 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-gradient-to-r from-green-500 to-green-400 rounded-l-full transition-all duration-300" style={{ width: `${longShortRatio.long}%` }} />
+                    <div className="bg-gradient-to-r from-red-500 to-red-400 rounded-r-full transition-all duration-300" style={{ width: `${longShortRatio.short}%` }} />
                   </div>
                 )}
               </>
             ) : (
-              <span className="text-2xl font-bold">N/A</span>
+              <span className="text-3xl font-bold text-foreground">N/A</span>
             )}
           </CardContent>
         </Card>
 
         {/* Liquidations 24h */}
-        <Card className="glass-panel border border-border/50">
-          <CardHeader className="pb-1 pt-2">
-            <CardTitle className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Liquidations 24h</CardTitle>
+        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors">
+          <CardHeader className="pb-2 pt-3">
+            <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-2">
+              <Activity className="h-3 w-3" />
+              Liquidations 24h
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pb-2">
+          <CardContent className="pb-3">
             {isLoading ? (
-              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-10 w-full rounded-lg" />
             ) : liquidations ? (
               <>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tabular-nums">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-3xl font-bold tabular-nums text-foreground">
                     {formatLargeNumber((liquidations.longs || 0) + (liquidations.shorts || 0))}
                   </span>
-                  <Activity className="h-3 w-3 text-yellow-400" />
                 </div>
                 {liquidations.longs && liquidations.shorts && (
-                  <div className="mt-1 flex gap-0.5 h-1">
+                  <div className="mt-2 flex gap-1 h-1.5 rounded-full overflow-hidden">
                     <div 
-                      className="bg-red-400 rounded-l-full" 
+                      className="bg-gradient-to-r from-red-500 to-red-400 rounded-l-full transition-all duration-300" 
                       style={{ width: `${(liquidations.longs / (liquidations.longs + liquidations.shorts)) * 100}%` }} 
                     />
                     <div 
-                      className="bg-green-400 rounded-r-full" 
+                      className="bg-gradient-to-r from-green-500 to-green-400 rounded-r-full transition-all duration-300" 
                       style={{ width: `${(liquidations.shorts / (liquidations.longs + liquidations.shorts)) * 100}%` }} 
                     />
                   </div>
                 )}
               </>
             ) : (
-              <span className="text-2xl font-bold">N/A</span>
+              <span className="text-3xl font-bold text-foreground">N/A</span>
             )}
           </CardContent>
         </Card>
 
         {/* Volume 24h */}
-        <Card className="glass-panel border border-border/50">
-          <CardHeader className="pb-1 pt-2">
-            <CardTitle className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Volume 24h</CardTitle>
+        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors">
+          <CardHeader className="pb-2 pt-3">
+            <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-2">
+              <BarChart3 className="h-3 w-3" />
+              Volume 24h
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pb-2">
+          <CardContent className="pb-3">
             {isLoading ? (
-              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-10 w-full rounded-lg" />
             ) : (
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-primary" />
-                <span className="text-2xl font-bold tabular-nums">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold tabular-nums text-foreground">
                   {volume24h !== null ? formatLargeNumber(volume24h) : 'N/A'}
                 </span>
               </div>
