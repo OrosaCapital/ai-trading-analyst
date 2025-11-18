@@ -370,7 +370,7 @@ serve(async (req) => {
     const aiInput = {
       symbol,
       currentPrice,
-      priceHistory: {
+      recentCandles: {
         '1m': priceData1m.slice(-15),
         '5m': priceData5m.slice(-3),
         '10m': priceData10m.slice(-2),
