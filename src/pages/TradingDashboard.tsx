@@ -8,7 +8,7 @@ import { useAITradingData } from "@/hooks/useAITradingData";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 
 export default function TradingDashboard() {
-  const [symbol, setSymbol] = useState("");
+  const [symbol, setSymbol] = useState("BTCUSDT");
   const [timeframe, setTimeframe] = useState<"1m" | "5m" | "15m" | "1h" | "4h" | "1d">("1h");
   const [dataStartTime, setDataStartTime] = useState<Date | null>(null);
   const [realtimeMinutes, setRealtimeMinutes] = useState(0);

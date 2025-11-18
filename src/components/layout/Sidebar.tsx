@@ -135,14 +135,18 @@ export function Sidebar({ symbol }: SidebarProps) {
               <>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold tabular-nums">
-                    {longShortRatio.long.toFixed(0)}%
+                    {typeof longShortRatio.long === 'number' ? `${longShortRatio.long.toFixed(0)}%` : 'N/A'}
                   </span>
-                  <span className="text-xs text-muted-foreground">/ {longShortRatio.short.toFixed(0)}%</span>
+                  {typeof longShortRatio.long === 'number' && typeof longShortRatio.short === 'number' && (
+                    <span className="text-xs text-muted-foreground">/ {longShortRatio.short.toFixed(0)}%</span>
+                  )}
                 </div>
-                <div className="mt-1 flex gap-0.5 h-1">
-                  <div className="bg-green-400 rounded-l-full" style={{ width: `${longShortRatio.long}%` }} />
-                  <div className="bg-red-400 rounded-r-full" style={{ width: `${longShortRatio.short}%` }} />
-                </div>
+                {typeof longShortRatio.long === 'number' && typeof longShortRatio.short === 'number' && (
+                  <div className="mt-1 flex gap-0.5 h-1">
+                    <div className="bg-green-400 rounded-l-full" style={{ width: `${longShortRatio.long}%` }} />
+                    <div className="bg-red-400 rounded-r-full" style={{ width: `${longShortRatio.short}%` }} />
+                  </div>
+                )}
               </>
             ) : (
               <span className="text-2xl font-bold">N/A</span>
