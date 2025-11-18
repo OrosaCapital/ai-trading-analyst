@@ -1,5 +1,5 @@
 import type { MarketSnapshot } from "../../types/market";
-import { Card } from "../ui/Card";
+import { Card } from "../ui/card";
 
 interface MainChartProps {
   snapshot?: MarketSnapshot;

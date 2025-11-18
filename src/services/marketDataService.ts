@@ -40,21 +40,21 @@ export async function buildDataValidation(params: SymbolTimeframe): Promise<Data
   const items = [
     {
       key: "coinglass_candles",
-      received: candlesRes.ok ? candlesRes.data.length : candlesRes.error,
+      received: candlesRes.ok ? candlesRes.data.length : "error",
       valid: candlesRes.ok && candlesRes.data.length > 0,
-      notes: candlesRes.ok ? `Received ${candlesRes.data.length} candles` : candlesRes.error.message,
+      notes: candlesRes.ok ? `Received ${candlesRes.data.length} candles` : "Failed to fetch candles",
     },
     {
       key: "tatum_spot",
-      received: spotRes.ok ? spotRes.data : spotRes.error,
+      received: spotRes.ok ? spotRes.data : "error",
       valid: spotRes.ok && typeof spotRes.data === "number",
-      notes: spotRes.ok ? "Spot price OK" : spotRes.error.message,
+      notes: spotRes.ok ? "Spot price OK" : "Failed to fetch spot price",
     },
     {
       key: "api_ninjas_news",
-      received: newsRes.ok ? newsRes.data.length : newsRes.error,
+      received: newsRes.ok ? newsRes.data.length : "error",
       valid: newsRes.ok,
-      notes: newsRes.ok ? `Received ${newsRes.data.length} news items` : newsRes.error.message,
+      notes: newsRes.ok ? `Received ${newsRes.data.length} news items` : "Failed to fetch news",
     },
   ];
 

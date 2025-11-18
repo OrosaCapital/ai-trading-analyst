@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Zap, TrendingUp, Activity, Target, Shield, Sparkles } from "lucide-react";
 

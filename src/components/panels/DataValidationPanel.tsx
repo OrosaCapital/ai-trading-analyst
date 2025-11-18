@@ -1,5 +1,5 @@
 import type { DataValidationSummary } from "../../types/market";
-import { Card } from "../ui/Card";
+import { Card } from "../ui/card";
 
 interface DataValidationPanelProps {
   validation?: DataValidationSummary;
