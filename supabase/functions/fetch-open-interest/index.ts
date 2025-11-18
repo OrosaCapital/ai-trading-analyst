@@ -7,39 +7,73 @@ const corsHeaders = {
 
 // Mock data removed - only using live CoinGlass API data
 
-// Fetch real open interest from Coinglass
+// Fetch real open interest from Coinglass with validation
 async function fetchOpenInterestFromCoinglass(symbol: string, apiKey: string) {
+  const {
+    validateCoinglassResponse,
+    validateArrayData,
+    validateOHLCData,
+    logValidationResult,
+    createErrorResponse,
+  } = await import('../_shared/apiValidation.ts');
+  
+  const { monitoredAPICall } = await import('../_shared/apiMonitoring.ts');
+
   try {
     // Convert symbol to USDT pair format
-    // Fix: Replace USDT first, then USD to avoid corrupting symbols
     const cleanSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '') + 'USDT';
     
     // Import shared client function
     const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
     
-    // Use database lookup for endpoints
+    // Use monitored API calls
     const [historyData, exchangeData] = await Promise.all([
-      fetchFromCoinglassV2(
+      monitoredAPICall(
         'open_interest_ohlc',
-        {
-          exchange: 'Binance',
-          symbol: cleanSymbol,
-          interval: '1h',
-          limit: '24'
-        },
-        apiKey
+        cleanSymbol,
+        async () => await fetchFromCoinglassV2(
+          'open_interest_ohlc',
+          {
+            exchange: 'Binance',
+            symbol: cleanSymbol,
+            interval: '1h',
+            limit: '24'
+          },
+          apiKey
+        )
       ),
-      fetchFromCoinglassV2(
+      monitoredAPICall(
         'open_interest_list',
-        {
-          symbol: cleanSymbol.replace('USDT', '')
-        },
-        apiKey
+        cleanSymbol,
+        async () => await fetchFromCoinglassV2(
+          'open_interest_list',
+          {
+            symbol: cleanSymbol.replace('USDT', '')
+          },
+          apiKey
+        )
       )
     ]);
 
-    if (historyData.code !== '0' || !historyData.data || historyData.data.length === 0) {
-      throw new Error('Invalid history data from Coinglass');
+    // Validate history response
+    const historyValidation = validateCoinglassResponse(historyData, (responseData) => {
+      const errors = validateArrayData(responseData, 1);
+      if (errors.length === 0 && Array.isArray(responseData)) {
+        errors.push(...validateOHLCData(responseData));
+      }
+      return errors;
+    });
+    
+    logValidationResult('open_interest_ohlc', cleanSymbol, historyValidation);
+    
+    if (!historyValidation.isValid) {
+      return createErrorResponse('open_interest', symbol, historyValidation.errors, historyValidation.warnings);
+    }
+    
+    // Validate exchange response (warnings only, not critical)
+    const exchangeValidation = validateCoinglassResponse(exchangeData);
+    if (!exchangeValidation.isValid) {
+      console.warn('Exchange data validation failed:', exchangeValidation.errors);
     }
 
     const latestOI = historyData.data[historyData.data.length - 1];
@@ -74,7 +108,15 @@ async function fetchOpenInterestFromCoinglass(symbol: string, apiKey: string) {
     };
   } catch (error) {
     console.error('Coinglass OI fetch error:', error);
-    throw error;
+    
+    // Return structured error response
+    const { createErrorResponse } = await import('../_shared/apiValidation.ts');
+    return createErrorResponse(
+      'open_interest',
+      symbol,
+      [error instanceof Error ? error.message : 'Unknown API error'],
+      ['Verify symbol is available for derivatives data']
+    );
   }
 }
 

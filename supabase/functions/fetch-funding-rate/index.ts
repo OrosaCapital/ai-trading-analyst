@@ -12,31 +12,54 @@ function getCacheKey(symbol: string, interval: string): string {
 
 // Mock data removed - only using live CoinGlass API data
 
-// Fetch real funding rate from Coinglass
+// Fetch real funding rate from Coinglass with validation
 async function fetchFundingRateFromCoinglass(symbol: string, interval: string, apiKey: string) {
+  const {
+    validateCoinglassResponse,
+    validateArrayData,
+    validateOHLCData,
+    logValidationResult,
+    createErrorResponse,
+  } = await import('../_shared/apiValidation.ts');
+  
+  const { monitoredAPICall } = await import('../_shared/apiMonitoring.ts');
+
   try {
     // Convert symbol to USDT pair format
-    // Fix: Replace USDT first, then USD to avoid corrupting symbols
     const cleanSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '') + 'USDT';
     
     // Import shared client function
     const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
     
-    // Use database lookup for endpoint
-    const data = await fetchFromCoinglassV2(
+    // Use monitored API call for automatic tracking
+    const data = await monitoredAPICall(
       'funding_rate',
-      {
-        exchange: 'Binance',
-        symbol: cleanSymbol,
-        interval: interval,
-        limit: '24'
-      },
-      apiKey
+      cleanSymbol,
+      async () => await fetchFromCoinglassV2(
+        'funding_rate',
+        {
+          exchange: 'Binance',
+          symbol: cleanSymbol,
+          interval: interval,
+          limit: '24'
+        },
+        apiKey
+      )
     );
     
-    if (data.code !== '0' || !data.data) {
-      console.error('Invalid Coinglass response:', data);
-      throw new Error('Invalid Coinglass response');
+    // Validate response structure
+    const validation = validateCoinglassResponse(data, (responseData) => {
+      const errors = validateArrayData(responseData, 1);
+      if (errors.length === 0 && Array.isArray(responseData)) {
+        errors.push(...validateOHLCData(responseData));
+      }
+      return errors;
+    });
+    
+    logValidationResult('funding_rate', cleanSymbol, validation);
+    
+    if (!validation.isValid) {
+      return createErrorResponse('funding_rate', symbol, validation.errors, validation.warnings);
     }
 
     const currentRate = parseFloat(data.data[data.data.length - 1]?.close) || 0;
@@ -61,7 +84,15 @@ async function fetchFundingRateFromCoinglass(symbol: string, interval: string, a
     };
   } catch (error) {
     console.error('Coinglass API error:', error);
-    throw error;
+    
+    // Return structured error response instead of throwing
+    const { createErrorResponse } = await import('../_shared/apiValidation.ts');
+    return createErrorResponse(
+      'funding_rate',
+      symbol,
+      [error instanceof Error ? error.message : 'Unknown API error'],
+      ['Check API key and symbol format']
+    );
   }
 }
 

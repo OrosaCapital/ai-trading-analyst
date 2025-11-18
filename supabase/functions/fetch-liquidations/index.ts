@@ -7,31 +7,54 @@ const corsHeaders = {
 
 // Mock data removed - only using live CoinGlass API data
 
-// Fetch real liquidation data from Coinglass
+// Fetch real liquidation data from Coinglass with validation
 async function fetchLiquidationsFromCoinglass(symbol: string, apiKey: string) {
+  const {
+    validateCoinglassResponse,
+    validateArrayData,
+    validateLiquidationData,
+    logValidationResult,
+    createErrorResponse,
+  } = await import('../_shared/apiValidation.ts');
+  
+  const { monitoredAPICall } = await import('../_shared/apiMonitoring.ts');
+
   try {
     // Convert symbol to USDT pair format
-    // Fix: Replace USDT first, then USD to avoid corrupting symbols
     const cleanSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '') + 'USDT';
     
     // Import shared client function
     const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
     
-    // Use database lookup for endpoint
-    const data = await fetchFromCoinglassV2(
+    // Use monitored API call
+    const data = await monitoredAPICall(
       'liquidations',
-      {
-        exchange: 'Binance',
-        symbol: cleanSymbol,
-        interval: '4h',
-        limit: '24'
-      },
-      apiKey
+      cleanSymbol,
+      async () => await fetchFromCoinglassV2(
+        'liquidations',
+        {
+          exchange: 'Binance',
+          symbol: cleanSymbol,
+          interval: '4h',
+          limit: '24'
+        },
+        apiKey
+      )
     );
 
-    if (data.code !== '0' || !data.data || data.data.length === 0) {
-      console.error('Invalid Coinglass response:', data);
-      throw new Error('Invalid Coinglass response');
+    // Validate response structure
+    const validation = validateCoinglassResponse(data, (responseData) => {
+      const errors = validateArrayData(responseData, 1);
+      if (errors.length === 0 && Array.isArray(responseData)) {
+        errors.push(...validateLiquidationData(responseData));
+      }
+      return errors;
+    });
+    
+    logValidationResult('liquidations', cleanSymbol, validation);
+    
+    if (!validation.isValid) {
+      return createErrorResponse('liquidations', symbol, validation.errors, validation.warnings);
     }
 
     const totalLongs = data.data.reduce((sum: number, item: any) => 
@@ -81,7 +104,15 @@ async function fetchLiquidationsFromCoinglass(symbol: string, apiKey: string) {
     };
   } catch (error) {
     console.error('Coinglass liquidations fetch error:', error);
-    throw error;
+    
+    // Return structured error response
+    const { createErrorResponse } = await import('../_shared/apiValidation.ts');
+    return createErrorResponse(
+      'liquidations',
+      symbol,
+      [error instanceof Error ? error.message : 'Unknown API error'],
+      ['Check if symbol supports liquidation data']
+    );
   }
 }
 
