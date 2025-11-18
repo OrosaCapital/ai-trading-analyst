@@ -27,6 +27,11 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
           supabase.functions.invoke('fetch-open-interest', { body: { symbol } })
         ]);
 
+        console.log('Long/Short data:', lsRatio.data);
+        console.log('Funding data:', funding.data);
+        console.log('Liquidations data:', liq.data);
+        console.log('Open Interest data:', oi.data);
+
         if (lsRatio.data) setLongShortRatio(lsRatio.data);
         if (funding.data) setFundingRate(funding.data);
         if (liq.data) setLiquidations(liq.data);
@@ -65,7 +70,7 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
         <Activity className="w-6 h-6 text-primary" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Long vs Short Ratio */}
         <Card className="p-6 bg-card border border-border">
           <div className="space-y-3">
@@ -79,61 +84,26 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
                 <div className="flex justify-between items-center">
                   <span className="text-chart-green text-sm font-medium">Long</span>
                   <span className="text-xl font-bold text-chart-green">
-                    {longShortRatio.longRatio?.toFixed(1) || '0'}%
+                    {parseFloat(longShortRatio.long_percent || 0).toFixed(1)}%
                   </span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-chart-green"
-                    style={{ width: `${longShortRatio.longRatio || 0}%` }}
+                    style={{ width: `${longShortRatio.long_percent || 0}%` }}
                   />
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-chart-red text-sm font-medium">Short</span>
                   <span className="text-xl font-bold text-chart-red">
-                    {longShortRatio.shortRatio?.toFixed(1) || '0'}%
+                    {parseFloat(longShortRatio.short_percent || 0).toFixed(1)}%
                   </span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-chart-red"
-                    style={{ width: `${longShortRatio.shortRatio || 0}%` }}
+                    style={{ width: `${longShortRatio.short_percent || 0}%` }}
                   />
-                </div>
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No data</p>
-            )}
-          </div>
-        </Card>
-
-        {/* Top Trader Positions */}
-        <Card className="p-6 bg-card border border-border">
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Top Trader Positions
-            </p>
-            {loading ? (
-              <LoadingSkeleton />
-            ) : longShortRatio?.topTraderRatio ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Ratio</span>
-                  <span className="text-2xl font-bold text-foreground">
-                    {longShortRatio.topTraderRatio.toFixed(2)}
-                  </span>
-                </div>
-                <div className={`flex items-center gap-2 text-sm ${
-                  longShortRatio.topTraderRatio > 1 ? 'text-chart-green' : 'text-chart-red'
-                }`}>
-                  {longShortRatio.topTraderRatio > 1 ? (
-                    <TrendingUp className="w-4 h-4" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4" />
-                  )}
-                  <span className="font-medium">
-                    {longShortRatio.topTraderRatio > 1 ? 'Bullish' : 'Bearish'}
-                  </span>
                 </div>
               </div>
             ) : (
@@ -150,15 +120,21 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
             </p>
             {loading ? (
               <LoadingSkeleton />
-            ) : fundingRate ? (
+            ) : fundingRate?.current ? (
               <div className="space-y-2">
                 <div className="text-3xl font-bold text-foreground">
-                  {(fundingRate.rate * 100).toFixed(4)}%
+                  {fundingRate.current.rate}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
-                    {fundingRate.rate > 0 ? 'Longs pay shorts' : 'Shorts pay longs'}
+                    {parseFloat(fundingRate.current.rateValue) > 0 ? 'Longs pay shorts' : 'Shorts pay longs'}
                   </span>
+                </div>
+                <div className={`text-sm font-medium ${
+                  fundingRate.current.sentiment === 'BULLISH' ? 'text-chart-green' : 
+                  fundingRate.current.sentiment === 'BEARISH' ? 'text-chart-red' : 'text-muted-foreground'
+                }`}>
+                  {fundingRate.current.sentiment}
                 </div>
               </div>
             ) : (
@@ -175,19 +151,22 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
             </p>
             {loading ? (
               <LoadingSkeleton />
-            ) : liquidations ? (
+            ) : liquidations?.last24h ? (
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-xs text-muted-foreground">Longs</span>
                   <span className="text-lg font-bold text-chart-red">
-                    {formatNumber(liquidations.longLiquidations || 0)}
+                    ${liquidations.last24h.totalLongs}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-xs text-muted-foreground">Shorts</span>
                   <span className="text-lg font-bold text-chart-green">
-                    {formatNumber(liquidations.shortLiquidations || 0)}
+                    ${liquidations.last24h.totalShorts}
                   </span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  Total: ${liquidations.last24h.total}
                 </div>
               </div>
             ) : (
@@ -200,49 +179,26 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
         <Card className="p-6 bg-card border border-border">
           <div className="space-y-3">
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Open Interest Heatmap
+              Open Interest
             </p>
             {loading ? (
               <LoadingSkeleton />
-            ) : openInterest ? (
+            ) : openInterest?.total ? (
               <div className="space-y-2">
                 <div className="text-3xl font-bold text-foreground">
-                  {formatNumber(openInterest.total || 0)}
+                  ${openInterest.total.value}
                 </div>
                 <div className={`flex items-center gap-2 text-sm ${
-                  openInterest.change24h > 0 ? 'text-chart-green' : 'text-chart-red'
+                  openInterest.total.sentiment === 'INCREASING' ? 'text-chart-green' : 'text-chart-red'
                 }`}>
-                  {openInterest.change24h > 0 ? (
+                  {openInterest.total.sentiment === 'INCREASING' ? (
                     <TrendingUp className="w-4 h-4" />
                   ) : (
                     <TrendingDown className="w-4 h-4" />
                   )}
                   <span className="font-medium">
-                    {openInterest.change24h > 0 ? '+' : ''}{openInterest.change24h?.toFixed(2)}% (24h)
+                    {openInterest.total.change24h}
                   </span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No data</p>
-            )}
-          </div>
-        </Card>
-
-        {/* 4H Leverage Map */}
-        <Card className="p-6 bg-card border border-border">
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              4H Leverage Map
-            </p>
-            {loading ? (
-              <LoadingSkeleton />
-            ) : longShortRatio?.avgLeverage ? (
-              <div className="space-y-2">
-                <div className="text-3xl font-bold text-foreground">
-                  {longShortRatio.avgLeverage.toFixed(1)}x
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Average leverage across exchanges
                 </div>
               </div>
             ) : (
@@ -259,11 +215,13 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
             </p>
             {loading ? (
               <LoadingSkeleton />
-            ) : longShortRatio && fundingRate ? (
+            ) : longShortRatio && fundingRate?.current ? (
               <div className="space-y-2">
                 {(() => {
-                  const shortPressure = longShortRatio.shortRatio > 55;
-                  const negativeFunding = fundingRate.rate < 0;
+                  const shortPercent = parseFloat(longShortRatio.short_percent || 0);
+                  const fundingValue = parseFloat(fundingRate.current.rateValue);
+                  const shortPressure = shortPercent > 55;
+                  const negativeFunding = fundingValue < 0;
                   const probability = shortPressure && negativeFunding ? 'HIGH' : 
                                     shortPressure || negativeFunding ? 'MEDIUM' : 'LOW';
                   const color = probability === 'HIGH' ? 'text-chart-green' :
@@ -298,11 +256,13 @@ export const CoinglassPanel = ({ symbol }: CoingласsPanelProps) => {
             </p>
             {loading ? (
               <LoadingSkeleton />
-            ) : longShortRatio && fundingRate ? (
+            ) : longShortRatio && fundingRate?.current ? (
               <div className="space-y-2">
                 {(() => {
-                  const longPressure = longShortRatio.longRatio > 55;
-                  const positiveFunding = fundingRate.rate > 0.01;
+                  const longPercent = parseFloat(longShortRatio.long_percent || 0);
+                  const fundingValue = parseFloat(fundingRate.current.rateValue);
+                  const longPressure = longPercent > 55;
+                  const positiveFunding = fundingValue > 0.01;
                   const probability = longPressure && positiveFunding ? 'HIGH' : 
                                     longPressure || positiveFunding ? 'MEDIUM' : 'LOW';
                   const color = probability === 'HIGH' ? 'text-chart-red' :
