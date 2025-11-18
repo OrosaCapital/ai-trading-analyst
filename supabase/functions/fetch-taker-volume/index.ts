@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
     const data = await fetchFromCoinglassV2(
       'taker_volume_exchange_list',
-      { symbol },
+      { symbol, range: '1h' },
       coinglassApiKey
     );
 

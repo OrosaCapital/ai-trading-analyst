@@ -173,7 +173,7 @@ export function useSymbolData(symbol: string) {
           setData((prev) => ({
             ...prev,
             fearGreedIndex: fg.value,
-            fearGreedLabel: fg.value_classification,
+            fearGreedLabel: fg.valueClassification,
           }));
         }
 
