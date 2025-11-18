@@ -18,13 +18,22 @@ export function TickerRibbon() {
 
   // Rotate through tickers every 3 seconds
   useEffect(() => {
-    const tickerList = TICKER_SYMBOLS.map(sym => tickers[sym]).filter(Boolean);
-    if (tickerList.length === 0) return;
+    // Filter to only available tickers
+    const availableSymbols = TICKER_SYMBOLS.filter(sym => 
+      tickers[sym] && !tickers[sym].unavailable
+    );
+    
+    if (availableSymbols.length === 0) return;
 
     const interval = setInterval(() => {
       setIsAnimating(true);
       setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % TICKER_SYMBOLS.length);
+        // Ensure we only cycle through available symbols
+        setCurrentIndex((prev) => {
+          const nextIdx = (prev + 1) % availableSymbols.length;
+          // Map back to TICKER_SYMBOLS index
+          return TICKER_SYMBOLS.indexOf(availableSymbols[nextIdx]);
+        });
         setIsAnimating(false);
       }, 300);
     }, 3000);
@@ -34,6 +43,15 @@ export function TickerRibbon() {
 
   const currentSymbol = TICKER_SYMBOLS[currentIndex];
   const currentTicker = tickers[currentSymbol];
+  
+  // Skip if unavailable
+  if (currentTicker?.unavailable) {
+    return (
+      <div className="flex items-center gap-3 text-sm font-semibold text-muted-foreground">
+        <div>{currentSymbol.replace("USDT", "")} - Unavailable</div>
+      </div>
+    );
+  }
 
   if (!currentTicker || loading.tickers) {
     return (

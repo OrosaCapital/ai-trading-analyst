@@ -9,6 +9,7 @@ export interface TickerData {
   change24h: number;
   isPositive: boolean;
   timestamp: number;
+  unavailable?: boolean;
 }
 
 // Market metrics for a symbol
@@ -119,6 +120,19 @@ export const useMarketStore = create<MarketState>((set, get) => ({
             body: { symbol, limit: 2 },
           }),
         ]);
+        
+        // Handle unavailable symbols gracefully
+        if (priceRes.data?.unavailable) {
+          console.log(`⚠️ Price unavailable for ${symbol}: ${priceRes.data.reason}`);
+          return {
+            symbol,
+            price: 0,
+            change24h: 0,
+            isPositive: false,
+            timestamp: now,
+            unavailable: true,
+          };
+        }
         
         const price = priceRes.data?.price || 0;
         const hist = histRes.data || [];
