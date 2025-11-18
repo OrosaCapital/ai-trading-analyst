@@ -15,24 +15,40 @@ export default function TradingDashboard() {
   const { data: aiData, isLoading: aiLoading, error: aiError } = useAITradingData(symbol);
   const { chartData, isLoading: chartLoading, error: chartError } = useProfessionalChartData(symbol);
 
-  // Safely get current price
+  // Safely get current price with fallback
   const currentPrice = chartData?.candles1h?.[chartData.candles1h.length - 1]?.close;
 
-  // Check if we're in data accumulation phase
+  // Check if we're in data accumulation phase - treat as normal state, not error
+  const hasInsufficientData = (error: string | null | undefined): boolean => {
+    if (!error) return false;
+    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+    return errorStr.includes("Found") && errorStr.includes("minutes");
+  };
+
   const isAccumulating = aiData?.status === "accumulating" || 
-    (aiError?.includes("Found") && aiError?.includes("minutes")) ||
-    (chartError?.includes("Found") && chartError?.includes("minutes"));
+    hasInsufficientData(aiError) ||
+    hasInsufficientData(chartError);
 
   // Extract minutes collected from error message
-  const extractMinutes = (error: string | null) => {
+  const extractMinutes = (error: string | null | undefined): number => {
     if (!error) return 0;
-    const match = error.match(/Found (\d+)\/(\d+) minutes/);
+    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+    const match = errorStr.match(/Found (\d+)\/(\d+) minutes/);
     return match ? parseInt(match[1]) : 0;
   };
 
   const minutesCollected = aiData?.progress 
     ? Math.floor((aiData.progress / 100) * 15) 
     : extractMinutes(aiError) || extractMinutes(chartError);
+
+  // Only show real errors, not accumulation status
+  const hasRealError = (error: string | null | undefined): boolean => {
+    if (!error) return false;
+    return !hasInsufficientData(error);
+  };
+
+  const displayAiError = hasRealError(aiError) ? aiError : null;
+  const displayChartError = hasRealError(chartError) ? chartError : null;
 
   return (
     <div className="flex h-full flex-col gap-4 pb-8">
@@ -72,8 +88,8 @@ export default function TradingDashboard() {
         <div className="lg:col-span-3 flex flex-col gap-4 overflow-y-auto">
           <AIDecisionPanel 
             aiData={aiData}
-            isLoading={aiLoading}
-            error={aiError}
+            isLoading={aiLoading || isAccumulating}
+            error={displayAiError}
             currentPrice={currentPrice}
           />
         </div>
