@@ -99,23 +99,23 @@ export function TickerRibbon() {
   }
 
   return (
-    <div className="flex items-center gap-3 overflow-hidden">
+    <div className="flex items-center gap-3 overflow-hidden px-3 py-1 glass rounded-lg">
       <div
         className={`flex items-center gap-3 transition-all duration-300 ${
           isAnimating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
         }`}
       >
         {/* Symbol */}
-        <div className="text-sm font-bold text-gray-100">
+        <div className="text-sm font-bold text-foreground">
           {currentTicker.symbol.replace("USDT", "")}
-          <span className="text-gray-500 text-xs ml-1">USDT</span>
+          <span className="text-muted-foreground text-xs ml-1">USDT</span>
         </div>
 
         {/* Separator */}
-        <div className="h-4 w-px bg-gray-700" />
+        <div className="h-4 w-px bg-border" />
 
         {/* Price */}
-        <div className="text-sm font-semibold text-gray-100">
+        <div className="text-sm font-semibold text-primary">
           ${currentTicker.price.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -124,10 +124,10 @@ export function TickerRibbon() {
 
         {/* 24h Change */}
         <div
-          className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded ${
+          className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border backdrop-blur-sm ${
             currentTicker.isPositive
-              ? "bg-green-500/20 text-green-500"
-              : "bg-red-500/20 text-red-500"
+              ? "bg-chart-green/10 text-chart-green border-chart-green/30 shadow-[0_0_10px_hsl(var(--chart-green)/0.2)]"
+              : "bg-chart-red/10 text-chart-red border-chart-red/30 shadow-[0_0_10px_hsl(var(--chart-red)/0.2)]"
           }`}
         >
           {currentTicker.isPositive ? (
@@ -141,12 +141,14 @@ export function TickerRibbon() {
       </div>
 
       {/* Ticker Dots */}
-      <div className="flex items-center gap-1 ml-2">
+      <div className="flex items-center gap-1.5 ml-2">
         {TICKER_SYMBOLS.map((_, idx) => (
           <div
             key={idx}
-            className={`h-1 w-1 rounded-full transition-all duration-300 ${
-              idx === currentIndex ? "bg-emerald-500 w-3" : "bg-gray-600"
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              idx === currentIndex 
+                ? "bg-primary w-4 shadow-[0_0_8px_hsl(var(--primary)/0.6)]" 
+                : "bg-muted w-1.5"
             }`}
           />
         ))}

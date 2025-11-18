@@ -14,21 +14,21 @@ export function Topbar({ showProgress, minutesCollected = 0, minutesRequired = 1
   const { timeframe, setTimeframe } = useMarketStore();
 
   return (
-    <header className="border-b border-gray-800 bg-black/80">
+    <header className="glass-panel border-b border-border/50 shadow-elevated">
       <div className="flex items-center justify-between px-4 py-3">
         {/* Ticker Ribbon */}
         <TickerRibbon />
         
         {/* Timeframe Selector */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 p-1 glass rounded-lg">
           {timeframes.map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
-              className={`rounded-md px-2 py-1 text-xs transition-all duration-200 ${
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                 tf === timeframe 
-                  ? "bg-emerald-500 text-black font-semibold scale-105" 
-                  : "text-gray-300 hover:bg-gray-800 hover:text-gray-100"
+                  ? "bg-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--primary)/0.5)] scale-105" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
               }`}
             >
               {tf.toUpperCase()}

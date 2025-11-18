@@ -47,12 +47,12 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        robin: {
-          teal: "hsl(var(--robin-teal))",
-          neon: "hsl(var(--robin-neon))",
-          coral: "hsl(var(--robin-coral))",
-          black: "hsl(var(--robin-black))",
-          white: "hsl(var(--robin-white))",
+        cyber: {
+          blue: "hsl(var(--cyber-blue))",
+          cyan: "hsl(var(--cyber-cyan))",
+          purple: "hsl(var(--cyber-purple))",
+          pink: "hsl(var(--cyber-pink))",
+          green: "hsl(var(--cyber-green))",
         },
         sentiment: {
           euphoria: "hsl(var(--sentiment-euphoria))",
