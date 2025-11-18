@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.fetch-binance-historical]
 verify_jwt = false
+
+[functions.fetch-market-data]
+verify_jwt = false
