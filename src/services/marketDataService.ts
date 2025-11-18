@@ -7,11 +7,11 @@ interface EdgeFunctionResponse {
   timeframe: string;
   candles: Candle[];
   spotPrice: number | null;
-  news: any[];
+  cryptoPrice: number | null;
   validation: {
     coinglass: { valid: boolean; count: number; error: string | null };
     tatum: { valid: boolean; price: number | null; error: string | null };
-    ninjas: { valid: boolean; count: number; error: string | null };
+    ninjas: { valid: boolean; price: number | null; error: string | null };
   };
 }
 
@@ -115,12 +115,12 @@ export async function buildDataValidation(params: SymbolTimeframe): Promise<Data
           : data.validation.tatum.error || "Failed to fetch spot price",
       },
       {
-        key: "api_ninjas_news",
-        received: data.validation.ninjas.count,
+        key: "api_ninjas_price",
+        received: data.validation.ninjas.price,
         valid: data.validation.ninjas.valid,
         notes: data.validation.ninjas.valid
-          ? `Received ${data.validation.ninjas.count} news items`
-          : data.validation.ninjas.error || "Failed to fetch news",
+          ? `Price: $${data.validation.ninjas.price?.toFixed(2)}`
+          : data.validation.ninjas.error || "Failed to fetch crypto price",
       },
     ];
 

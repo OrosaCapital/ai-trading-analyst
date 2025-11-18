@@ -37,25 +37,32 @@ serve(async (req) => {
     };
     const interval = intervalMap[timeframe] || "4h";
 
+    // Parse symbol for different API formats
+    // BTCUSDT -> BTC for Tatum, BTCUSD for Ninjas
+    const baseSymbol = symbol.replace(/USDT$/, "");
+    const ninjasSymbol = symbol.replace(/USDT$/, "USD");
+
+    console.log(`Fetching data for ${symbol} (base: ${baseSymbol}, ninjas: ${ninjasSymbol})`);
+
     // Fetch all data in parallel
     const [coinglassRes, tatumRes, ninjasRes] = await Promise.allSettled([
-      // Coinglass OHLC
+      // Coinglass OHLC - uses full symbol like BTCUSDT
       fetch(
-        `https://open-api-v4.coinglass.com/api/price/ohlc-history?symbol=${symbol}&interval=${interval}&exchange=binance`,
+        `https://open-api-v4.coinglass.com/api/price/ohlc-history?symbol=${encodeURIComponent(symbol)}&interval=${interval}&exchange=binance`,
         {
           headers: {
             "CG-API-KEY": COINGLASS_KEY,
           },
         }
       ),
-      // Tatum spot price
-      fetch(`https://api.tatum.io/v3/market/value/${symbol}`, {
+      // Tatum v4 - uses base symbol (BTC) and base pair (USD)
+      fetch(`https://api.tatum.io/v4/data/rate?symbol=${encodeURIComponent(baseSymbol)}&basePair=USD`, {
         headers: {
           "x-api-key": TATUM_KEY,
         },
       }),
-      // API Ninjas news
-      fetch(`https://api.api-ninjas.com/v1/news?symbol=${symbol}`, {
+      // API Ninjas crypto price - uses BTCUSD format
+      fetch(`https://api.api-ninjas.com/v1/cryptoprice?symbol=${encodeURIComponent(ninjasSymbol)}`, {
         headers: {
           "X-Api-Key": NINJAS_KEY,
         },
@@ -67,11 +74,16 @@ serve(async (req) => {
     let candlesError = null;
     if (coinglassRes.status === "fulfilled" && coinglassRes.value.ok) {
       const data = await coinglassRes.value.json();
+      console.log("Coinglass response:", data);
       candles = data.data || [];
     } else {
+      const errorText = coinglassRes.status === "fulfilled" 
+        ? await coinglassRes.value.text()
+        : coinglassRes.reason.message;
       candlesError = coinglassRes.status === "rejected" 
         ? coinglassRes.reason.message 
-        : `HTTP ${coinglassRes.value.status}`;
+        : `HTTP ${coinglassRes.value.status}: ${errorText}`;
+      console.error("Coinglass error:", candlesError);
     }
 
     // Process Tatum data
@@ -79,22 +91,33 @@ serve(async (req) => {
     let spotError = null;
     if (tatumRes.status === "fulfilled" && tatumRes.value.ok) {
       const data = await tatumRes.value.json();
-      spotPrice = parseFloat(data.price);
+      console.log("Tatum response:", data);
+      spotPrice = parseFloat(data.value || data.price);
     } else {
+      const errorText = tatumRes.status === "fulfilled" 
+        ? await tatumRes.value.text()
+        : tatumRes.reason.message;
       spotError = tatumRes.status === "rejected" 
         ? tatumRes.reason.message 
-        : `HTTP ${tatumRes.value.status}`;
+        : `HTTP ${tatumRes.value.status}: ${errorText}`;
+      console.error("Tatum error:", spotError);
     }
 
     // Process API Ninjas data
-    let news = [];
-    let newsError = null;
+    let cryptoPrice = null;
+    let cryptoPriceError = null;
     if (ninjasRes.status === "fulfilled" && ninjasRes.value.ok) {
-      news = await ninjasRes.value.json();
+      const data = await ninjasRes.value.json();
+      console.log("API Ninjas response:", data);
+      cryptoPrice = parseFloat(data.price);
     } else {
-      newsError = ninjasRes.status === "rejected" 
+      const errorText = ninjasRes.status === "fulfilled" 
+        ? await ninjasRes.value.text()
+        : ninjasRes.reason.message;
+      cryptoPriceError = ninjasRes.status === "rejected" 
         ? ninjasRes.reason.message 
-        : `HTTP ${ninjasRes.value.status}`;
+        : `HTTP ${ninjasRes.value.status}: ${errorText}`;
+      console.error("API Ninjas error:", cryptoPriceError);
     }
 
     // Return combined data with validation info
@@ -104,7 +127,7 @@ serve(async (req) => {
         timeframe,
         candles,
         spotPrice,
-        news,
+        cryptoPrice,
         validation: {
           coinglass: {
             valid: candles.length > 0,
@@ -117,9 +140,9 @@ serve(async (req) => {
             error: spotError,
           },
           ninjas: {
-            valid: news.length > 0,
-            count: news.length,
-            error: newsError,
+            valid: cryptoPrice !== null,
+            price: cryptoPrice,
+            error: cryptoPriceError,
           },
         },
       }),
