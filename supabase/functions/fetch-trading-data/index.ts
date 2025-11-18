@@ -317,11 +317,15 @@ serve(async (req) => {
 
       if (!newCount || newCount < 15) {
         console.error(`❌ Still insufficient data after backfill (${newCount || 0}/15 minutes)`);
+        // Return accumulating status instead of error
         return new Response(JSON.stringify({
-          status: 'error',
-          message: `Unable to fetch sufficient historical data for ${symbol}. Found ${newCount || 0}/15 minutes.`
+          status: 'accumulating',
+          message: `Collecting price data for ${symbol}. ${newCount || 0} of 15 minutes collected.`,
+          progress: Math.floor(((newCount || 0) / 15) * 100),
+          minutesCollected: newCount || 0,
+          minutesRequired: 15
         }), {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
