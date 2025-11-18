@@ -73,9 +73,9 @@ B. EMA VALUES (YOUR PRIMARY DATA SOURCE)
    - To get current 1h EMA: emas['1h'][emas['1h'].length - 1]
 
 C. RECENT CANDLES (FOR VISUAL CONTEXT ONLY - DO NOT USE FOR EMA ANALYSIS)
-   - Located at: inputData.recentCandles['1m'], ['5m'], ['10m'], ['15m'], ['1h']
-   - These are recent candles for viewing price action patterns
-   - recentCandles['1h'] contains only 4 recent candles for context
+   - Located at: inputData.recentCandles['1m'], ['5m'], ['10m'], ['15m']
+   - Note: recentCandles['1h'] is NOT provided to prevent confusion with emas['1h']
+   - These are recent candles for viewing price action patterns only
    - THIS IS NOT EMA DATA - DO NOT count these values as EMA length
    - DO NOT use recentCandles for any trend analysis or EMA calculations
 
