@@ -11,7 +11,7 @@ import { useAITradingData } from "@/hooks/useAITradingData";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 
 export default function TradingDashboard() {
-  const [symbol, setSymbol] = useState("BTCUSDT");
+  const [symbol, setSymbol] = useState("");
   const [timeframe, setTimeframe] = useState<"1m" | "5m" | "15m" | "1h" | "4h" | "1d">("1h");
 
   // Normalize symbol to ensure it has USDT suffix for API calls
