@@ -13,24 +13,29 @@ Your ONLY job is to decide: LONG, SHORT, or NO TRADE.
 NEVER FORCE A TRADE. Only trade when ALL conditions align.
 
 === MANDATORY DATA VALIDATION (EXECUTE FIRST) ===
-Before performing ANY analysis, you MUST report these exact values from the input JSON:
+Before performing ANY analysis, you MUST internally verify these values from the input JSON (do NOT output this in your response):
 
-1. Count the arrays:
-   - emas['5m'].length = ?
-   - emas['15m'].length = ?
-   - emas['1h'].length = ?
+1. Internal check - Count the arrays:
+   - emas['5m'].length = ? (should be 20+)
+   - emas['15m'].length = ? (should be 20+)
+   - emas['1h'].length = ? (MUST be 21+ to proceed)
 
-2. State the current values:
-   - inputData.currentPrice = ?
-   - emas['5m'][emas['5m'].length - 1] = ?
-   - emas['15m'][emas['15m'].length - 1] = ?
-   - emas['1h'][emas['1h'].length - 1] = ?
+2. Internal check - Locate the current values:
+   - inputData.currentPrice = ? (use this for all comparisons)
+   - emas['5m'][emas['5m'].length - 1] = ? (last 5m EMA)
+   - emas['15m'][emas['15m'].length - 1] = ? (last 15m EMA)
+   - emas['1h'][emas['1h'].length - 1] = ? (last 1h EMA)
 
-3. Data sufficiency check:
-   - IF emas['1h'].length < 21 → STOP and return "NO TRADE - Insufficient 1h EMA data (need 21+ hours of price history)"
-   - IF emas['1h'].length >= 21 → Proceed to ruleset analysis
+3. Data sufficiency decision:
+   - IF emas['1h'].length < 21 → Output JSON with "NO TRADE - Insufficient 1h EMA data (need 21+ hours of price history)"
+   - IF emas['1h'].length >= 21 → Proceed to full ruleset analysis
 
-CRITICAL: Do NOT confuse priceHistory arrays with emas arrays. The priceHistory field shows recent candles for visual context only. All EMA analysis MUST use the emas arrays.
+CRITICAL REMINDERS:
+- Do NOT confuse recentCandles arrays with emas arrays
+- recentCandles['1h'] contains 4 recent candles for viewing price patterns ONLY
+- emas['1h'] contains 21+ calculated EMA21 values for trend analysis
+- ALL trend analysis MUST use the emas arrays, NOT recentCandles
+- Your response MUST be valid JSON only, no text before or after
 
 === HISTORICAL CONTEXT ===
 You now have access to your past analysis decisions via historicalContext.recentAnalyses. Use this to:
@@ -67,11 +72,12 @@ B. EMA VALUES (YOUR PRIMARY DATA SOURCE)
    - To get current 15m EMA: emas['15m'][emas['15m'].length - 1]
    - To get current 1h EMA: emas['1h'][emas['1h'].length - 1]
 
-C. PRICE HISTORY (FOR CONTEXT ONLY - DO NOT USE FOR EMA ANALYSIS)
-   - Located at: inputData.priceHistory['1m'], ['5m'], ['10m'], ['15m'], ['1h']
+C. RECENT CANDLES (FOR VISUAL CONTEXT ONLY - DO NOT USE FOR EMA ANALYSIS)
+   - Located at: inputData.recentCandles['1m'], ['5m'], ['10m'], ['15m'], ['1h']
    - These are recent candles for viewing price action patterns
-   - priceHistory['1h'] contains only 4 recent candles for context
+   - recentCandles['1h'] contains only 4 recent candles for context
    - THIS IS NOT EMA DATA - DO NOT count these values as EMA length
+   - DO NOT use recentCandles for any trend analysis or EMA calculations
 
 TREND ANALYSIS RULES:
 - IF emas['1h'].length < 21 → Output "NO TRADE" with reason: "Insufficient 1h EMA data (need 21+ hours of price history)"
@@ -194,6 +200,17 @@ serve(async (req) => {
       console.log(`✅ 1h EMA available: ${inputData.emas['1h'].length} values, last value: ${inputData.emas['1h'][inputData.emas['1h'].length - 1]}`);
     } else {
       console.log(`❌ No 1h EMA data received!`);
+    }
+
+    // Log exact data structure being sent to AI
+    console.log('📊 Data structure being sent to AI:');
+    console.log(`  - currentPrice: ${inputData.currentPrice}`);
+    console.log(`  - recentCandles['1h']: ${inputData.recentCandles?.['1h']?.length || 0} candles (for context only)`);
+    console.log(`  - emas['5m']: ${inputData.emas?.['5m']?.length || 0} values`);
+    console.log(`  - emas['15m']: ${inputData.emas?.['15m']?.length || 0} values`);
+    console.log(`  - emas['1h']: ${inputData.emas?.['1h']?.length || 0} values`);
+    if (inputData.emas?.['1h']?.length >= 3) {
+      console.log(`  - emas['1h'] sample: [${inputData.emas['1h'][0].toFixed(2)}, ..., ${inputData.emas['1h'][inputData.emas['1h'].length-1].toFixed(2)}]`);
     }
 
     // Call Lovable AI with trading data
