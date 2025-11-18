@@ -5,8 +5,12 @@ import { AICreditsMonitor } from "../components/admin/AICreditsMonitor";
 import { BackendStatus } from "../components/admin/BackendStatus";
 import { EdgeFunctionsList } from "../components/admin/EdgeFunctionsList";
 import { EnvironmentInfo } from "../components/admin/EnvironmentInfo";
+import { DataValidationPanel } from "../components/panels/DataValidationPanel";
+import { useMarketData } from "../hooks/useMarketData";
 
 export function Dashboard() {
+  const { validation, isLoading, error } = useMarketData();
+
   return (
     <div className="flex h-full flex-col gap-6 pb-8">
       {/* Header */}
@@ -46,6 +50,7 @@ export function Dashboard() {
 
         {/* Right Column - 1/3 width */}
         <div className="space-y-4">
+          <DataValidationPanel validation={validation} isLoading={isLoading} error={error} />
           <AICreditsMonitor />
           <BackendStatus />
           <EdgeFunctionsList />
