@@ -6,6 +6,7 @@ import { BackendStatus } from "../components/admin/BackendStatus";
 import { EdgeFunctionsList } from "../components/admin/EdgeFunctionsList";
 import { EnvironmentInfo } from "../components/admin/EnvironmentInfo";
 import { DataValidationPanel } from "../components/panels/DataValidationPanel";
+import { APIConnectionTest } from "../components/admin/APIConnectionTest";
 import { useMarketData } from "../hooks/useMarketData";
 
 export function Dashboard() {
@@ -60,6 +61,11 @@ export function Dashboard() {
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <EnvironmentInfo />
+        <APIConnectionTest />
+      </div>
+
+      {/* Security Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="p-6 rounded-lg border border-border/50 bg-card">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="h-5 w-5 text-primary" />
