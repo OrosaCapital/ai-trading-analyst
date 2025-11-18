@@ -50,13 +50,27 @@ Deno.serve(async (req) => {
     const data = await response.json();
     console.log('CoinMarketCap Fear & Greed response:', JSON.stringify(data));
 
-    // Parse the CoinMarketCap response
+    // Validate CMC response structure
+    if (!data.data) {
+      throw new Error('CMC API returned invalid response structure: missing data field');
+    }
+
     const fngData = data.data;
+    
+    // Validate required fields
+    if (typeof fngData.value !== 'number') {
+      throw new Error(`CMC API returned invalid value: ${fngData.value}`);
+    }
+    
+    if (!fngData.value_classification) {
+      console.warn('CMC API missing value_classification, using default');
+    }
+
     const responseData = {
-      value: fngData?.value || 50,
-      valueClassification: fngData?.value_classification || 'Neutral',
-      timestamp: fngData?.timestamp || new Date().toISOString(),
-      timeUntilUpdate: fngData?.time_until_update,
+      value: fngData.value,
+      valueClassification: fngData.value_classification || getClassification(fngData.value),
+      timestamp: fngData.timestamp || new Date().toISOString(),
+      timeUntilUpdate: fngData.time_until_update,
       isMockData: false,
       change24h: 0, // CMC doesn't provide 24h change in this endpoint
     };
@@ -79,7 +93,12 @@ Deno.serve(async (req) => {
     });
 
   } catch (error: any) {
-    console.error('Error fetching Fear & Greed Index:', error);
+    console.error('❌ Error fetching Fear & Greed Index:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response,
+    });
     
     // Return fallback data on error
     const fallbackData = {
@@ -89,7 +108,8 @@ Deno.serve(async (req) => {
       isMockData: true,
       unavailable: true,
       change24h: 0,
-      message: 'Fear & Greed Index temporarily unavailable'
+      message: `Fear & Greed Index temporarily unavailable: ${error.message}`,
+      error: error.message
     };
 
     return new Response(JSON.stringify(fallbackData), {
@@ -97,3 +117,12 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+// Helper function to classify value if CMC doesn't provide classification
+function getClassification(value: number): string {
+  if (value >= 75) return 'Extreme Greed';
+  if (value >= 55) return 'Greed';
+  if (value >= 45) return 'Neutral';
+  if (value >= 25) return 'Fear';
+  return 'Extreme Fear';
+}

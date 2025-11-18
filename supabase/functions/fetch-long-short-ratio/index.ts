@@ -15,24 +15,41 @@ async function fetchLongShortFromCoinglass(symbol: string, apiKey: string) {
     // Fix: Replace USDT first, then USD to avoid corrupting symbols
     const cleanSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '') + 'USDT';
     
-    // Import shared client function
+    // Import shared client function and validation
     const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
+    const {
+      validateCoinglassResponse,
+      validateArrayData,
+      logValidationResult,
+    } = await import('../_shared/apiValidation.ts');
+    const { monitoredAPICall } = await import('../_shared/apiMonitoring.ts');
     
-    // Use database lookup for endpoint
-    const data = await fetchFromCoinglassV2(
+    // Use monitored API call
+    const data = await monitoredAPICall(
       'long_short_ratio',
-      {
-        exchange: 'Binance',
-        symbol: cleanSymbol,
-        interval: '4h',
-        limit: '24'
-      },
-      apiKey
+      cleanSymbol,
+      async () => await fetchFromCoinglassV2(
+        'long_short_ratio',
+        {
+          exchange: 'Binance',
+          symbol: cleanSymbol,
+          interval: '4h',
+          limit: '24'
+        },
+        apiKey
+      )
     );
     console.log('Coinglass long/short data received');
 
-    if (data.code !== '0' || !data.data || data.data.length === 0) {
-      throw new Error('Invalid Coinglass response');
+    // Validate response structure
+    const validation = validateCoinglassResponse(data, (responseData) => {
+      return validateArrayData(responseData, 1);
+    });
+    
+    logValidationResult('long_short_ratio', cleanSymbol, validation);
+    
+    if (!validation.isValid) {
+      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
     const latest = data.data[data.data.length - 1];

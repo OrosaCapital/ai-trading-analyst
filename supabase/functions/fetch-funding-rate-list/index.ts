@@ -37,11 +37,44 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching funding rate list for ${symbol} from Coinglass`);
 
-    const data = await fetchFromCoinglassV2(
-      'funding_rate_exchange_list',
-      { symbol },
-      coinglassApiKey
+    // Import validation and monitoring
+    const {
+      validateCoinglassResponse,
+      validateArrayData,
+      logValidationResult,
+      createErrorResponse,
+    } = await import('../_shared/apiValidation.ts');
+    
+    const { monitoredAPICall } = await import('../_shared/apiMonitoring.ts');
+
+    // Use monitored API call
+    const data = await monitoredAPICall(
+      'funding_rate_list',
+      symbol,
+      async () => await fetchFromCoinglassV2(
+        'funding_rate_exchange_list',
+        { symbol },
+        coinglassApiKey
+      )
     );
+
+    // Validate response structure
+    const validation = validateCoinglassResponse(data, (responseData) => {
+      return validateArrayData(responseData, 1);
+    });
+    
+    logValidationResult('funding_rate_list', symbol, validation);
+    
+    if (!validation.isValid) {
+      const errorResponse = createErrorResponse('funding_rate', symbol, validation.errors, validation.warnings);
+      errorResponse.exchanges = [];
+      errorResponse.avgRate = 0;
+      errorResponse.sentiment = 'NEUTRAL';
+      errorResponse.timestamp = Date.now();
+      return new Response(JSON.stringify(errorResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     console.log('Coinglass funding rate list response:', JSON.stringify(data));
 
