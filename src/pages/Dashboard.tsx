@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { LivePriceHeader } from '@/components/dashboard/LivePriceHeader';
+import { CoinglassPanel } from '@/components/dashboard/CoinglassPanel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, TrendingUp, TrendingDown } from 'lucide-react';
@@ -184,15 +185,9 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Section 3: Chart - Coming Soon */}
-        <section className="p-12 bg-card border border-border rounded-lg flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-muted-foreground mb-2">📊</div>
-            <div className="text-xl font-semibold text-muted-foreground">Chart Coming Soon</div>
-            <div className="text-sm text-muted-foreground mt-2">
-              Real-time trading chart in progress
-            </div>
-          </div>
+        {/* Section 3: Coinglass Intelligence Panel */}
+        <section>
+          <CoinglassPanel symbol={symbol} />
         </section>
 
         {/* Section 4: AI Analysis - Coming Soon */}
