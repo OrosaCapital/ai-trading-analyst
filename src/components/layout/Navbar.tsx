@@ -3,9 +3,9 @@ import { Terminal, LayoutDashboard, ListChecks, Settings, Activity } from "lucid
 
 export function Navbar() {
   const navItems = [
-    { to: "/", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/", label: "Admin Dashboard", icon: LayoutDashboard },
     { to: "/watchlist", label: "Watchlist", icon: ListChecks },
-    { to: "/ai-trading", label: "AI Trading", icon: Activity },
+    { to: "/trading", label: "Trading Dashboard", icon: Activity },
   ];
 
   return (
