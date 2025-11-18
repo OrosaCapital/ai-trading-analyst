@@ -9,6 +9,9 @@ const corsHeaders = {
 
 const CACHE_DURATION_MS = 30 * 1000; // 30 seconds
 
+// Symbols not supported by Tatum API
+const UNSUPPORTED_SYMBOLS = ['AVAXUSDT', 'AVAX'];
+
 // Fetch price from Tatum API with caching
 async function fetchTatumPrice(
   symbol: string, 
@@ -36,6 +39,13 @@ async function fetchTatumPrice(
   
   // Extract base symbol (BTC from BTCUSD)
   const baseSymbol = symbol.replace(/USD$|USDT$/, '');
+  
+  // Check if symbol is unsupported
+  if (UNSUPPORTED_SYMBOLS.includes(symbol) || UNSUPPORTED_SYMBOLS.includes(baseSymbol)) {
+    console.log(`⚠️ Symbol ${symbol} not supported by Tatum API - skipping`);
+    throw new Error(`Symbol ${symbol} is not supported by Tatum API`);
+  }
+  
   const url = `https://api.tatum.io/v4/data/rate/symbol?symbol=${baseSymbol}&basePair=USD`;
   
   const response = await fetch(url, {
@@ -111,6 +121,21 @@ serve(async (req) => {
     if (!symbol) {
       return new Response(JSON.stringify({ error: 'Symbol required' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check if symbol is unsupported
+    const baseSymbol = symbol.replace(/USD$|USDT$/, '');
+    if (UNSUPPORTED_SYMBOLS.includes(symbol) || UNSUPPORTED_SYMBOLS.includes(baseSymbol)) {
+      console.log(`⚠️ Symbol ${symbol} not supported - skipping logging`);
+      return new Response(JSON.stringify({ 
+        success: false,
+        skipped: true,
+        reason: 'UNSUPPORTED_SYMBOL',
+        message: `${symbol} is not supported by the price provider`
+      }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

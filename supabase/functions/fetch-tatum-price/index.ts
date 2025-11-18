@@ -8,6 +8,9 @@ const corsHeaders = {
 
 const CACHE_DURATION_MS = 30 * 1000; // 30 seconds
 
+// Symbols not supported by Tatum API
+const UNSUPPORTED_SYMBOLS = ['AVAXUSDT', 'AVAX'];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,6 +21,23 @@ serve(async (req) => {
     
     if (!symbol) {
       throw new Error('Symbol is required');
+    }
+
+    // Check if symbol is unsupported
+    const baseSymbol = symbol.replace(/USD$|USDT$/, '');
+    if (UNSUPPORTED_SYMBOLS.includes(symbol) || UNSUPPORTED_SYMBOLS.includes(baseSymbol)) {
+      console.log(`⚠️ Symbol ${symbol} not supported by Tatum API`);
+      return new Response(
+        JSON.stringify({ 
+          unavailable: true, 
+          reason: 'UNSUPPORTED_SYMBOL',
+          message: `${symbol} is not supported by the price provider`
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Initialize Supabase client for caching
@@ -55,9 +75,6 @@ serve(async (req) => {
     if (!apiKey) {
       throw new Error('TATUM_API_KEY not configured');
     }
-
-    // Extract base symbol (BTC from BTCUSD, ETH from ETHUSD, etc.)
-    const baseSymbol = symbol.replace(/USD$|USDT$/, '');
     
     console.log(`Fetching Tatum price for ${baseSymbol}/USD`);
 
