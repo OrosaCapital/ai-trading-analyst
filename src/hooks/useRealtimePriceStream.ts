@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { logWarningToSystem } from '@/store/useSystemAlertsStore';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { logWarningToSystem } from "@/store/useSystemAlertsStore";
 
 interface PriceUpdate {
-  type: 'price_update';
+  type: "price_update";
   symbol: string;
   price: number;
   volume: number;
@@ -14,108 +14,45 @@ interface PriceUpdate {
 }
 
 interface ConnectionStatus {
-  type: 'connection';
-  status: 'ready' | 'connected' | 'disconnected' | 'error';
+  type: "connection";
+  status: "ready" | "connected" | "disconnected" | "error";
   symbol?: string;
   message?: string;
 }
 
-type WebSocketMessage = PriceUpdate | ConnectionStatus | { type: 'error'; message: string };
+type WebSocketMessage = PriceUpdate | ConnectionStatus | { type: "error"; message: string };
 
-interface UseRealtimePriceStreamReturn {
-  priceData: PriceUpdate | null;
-  connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
-  isConnected: boolean;
-  reconnect: () => void;
-  lastUpdateTime: number | null;
-  isPolling: boolean;
-}
-
-export const useRealtimePriceStream = (
-  symbol: string | null,
-  enabled: boolean = true
-): UseRealtimePriceStreamReturn => {
+export const useRealtimePriceStream = (symbol: string | null, enabled: boolean = true) => {
   const [priceData, setPriceData] = useState<PriceUpdate | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
+  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected" | "error">(
+    "disconnected",
+  );
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
-  const [isPolling, setIsPolling] = useState(false);
+
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
-  const pollingIntervalRef = useRef<number | null>(null);
+  const heartbeatRef = useRef<number | null>(null);
   const currentSymbolRef = useRef<string | null>(null);
-  const statusDebounceRef = useRef<number | null>(null);
-  const stableConnectionRef = useRef<boolean>(false);
-  const heartbeatIntervalRef = useRef<number | null>(null);
-
-  const setStableConnectionStatus = useCallback((status: 'connecting' | 'connected' | 'disconnected' | 'error') => {
-    // Clear any pending status updates
-    if (statusDebounceRef.current) {
-      clearTimeout(statusDebounceRef.current);
-    }
-
-    // Debounce status changes to prevent flashing (300ms delay)
-    statusDebounceRef.current = window.setTimeout(() => {
-      setConnectionStatus(status);
-      if (status === 'connected') {
-        stableConnectionRef.current = true;
-      } else if (status === 'disconnected' || status === 'error') {
-        stableConnectionRef.current = false;
-      }
-    }, 300);
-  }, []);
 
   const connect = useCallback(() => {
-    if (!enabled || !symbol) {
-      return;
-    }
+    if (!enabled || !symbol) return;
 
-    // Don't reconnect if already connecting or connected to the same symbol
-    if (
-      wsRef.current && 
-      (wsRef.current.readyState === WebSocket.CONNECTING || 
-       wsRef.current.readyState === WebSocket.OPEN) &&
-      currentSymbolRef.current === symbol
-    ) {
-      return;
-    }
+    if (wsRef.current) wsRef.current.close();
 
-    // Close existing connection
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-
-    // Only show connecting if not already connected
-    if (!stableConnectionRef.current) {
-      setStableConnectionStatus('connecting');
-    }
     currentSymbolRef.current = symbol;
+    setConnectionStatus("connecting");
 
-    const wsUrl = `wss://alzxeplijnbpuqkfnpjk.supabase.co/functions/v1/websocket-price-stream`;
-    console.log(`Connecting to WebSocket: ${wsUrl}`);
-
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket("wss://alzxeplijnbpuqkfnpjk.supabase.co/functions/v1/websocket-price-stream");
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('WebSocket connected, subscribing to', symbol);
-      // Subscribe to symbol
-      ws.send(JSON.stringify({
-        action: 'subscribe',
-        symbol: symbol
-      }));
-      
-      // ✅ OCAPX Rule 2: Client-side heartbeat (check every 20s)
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-      }
-      
-      heartbeatIntervalRef.current = window.setInterval(() => {
-        if (ws.readyState !== WebSocket.OPEN) {
-          console.warn('⚠️ WebSocket not OPEN, triggering reconnect...');
-          reconnect();
-        } else {
-          // Send ping to keep connection alive
-          ws.send(JSON.stringify({ type: 'ping' }));
+      setConnectionStatus("connected");
+      ws.send(JSON.stringify({ action: "subscribe", symbol }));
+
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+
+      heartbeatRef.current = window.setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "ping" }));
         }
       }, 20000);
     };
@@ -123,211 +60,52 @@ export const useRealtimePriceStream = (
     ws.onmessage = async (event) => {
       try {
         const data: WebSocketMessage = JSON.parse(event.data);
-        console.log('WebSocket message:', data);
 
-        if (data.type === 'connection') {
-          if (data.status === 'connected') {
-            setStableConnectionStatus('connected');
-          } else if (data.status === 'disconnected') {
-            setStableConnectionStatus('disconnected');
-          } else if (data.status === 'error') {
-            setStableConnectionStatus('error');
-          }
-        } else if (data.type === 'price_update') {
-          // ✅ OCAPX Rule 2: Reject stale messages (>15s old)
-          if (data.timestamp < Date.now() - 15000) {
-            console.warn(`⚠️ Stale price rejected: ${symbol} price from ${new Date(data.timestamp).toISOString()}`);
-            return;
-          }
-          
-          // ✅ OCAPX Rule 3: Anomaly detection (>10% price jump)
-          const oldPrice = priceData?.price || null;
-          const newPrice = data.price;
-          
-          if (oldPrice && Math.abs((newPrice - oldPrice) / oldPrice) > 0.10) {
-            console.warn(`🚨 Price anomaly detected: ${symbol} jumped ${((newPrice - oldPrice) / oldPrice * 100).toFixed(2)}%`);
-            console.warn(`   Old: $${oldPrice.toFixed(4)} → New: $${newPrice.toFixed(4)}`);
-            
-            // Verify with Tatum API
-            try {
-              const { data: tatumData, error } = await supabase.functions.invoke('fetch-tatum-price', {
-                body: { symbol }
-              });
-              
-              if (!error && tatumData?.price) {
-                const tatumPrice = parseFloat(tatumData.price);
-                const deviation = Math.abs((tatumPrice - newPrice) / tatumPrice);
-                
-                if (deviation < 0.05) {
-                  console.log(`✅ Tatum confirms price: ${tatumPrice} (${(deviation * 100).toFixed(2)}% deviation)`);
-                  data.price = tatumPrice;
-                } else {
-                  console.warn(`⚠️ Tatum price differs: ${tatumPrice} vs ${newPrice} (${(deviation * 100).toFixed(2)}% deviation)`);
-                  data.price = tatumPrice; // Use Tatum as more reliable
-                }
-              } else {
-                console.error('❌ Tatum verification failed, rejecting suspicious price');
-                return;
-              }
-            } catch (error) {
-              console.error('Tatum verification error:', error);
-              return;
-            }
-          }
-          
+        if (data.type === "connection") {
+          setConnectionStatus(
+            data.status === "connected" ? "connected" : data.status === "error" ? "error" : "disconnected",
+          );
+        }
+
+        if (data.type === "price_update") {
           setPriceData(data);
           setLastUpdateTime(Date.now());
-          // Only stop polling and update status once
-          setIsPolling((prev) => {
-            if (prev) {
-              // Only set connected status when transitioning from polling
-              setStableConnectionStatus('connected');
-              return false;
-            }
-            return prev;
-          });
-        } else if (data.type === 'error') {
-          logWarningToSystem('WebSocket Error', data.message || 'Unknown error', 'WebSocket');
-          setStableConnectionStatus('error');
         }
-      } catch (error) {
-        logWarningToSystem('WebSocket Parse Error', error instanceof Error ? error.message : 'Failed to parse message', 'WebSocket');
+
+        if (data.type === "error") {
+          setConnectionStatus("error");
+        }
+      } catch (e) {
+        logWarningToSystem("WebSocket Parse Error", e instanceof Error ? e.message : "Failed to parse", "WebSocket");
       }
     };
 
-    ws.onerror = (error) => {
-      // Silent error - will auto-reconnect, logged to admin dashboard
-      setStableConnectionStatus('error');
+    ws.onerror = () => {
+      setConnectionStatus("error");
     };
 
     ws.onclose = () => {
-      console.log('WebSocket closed');
-      
-      // Clear heartbeat interval
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-        heartbeatIntervalRef.current = null;
-      }
-      
-      setStableConnectionStatus('disconnected');
-      
-      // Auto-reconnect after 3 seconds if still enabled
-      if (enabled && symbol) {
-        reconnectTimeoutRef.current = window.setTimeout(() => {
-          console.log('Auto-reconnecting...');
-          connect();
-        }, 3000);
-      }
+      setConnectionStatus("disconnected");
     };
-
-    return ws;
-  }, [symbol, enabled, connectionStatus]);
-
-  // Polling fallback when WebSocket is disconnected
-  const startPolling = useCallback(async () => {
-    if (!symbol || !enabled) return;
-
-    setIsPolling(true);
-    console.log(`🔄 Starting Tatum polling fallback for ${symbol}`);
-
-    const poll = async () => {
-      try {
-        // ✅ OCAPX Rule 7: Use Tatum as reliable fallback
-        const { data: tatumData, error } = await supabase.functions.invoke('fetch-tatum-price', {
-          body: { symbol }
-        });
-
-        if (!error && tatumData?.price) {
-          const price = parseFloat(tatumData.price);
-          console.log(`✅ Tatum polling: ${symbol} = $${price}`);
-
-          const mockPriceUpdate: PriceUpdate = {
-            type: 'price_update',
-            symbol,
-            price: price,
-            volume: 0,
-            change24h: 0,
-            high24h: price,
-            low24h: price,
-            timestamp: Date.now()
-          };
-          setPriceData(mockPriceUpdate);
-          setLastUpdateTime(Date.now());
-          return;
-        }
-
-        // No fallback to fetch-chart-data - TradingView handles all chart data
-        console.log(`⚠️ No price data available for ${symbol}, waiting for next poll...`);
-
-        console.log('Both Tatum and CoinGlass polling failed, using last known price');
-
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
-    };
-
-    // Removed Tatum polling fallback - rely on WebSocket only
-    // If WebSocket fails, show error state instead of polling
-    // This prevents API flooding while maintaining UX clarity
   }, [symbol, enabled]);
 
-  const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-      setIsPolling(false);
-      console.log('Stopped polling fallback');
-    }
-  }, []);
-
-  const reconnect = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-    stopPolling();
-    connect();
-  }, [connect, stopPolling]);
-
-  // Start polling fallback when disconnected or error
   useEffect(() => {
-    if ((connectionStatus === 'disconnected' || connectionStatus === 'error') && enabled && symbol) {
-      const timeout = setTimeout(() => {
-        startPolling();
-      }, 3000); // Wait 3s before starting polling
-      return () => clearTimeout(timeout);
-    } else if (connectionStatus === 'connected') {
-      stopPolling();
-    }
-  }, [connectionStatus, enabled, symbol, startPolling, stopPolling]);
-
-  useEffect(() => {
-    if (enabled && symbol) {
-      connect();
-    }
+    if (enabled && symbol) connect();
 
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-      }
-      if (wsRef.current) {
-        currentSymbolRef.current = null;
-        wsRef.current.close();
-      }
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      if (wsRef.current) wsRef.current.close();
+      wsRef.current = null;
+      currentSymbolRef.current = null;
     };
   }, [symbol, enabled, connect]);
 
   return {
     priceData,
     connectionStatus,
-    isConnected: connectionStatus === 'connected',
-    reconnect,
+    isConnected: connectionStatus === "connected",
+    reconnect: connect,
     lastUpdateTime,
-    isPolling,
+    isPolling: false,
   };
 };
