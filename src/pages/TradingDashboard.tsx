@@ -14,6 +14,9 @@ export default function TradingDashboard() {
   const { data: aiData, isLoading: aiLoading, error: aiError } = useAITradingData(symbol);
   const { chartData, isLoading: chartLoading, error: chartError } = useProfessionalChartData(symbol);
 
+  // Safely get current price
+  const currentPrice = chartData?.candles1h?.[chartData.candles1h.length - 1]?.close;
+
   return (
     <div className="flex h-full flex-col gap-4 pb-8">
       {/* Top Command Center */}
@@ -22,7 +25,7 @@ export default function TradingDashboard() {
         onSymbolChange={setSymbol}
         timeframe={timeframe}
         onTimeframeChange={setTimeframe}
-        currentPrice={chartData.candles1h[chartData.candles1h.length - 1]?.close}
+        currentPrice={currentPrice}
       />
 
       {/* Main Content Grid */}
@@ -45,7 +48,7 @@ export default function TradingDashboard() {
             aiData={aiData}
             isLoading={aiLoading}
             error={aiError}
-            currentPrice={chartData.candles1h[chartData.candles1h.length - 1]?.close}
+            currentPrice={currentPrice}
           />
         </div>
       </div>
