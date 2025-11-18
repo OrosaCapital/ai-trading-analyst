@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LivePriceHeader } from '@/components/dashboard/LivePriceHeader';
+import { MarketMetricsPanel } from '@/components/dashboard/MarketMetricsPanel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
@@ -54,20 +55,9 @@ const Dashboard = () => {
           <LivePriceHeader symbol={symbol} />
         </section>
 
-        {/* Section 2: Market Metrics - Coming Soon */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-6 bg-card border border-border rounded-lg">
-            <div className="text-sm text-muted-foreground mb-2">Market Cap</div>
-            <div className="text-2xl font-bold">Coming Soon</div>
-          </div>
-          <div className="p-6 bg-card border border-border rounded-lg">
-            <div className="text-sm text-muted-foreground mb-2">24h Volume</div>
-            <div className="text-2xl font-bold">Coming Soon</div>
-          </div>
-          <div className="p-6 bg-card border border-border rounded-lg">
-            <div className="text-sm text-muted-foreground mb-2">24h Change</div>
-            <div className="text-2xl font-bold">Coming Soon</div>
-          </div>
+        {/* Section 2: Market Metrics */}
+        <section>
+          <MarketMetricsPanel symbol={symbol} />
         </section>
 
         {/* Section 3: Chart - Coming Soon */}
