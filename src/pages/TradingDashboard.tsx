@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { TradingCommandCenter } from "@/components/trading/TradingCommandCenter";
 import { TradingViewChart } from "@/components/TradingViewChart";
-import { MetricsColumn } from "@/components/trading/MetricsColumn";
 import { AIDecisionPanel } from "@/components/trading/AIDecisionPanel";
 import { AdvancedAnalyticsTabs } from "@/components/trading/AdvancedAnalyticsTabs";
 import { useAITradingData } from "@/hooks/useAITradingData";
@@ -92,6 +91,7 @@ export default function TradingDashboard() {
       showProgress={isAccumulating}
       minutesCollected={minutesCollected}
       minutesRequired={15}
+      symbol={normalizedSymbol}
     >
       {/* Top Command Center */}
       <TradingCommandCenter 
@@ -104,20 +104,15 @@ export default function TradingDashboard() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 mb-2">
-        {/* Left - Primary Chart (60%) */}
-        <div className="lg:col-span-7 flex flex-col gap-2">
+        {/* Left - Primary Chart (70%) */}
+        <div className="lg:col-span-8 flex flex-col gap-2">
           <div className="h-[450px]">
             <TradingViewChart symbol={normalizedSymbol} />
           </div>
         </div>
 
-        {/* Center - Market Metrics (20%) */}
-        <div className="lg:col-span-2 flex flex-col gap-2 overflow-y-auto">
-          <MetricsColumn symbol={normalizedSymbol} />
-        </div>
-
-        {/* Right - AI Decision Panel (20%) */}
-        <div className="lg:col-span-3 flex flex-col gap-2 overflow-y-auto">
+        {/* Right - AI Decision Panel (30%) */}
+        <div className="lg:col-span-4 flex flex-col gap-2 overflow-y-auto">
           <AIDecisionPanel 
             aiData={aiData}
             isLoading={aiLoading || isAccumulating}

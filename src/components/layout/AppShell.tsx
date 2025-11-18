@@ -7,12 +7,13 @@ interface AppShellProps extends PropsWithChildren {
   showProgress?: boolean;
   minutesCollected?: number;
   minutesRequired?: number;
+  symbol?: string;
 }
 
-export function AppShell({ children, showProgress, minutesCollected, minutesRequired }: AppShellProps) {
+export function AppShell({ children, showProgress, minutesCollected, minutesRequired, symbol = "" }: AppShellProps) {
   return (
     <div className="flex h-screen w-screen bg-gradient-to-br from-black via-slate-950 to-black text-gray-100">
-      <Sidebar />
+      <Sidebar symbol={symbol} />
       <div className="flex flex-1 flex-col">
         <Navbar />
         <Topbar 
