@@ -185,6 +185,67 @@ serve(async (req) => {
 
     console.log(`🔄 Fetching trading data for ${symbol}...`);
 
+    // 0. Check for recent analysis first (within last 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentSignal } = await supabase
+      .from('ai_trading_signals')
+      .select('*')
+      .eq('symbol', symbol)
+      .gte('created_at', fiveMinutesAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentSignal) {
+      console.log(`✨ Found recent analysis (${Math.round((Date.now() - new Date(recentSignal.created_at).getTime()) / 1000)}s old), returning cached result`);
+      
+      // Fetch supporting data for display
+      const [logs1m, logs5m, logs15m, logs1h] = await Promise.all([
+        supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '1m').order('timestamp', { ascending: false }).limit(15),
+        supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '5m').order('timestamp', { ascending: false }).limit(20),
+        supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '15m').order('timestamp', { ascending: false }).limit(20),
+        supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '1h').order('timestamp', { ascending: false }).limit(24),
+      ]);
+
+      const currentPrice = logs1m.data?.[0]?.price || 0;
+
+      // Return cached analysis with normalized structure
+      return new Response(JSON.stringify({
+        status: 'ready',
+        aiSignal: {
+          decision: recentSignal.decision,
+          confidence: recentSignal.confidence,
+          summary: {
+            trend: recentSignal.trend_explanation || 'N/A',
+            volume: recentSignal.volume_explanation || 'N/A',
+            liquidity: recentSignal.liquidity_explanation || 'N/A',
+            coinglass: recentSignal.coinglass_explanation || 'N/A',
+            entryTrigger: recentSignal.entry_trigger_explanation || 'N/A'
+          },
+          action: {
+            entry: recentSignal.entry_price,
+            stopLoss: recentSignal.stop_loss,
+            takeProfit: recentSignal.take_profit,
+            reason: null
+          },
+          cached: true,
+          cacheAge: Math.round((Date.now() - new Date(recentSignal.created_at).getTime()) / 1000)
+        },
+        priceData: {
+          '1m': logs1m.data || [],
+          '5m': logs5m.data || [],
+          '15m': logs15m.data || [],
+          '1h': logs1h.data || []
+        },
+        currentPrice,
+        lastUpdate: recentSignal.created_at
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`🔍 No recent analysis found, proceeding with fresh analysis...`);
+
     // 1. Check if we have enough data (15 minutes of 1m logs)
     const { count } = await supabase
       .from('tatum_price_logs')
