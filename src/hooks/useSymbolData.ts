@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimePriceStream } from "./useRealtimePriceStream";
+import { normalizeSymbol } from "@/lib/symbolUtils";
 
 interface SymbolData {
   // Real-time price
@@ -75,6 +76,9 @@ export function useSymbolData(symbol: string) {
       setIsLoading(true);
       setError(null);
 
+      // Extract base symbol for CoinMarketCap API
+      const baseSymbol = normalizeSymbol(symbol);
+
       try {
         // Fetch all data in parallel
         const [
@@ -88,7 +92,7 @@ export function useSymbolData(symbol: string) {
           rsiData,
           aiSignal,
         ] = await Promise.allSettled([
-          supabase.functions.invoke("fetch-cmc-quotes", { body: { symbol } }),
+          supabase.functions.invoke("fetch-cmc-quotes", { body: { symbol: baseSymbol } }),
           supabase.functions.invoke("fetch-funding-rate", { body: { symbol } }),
           supabase.functions.invoke("fetch-open-interest", { body: { symbol } }),
           supabase.functions.invoke("fetch-long-short-ratio", { body: { symbol } }),
@@ -101,7 +105,7 @@ export function useSymbolData(symbol: string) {
 
         // Process CMC data
         if (cmcQuotes.status === "fulfilled" && cmcQuotes.value.data) {
-          const symbolData = cmcQuotes.value.data.data?.[symbol];
+          const symbolData = cmcQuotes.value.data.data?.[baseSymbol];
           const quote = symbolData?.quote?.USD;
           if (quote) {
             setData((prev) => ({
