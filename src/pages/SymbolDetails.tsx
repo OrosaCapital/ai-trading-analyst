@@ -2,11 +2,29 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/card";
-import { Coins, TrendingUp, Activity, Search } from "lucide-react";
+import {
+  Coins,
+  TrendingUp,
+  Activity,
+  Search,
+  Zap,
+  Target,
+  BarChart3,
+  PieChart,
+  Activity as ActivityIcon,
+  Gauge,
+  LineChart,
+  DollarSign,
+  TrendingDown,
+} from "lucide-react";
 import { normalizeSymbol, addUsdSuffix } from "@/lib/symbolUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useSymbolData } from "@/hooks/useSymbolData";
+import { TechMetricCard } from "@/components/symbol/TechMetricCard";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 export default function SymbolDetails() {
   const { symbolParam } = useParams<{ symbolParam: string }>();
@@ -14,6 +32,8 @@ export default function SymbolDetails() {
   const [searchSymbol, setSearchSymbol] = useState("");
   const normalizedSymbol = normalizeSymbol(symbolParam || "BTC");
   const tradingSymbol = addUsdSuffix(normalizedSymbol);
+  
+  const { data, isLoading, error } = useSymbolData(tradingSymbol);
 
   const handleSymbolSearch = () => {
     if (searchSymbol.trim()) {
@@ -28,56 +48,218 @@ export default function SymbolDetails() {
     }
   };
 
+  const getAIDecisionColor = () => {
+    if (data.aiDecision === "BUY") return "text-emerald-400";
+    if (data.aiDecision === "SELL") return "text-red-400";
+    return "text-yellow-400";
+  };
+
+  const getAIDecisionBadge = () => {
+    if (data.aiDecision === "BUY") return "bg-emerald-500/20 text-emerald-400 border-emerald-500/50";
+    if (data.aiDecision === "SELL") return "bg-red-500/20 text-red-400 border-red-500/50";
+    return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
+  };
+
   return (
     <AppShell symbol={tradingSymbol}>
       <div className="space-y-4">
-        {/* Symbol Header */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <Coins className="h-8 w-8 text-primary" />
+        {/* Hero Header - Iron Man Style */}
+        <Card className="relative overflow-hidden bg-gradient-to-br from-card via-card/90 to-card/70 backdrop-blur-xl border-primary/30 shadow-2xl">
+          {/* Animated background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/5 animate-pulse" />
+          
+          {/* Grid overlay */}
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(99,102,241,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.3) 1px, transparent 1px)",
+              backgroundSize: "40px 40px",
+            }}
+          />
+
+          <div className="relative p-6">
+            <div className="flex items-center justify-between mb-6">
+              {/* Symbol info */}
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl animate-pulse" />
+                  <div className="relative p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30">
+                    <Coins className="h-12 w-12 text-primary" />
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent">
+                    {normalizedSymbol}
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">{tradingSymbol}</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">{normalizedSymbol}</h1>
-                <p className="text-sm text-muted-foreground">{tradingSymbol}</p>
+
+              {/* Search input */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Enter symbol (e.g., BTC, ETH)"
+                    value={searchSymbol}
+                    onChange={(e) => setSearchSymbol(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="w-64 bg-background/50 backdrop-blur-sm border-primary/30 focus:border-primary"
+                  />
+                </div>
+                <Button onClick={handleSymbolSearch} size="icon" className="bg-primary/20 hover:bg-primary/30 border border-primary/50">
+                  <Search className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Input
-                type="text"
-                placeholder="Enter symbol (e.g., BTC, ETH)"
-                value={searchSymbol}
-                onChange={(e) => setSearchSymbol(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="w-64 bg-background"
-              />
-              <Button onClick={handleSymbolSearch} size="icon">
-                <Search className="h-4 w-4" />
-              </Button>
+
+            {/* Live price display */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Live Price</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {data.currentPrice ? `$${data.currentPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "--"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">24h Change</p>
+                <p className={`text-2xl font-bold ${data.priceChange24h && data.priceChange24h > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {data.priceChange24h ? `${data.priceChange24h > 0 ? "+" : ""}${data.priceChange24h.toFixed(2)}%` : "--"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">24h Volume</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {data.volume24h ? `$${(data.volume24h / 1e9).toFixed(2)}B` : "--"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Market Cap</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {data.marketCap ? `$${(data.marketCap / 1e9).toFixed(2)}B` : "--"}
+                </p>
+              </div>
             </div>
           </div>
         </Card>
 
-        {/* Chart Section */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Price Chart</h2>
-          </div>
-          <div className="h-[400px] flex items-center justify-center border border-border rounded-lg bg-muted/20">
-            <p className="text-muted-foreground">Chart will be integrated here</p>
+        {/* AI Intelligence Panel */}
+        <Card className="relative overflow-hidden bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-primary/20">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
+          <div className="relative p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <Zap className="h-6 w-6 text-primary animate-pulse" />
+                <h2 className="text-xl font-bold text-foreground">AI Intelligence</h2>
+              </div>
+              {data.aiDecision && (
+                <Badge className={`${getAIDecisionBadge()} px-4 py-1 text-sm font-bold border`}>
+                  {data.aiDecision}
+                </Badge>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-card/50 border border-border/50">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Decision</p>
+                <p className={`text-3xl font-bold ${getAIDecisionColor()}`}>
+                  {data.aiDecision || "ANALYZING"}
+                </p>
+              </div>
+              
+              <div className="p-4 rounded-xl bg-card/50 border border-border/50">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Confidence</p>
+                <div className="space-y-2">
+                  <p className="text-3xl font-bold text-foreground">
+                    {data.aiConfidence ? `${data.aiConfidence}%` : "--"}
+                  </p>
+                  {data.aiConfidence && (
+                    <Progress value={data.aiConfidence} className="h-2" />
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-card/50 border border-border/50">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Market Sentiment</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {data.fearGreedLabel || "Calculating..."}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Index: {data.fearGreedIndex || "--"}
+                </p>
+              </div>
+            </div>
           </div>
         </Card>
 
-        {/* AI Signals Section */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">AI Trading Signals</h2>
+        {/* Real-time Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <TechMetricCard
+            title="Funding Rate"
+            value={data.fundingRate ? `${(data.fundingRate * 100).toFixed(4)}` : null}
+            unit="%"
+            icon={<Target className="h-5 w-5" />}
+            isLoading={isLoading}
+            trend={data.fundingRateTrend === "up" ? "up" : data.fundingRateTrend === "down" ? "down" : "neutral"}
+            highlight={Math.abs(data.fundingRate || 0) > 0.01}
+          />
+          
+          <TechMetricCard
+            title="Open Interest"
+            value={data.openInterest ? `$${(data.openInterest / 1e6).toFixed(2)}M` : null}
+            change={data.openInterestChange}
+            icon={<BarChart3 className="h-5 w-5" />}
+            isLoading={isLoading}
+          />
+          
+          <TechMetricCard
+            title="Long/Short Ratio"
+            value={data.longShortRatio ? data.longShortRatio.toFixed(2) : null}
+            icon={<PieChart className="h-5 w-5" />}
+            isLoading={isLoading}
+            trend={data.longShortRatio && data.longShortRatio > 1 ? "up" : "down"}
+          />
+          
+          <TechMetricCard
+            title="24h Liquidations"
+            value={data.liquidations24h ? `$${(data.liquidations24h / 1e6).toFixed(2)}M` : null}
+            icon={<ActivityIcon className="h-5 w-5" />}
+            isLoading={isLoading}
+            highlight={(data.liquidations24h || 0) > 100e6}
+          />
+        </div>
+
+        {/* Technical Indicators */}
+        <Card className="p-6 bg-gradient-to-br from-card/60 to-card/30 backdrop-blur-xl border-border/50">
+          <div className="flex items-center gap-3 mb-6">
+            <LineChart className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-bold text-foreground">Technical Indicators</h2>
           </div>
-          <div className="h-[200px] flex items-center justify-center border border-border rounded-lg bg-muted/20">
-            <p className="text-muted-foreground">AI signals will appear here</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <TechMetricCard
+              title="RSI (14)"
+              value={data.rsi ? data.rsi.toFixed(2) : null}
+              icon={<Gauge className="h-5 w-5" />}
+              isLoading={isLoading}
+              trend={data.rsi && data.rsi > 70 ? "up" : data.rsi && data.rsi < 30 ? "down" : "neutral"}
+              highlight={data.rsi && (data.rsi > 70 || data.rsi < 30)}
+            />
+            
+            <TechMetricCard
+              title="Taker Buy Volume"
+              value={data.takerBuyVolume ? `$${(data.takerBuyVolume / 1e6).toFixed(2)}M` : null}
+              icon={<TrendingUp className="h-5 w-5" />}
+              isLoading={isLoading}
+            />
+            
+            <TechMetricCard
+              title="Taker Sell Volume"
+              value={data.takerSellVolume ? `$${(data.takerSellVolume / 1e6).toFixed(2)}M` : null}
+              icon={<TrendingDown className="h-5 w-5" />}
+              isLoading={isLoading}
+            />
           </div>
         </Card>
 
