@@ -9,6 +9,7 @@ interface LivePriceHeaderProps {
     marketCap?: number;
     volume24h?: number;
     percentChange24h?: number;
+    percentChange1h?: number;
   };
 }
 
@@ -90,7 +91,7 @@ export const LivePriceHeader = ({ symbol = 'BTC', marketData }: LivePriceHeaderP
 
   return (
     <Card className="p-4 bg-card border border-border">
-      <div className="grid grid-cols-5 gap-6 items-center">
+      <div className="grid grid-cols-6 gap-6 items-center">
         {/* Symbol & Status */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -148,6 +149,22 @@ export const LivePriceHeader = ({ symbol = 'BTC', marketData }: LivePriceHeaderP
           <div className="text-xs text-muted-foreground">Market Cap</div>
           <div className="text-xl font-bold">
             {marketData?.marketCap ? formatLargeNumber(marketData.marketCap) : '--'}
+          </div>
+        </div>
+
+        {/* 1Hr Change */}
+        <div className="space-y-1">
+          <div className="text-xs text-muted-foreground">1Hr Change</div>
+          <div className={`text-xl font-bold ${
+            marketData?.percentChange1h && marketData.percentChange1h > 0 
+              ? 'text-chart-green' 
+              : marketData?.percentChange1h && marketData.percentChange1h < 0 
+                ? 'text-chart-red' 
+                : ''
+          }`}>
+            {marketData?.percentChange1h 
+              ? `${marketData.percentChange1h > 0 ? '+' : ''}${marketData.percentChange1h.toFixed(2)}%` 
+              : '--'}
           </div>
         </div>
 
