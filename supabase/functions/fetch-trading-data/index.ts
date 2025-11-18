@@ -405,7 +405,8 @@ serve(async (req) => {
       console.error('AI Decision Engine error:', aiError);
     }
 
-    const finalDecision = aiDecision || {
+    // Ensure we have a valid response structure
+    const finalDecision = aiDecision && typeof aiDecision === 'object' ? aiDecision : {
       data_validation: {
         validation_passed: false
       },
@@ -425,19 +426,40 @@ serve(async (req) => {
       reason: 'AI service unavailable'
     };
 
-    // Extract fields for backwards compatibility
+    // Log what we received for debugging
+    console.log('📋 Final decision structure:', JSON.stringify(finalDecision, null, 2).substring(0, 300));
+
+    // Extract fields with safe fallbacks for both old and new formats
     const decision = finalDecision.trade_decision?.action || finalDecision.decision || 'NO_TRADE';
     const confidence = finalDecision.trade_decision?.confidence_score || finalDecision.confidence || 0;
-    const entryPrice = finalDecision.trade_decision?.entry || finalDecision.action?.entry || null;
-    const stopLoss = finalDecision.trade_decision?.stop_loss || finalDecision.action?.stopLoss || null;
-    const takeProfit = finalDecision.trade_decision?.take_profit || finalDecision.action?.takeProfit || null;
     
-    // Extract summary/analysis fields
-    const trendExplanation = finalDecision.analysis?.trend_direction || finalDecision.summary?.trend || 'N/A';
-    const volumeExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('volume')) || finalDecision.summary?.volume || 'N/A';
-    const liquidityExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('liquidity')) || finalDecision.summary?.liquidity || 'N/A';
-    const coinglassExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('coinglass')) || finalDecision.summary?.coinglass || 'N/A';
-    const entryTriggerExplanation = finalDecision.analysis?.momentum_strength || finalDecision.summary?.entryTrigger || 'N/A';
+    // Safely extract entry/stop/target with nested optional chaining
+    const entryPrice = finalDecision.trade_decision?.entry ?? 
+                      (finalDecision.action && typeof finalDecision.action === 'object' ? finalDecision.action.entry : null) ?? 
+                      null;
+    const stopLoss = finalDecision.trade_decision?.stop_loss ?? 
+                    (finalDecision.action && typeof finalDecision.action === 'object' ? finalDecision.action.stopLoss : null) ?? 
+                    null;
+    const takeProfit = finalDecision.trade_decision?.take_profit ?? 
+                      (finalDecision.action && typeof finalDecision.action === 'object' ? finalDecision.action.takeProfit : null) ?? 
+                      null;
+    
+    // Extract summary/analysis fields with safe fallbacks
+    const trendExplanation = finalDecision.analysis?.trend_direction || 
+                            (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.trend : null) || 
+                            'N/A';
+    const volumeExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('volume')) || 
+                             (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.volume : null) || 
+                             'N/A';
+    const liquidityExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('liquidity')) || 
+                                (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.liquidity : null) || 
+                                'N/A';
+    const coinglassExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('coinglass')) || 
+                                (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.coinglass : null) || 
+                                'N/A';
+    const entryTriggerExplanation = finalDecision.analysis?.momentum_strength || 
+                                   (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.entryTrigger : null) || 
+                                   'N/A';
 
     // 11. Store AI signal in database
     await supabase.from('ai_trading_signals').insert({
