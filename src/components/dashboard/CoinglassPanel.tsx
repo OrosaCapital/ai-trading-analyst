@@ -277,28 +277,28 @@ export const CoinglassPanel = ({
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Taker Volume Ratio
             </p>
-            {loading ? <LoadingSkeleton /> : takerVolume && !takerVolume.unavailable ? <div className="space-y-2">
+            {loading ? <LoadingSkeleton /> : takerVolume && !takerVolume.unavailable && takerVolume.buyRatio != null && takerVolume.sellRatio != null ? <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-chart-green text-sm font-medium">Buy</span>
                   <span className="text-xl font-bold text-chart-green">
-                    {takerVolume.buyRatio.toFixed(1)}%
+                    {takerVolume.buyRatio?.toFixed(1) ?? '50.0'}%
                   </span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-chart-green" style={{ width: `${takerVolume.buyRatio}%` }} />
+                  <div className="h-full bg-chart-green" style={{ width: `${takerVolume.buyRatio ?? 50}%` }} />
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-chart-red text-sm font-medium">Sell</span>
                   <span className="text-xl font-bold text-chart-red">
-                    {takerVolume.sellRatio.toFixed(1)}%
+                    {takerVolume.sellRatio?.toFixed(1) ?? '50.0'}%
                   </span>
                 </div>
                 <div className={`text-xs font-medium mt-2 ${
-                  takerVolume.sentiment.includes('BUYING') ? 'text-chart-green' :
-                  takerVolume.sentiment.includes('SELLING') ? 'text-chart-red' :
+                  takerVolume.sentiment?.includes('BUYING') ? 'text-chart-green' :
+                  takerVolume.sentiment?.includes('SELLING') ? 'text-chart-red' :
                   'text-muted-foreground'
                 }`}>
-                  {takerVolume.sentiment}
+                  {takerVolume.sentiment ?? 'BALANCED'}
                 </div>
               </div> : <p className="text-muted-foreground">No data</p>}
           </div>
@@ -310,9 +310,9 @@ export const CoinglassPanel = ({
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               RSI (14)
             </p>
-            {loading ? <LoadingSkeleton /> : rsi && !rsi.unavailable ? <div className="space-y-2">
+            {loading ? <LoadingSkeleton /> : rsi && !rsi.unavailable && rsi.rsi14 != null ? <div className="space-y-2">
                 <div className="text-5xl font-bold text-foreground">
-                  {rsi.rsi14.toFixed(1)}
+                  {rsi.rsi14?.toFixed(1) ?? '50.0'}
                 </div>
                 <div className={`text-lg font-semibold ${
                   rsi.signal === 'OVERBOUGHT' ? 'text-chart-red' :
@@ -321,7 +321,7 @@ export const CoinglassPanel = ({
                   rsi.signal === 'BEARISH' ? 'text-chart-red' :
                   'text-muted-foreground'
                 }`}>
-                  {rsi.signal}
+                  {rsi.signal ?? 'NEUTRAL'}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {rsi.signal === 'OVERBOUGHT' ? 'Potential reversal zone' :
@@ -338,19 +338,19 @@ export const CoinglassPanel = ({
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Futures Basis
             </p>
-            {loading ? <LoadingSkeleton /> : futuresBasis && !futuresBasis.unavailable ? <div className="space-y-2">
+            {loading ? <LoadingSkeleton /> : futuresBasis && !futuresBasis.unavailable && futuresBasis.basisPercent != null ? <div className="space-y-2">
                 <div className="text-3xl font-bold text-foreground">
-                  {futuresBasis.basisPercent.toFixed(2)}%
+                  {futuresBasis.basisPercent?.toFixed(2) ?? '0.00'}%
                 </div>
                 <div className={`text-sm font-semibold ${
-                  futuresBasis.signal.includes('SPECULATION') ? 'text-chart-red' :
-                  futuresBasis.signal.includes('BULLISH') ? 'text-chart-green' :
+                  futuresBasis.signal?.includes('SPECULATION') ? 'text-chart-red' :
+                  futuresBasis.signal?.includes('BULLISH') ? 'text-chart-green' :
                   'text-muted-foreground'
                 }`}>
-                  {futuresBasis.signal}
+                  {futuresBasis.signal ?? 'NEUTRAL'}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {futuresBasis.structure} - {
+                  {futuresBasis.structure ?? 'UNKNOWN'} - {
                     futuresBasis.structure === 'CONTANGO' ? 'Futures premium' :
                     futuresBasis.structure === 'BACKWARDATION' ? 'Spot premium' :
                     'Neutral pricing'
