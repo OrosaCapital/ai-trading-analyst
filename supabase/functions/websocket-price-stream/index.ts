@@ -29,26 +29,33 @@ Deno.serve(async (req) => {
   const MAX_RECONNECT_ATTEMPTS = 5;
   let pingInterval: number | null = null;
 
-  const connectToCoinGlass = (symbol: string) => {
+  const connectToCoinGlass = async (symbol: string) => {
     if (coinglassWS && coinglassWS.readyState === WebSocket.OPEN) {
       coinglassWS.close();
     }
 
     console.log(`Connecting to CoinGlass WebSocket for ${symbol}...`);
     
+    // Import symbol formatter
+    const { formatForCoinglass } = await import('../_shared/symbolFormatter.ts');
+    
+    // Format symbol to base only (e.g., XRP not XRPUSD)
+    const cleanSymbol = formatForCoinglass(symbol);
+    console.log(`📡 Subscribing to CoinGlass: ${cleanSymbol} (original: ${symbol})`);
+    
     // CoinGlass WebSocket endpoint with API key
     const apiKey = Deno.env.get('COINGLASS_API_KEY') || '';
     coinglassWS = new WebSocket(`wss://open-ws.coinglass.com/ws-api?cg-api-key=${apiKey}`);
     
     coinglassWS.onopen = () => {
-      console.log(`CoinGlass WebSocket connected for ${symbol}`);
+      console.log(`CoinGlass WebSocket connected for ${cleanSymbol}`);
       reconnectAttempts = 0;
       
-      // Subscribe to ticker updates
+      // Subscribe to ticker updates using base symbol
       const subscribeMsg = {
         type: "subscribe",
         channel: "ticker",
-        symbol: symbol.toUpperCase(),
+        symbol: cleanSymbol,
         interval: "1m"
       };
       

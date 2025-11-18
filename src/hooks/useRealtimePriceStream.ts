@@ -44,6 +44,7 @@ export const useRealtimePriceStream = (
   const currentSymbolRef = useRef<string | null>(null);
   const statusDebounceRef = useRef<number | null>(null);
   const stableConnectionRef = useRef<boolean>(false);
+  const heartbeatIntervalRef = useRef<number | null>(null);
 
   const setStableConnectionStatus = useCallback((status: 'connecting' | 'connected' | 'disconnected' | 'error') => {
     // Clear any pending status updates
@@ -101,9 +102,24 @@ export const useRealtimePriceStream = (
         action: 'subscribe',
         symbol: symbol
       }));
+      
+      // ✅ OCAPX Rule 2: Client-side heartbeat (check every 20s)
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+      
+      heartbeatIntervalRef.current = window.setInterval(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          console.warn('⚠️ WebSocket not OPEN, triggering reconnect...');
+          reconnect();
+        } else {
+          // Send ping to keep connection alive
+          ws.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 20000);
     };
 
-    ws.onmessage = (event) => {
+    ws.onmessage = async (event) => {
       try {
         const data: WebSocketMessage = JSON.parse(event.data);
         console.log('WebSocket message:', data);
@@ -117,6 +133,47 @@ export const useRealtimePriceStream = (
             setStableConnectionStatus('error');
           }
         } else if (data.type === 'price_update') {
+          // ✅ OCAPX Rule 2: Reject stale messages (>15s old)
+          if (data.timestamp < Date.now() - 15000) {
+            console.warn(`⚠️ Stale price rejected: ${symbol} price from ${new Date(data.timestamp).toISOString()}`);
+            return;
+          }
+          
+          // ✅ OCAPX Rule 3: Anomaly detection (>10% price jump)
+          const oldPrice = priceData?.price || null;
+          const newPrice = data.price;
+          
+          if (oldPrice && Math.abs((newPrice - oldPrice) / oldPrice) > 0.10) {
+            console.warn(`🚨 Price anomaly detected: ${symbol} jumped ${((newPrice - oldPrice) / oldPrice * 100).toFixed(2)}%`);
+            console.warn(`   Old: $${oldPrice.toFixed(4)} → New: $${newPrice.toFixed(4)}`);
+            
+            // Verify with Tatum API
+            try {
+              const { data: tatumData, error } = await supabase.functions.invoke('fetch-tatum-price', {
+                body: { symbol }
+              });
+              
+              if (!error && tatumData?.price) {
+                const tatumPrice = parseFloat(tatumData.price);
+                const deviation = Math.abs((tatumPrice - newPrice) / tatumPrice);
+                
+                if (deviation < 0.05) {
+                  console.log(`✅ Tatum confirms price: ${tatumPrice} (${(deviation * 100).toFixed(2)}% deviation)`);
+                  data.price = tatumPrice;
+                } else {
+                  console.warn(`⚠️ Tatum price differs: ${tatumPrice} vs ${newPrice} (${(deviation * 100).toFixed(2)}% deviation)`);
+                  data.price = tatumPrice; // Use Tatum as more reliable
+                }
+              } else {
+                console.error('❌ Tatum verification failed, rejecting suspicious price');
+                return;
+              }
+            } catch (error) {
+              console.error('Tatum verification error:', error);
+              return;
+            }
+          }
+          
           setPriceData(data);
           setLastUpdateTime(Date.now());
           // Only stop polling and update status once
@@ -144,6 +201,13 @@ export const useRealtimePriceStream = (
 
     ws.onclose = () => {
       console.log('WebSocket closed');
+      
+      // Clear heartbeat interval
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+      
       setStableConnectionStatus('disconnected');
       
       // Auto-reconnect after 3 seconds if still enabled
@@ -163,17 +227,41 @@ export const useRealtimePriceStream = (
     if (!symbol || !enabled) return;
 
     setIsPolling(true);
-    console.log('Starting polling fallback for', symbol);
+    console.log(`🔄 Starting Tatum polling fallback for ${symbol}`);
 
     const poll = async () => {
       try {
-        // Try CoinGlass chart data first
-        const { data, error } = await supabase.functions.invoke('fetch-chart-data', {
+        // ✅ OCAPX Rule 7: Use Tatum as reliable fallback
+        const { data: tatumData, error } = await supabase.functions.invoke('fetch-tatum-price', {
+          body: { symbol }
+        });
+
+        if (!error && tatumData?.price) {
+          const price = parseFloat(tatumData.price);
+          console.log(`✅ Tatum polling: ${symbol} = $${price}`);
+
+          const mockPriceUpdate: PriceUpdate = {
+            type: 'price_update',
+            symbol,
+            price: price,
+            volume: 0,
+            change24h: 0,
+            high24h: price,
+            low24h: price,
+            timestamp: Date.now()
+          };
+          setPriceData(mockPriceUpdate);
+          setLastUpdateTime(Date.now());
+          return;
+        }
+
+        // If Tatum fails, try CoinGlass chart data
+        const { data: chartData, error: chartError } = await supabase.functions.invoke('fetch-chart-data', {
           body: { symbol, days: 1 }
         });
 
-        if (!error && data?.timeframes?.['1m']?.candles?.length > 0) {
-          const latestCandle = data.timeframes['1m'].candles[data.timeframes['1m'].candles.length - 1];
+        if (!chartError && chartData?.timeframes?.['1m']?.candles?.length > 0) {
+          const latestCandle = chartData.timeframes['1m'].candles[chartData.timeframes['1m'].candles.length - 1];
           const mockPriceUpdate: PriceUpdate = {
             type: 'price_update',
             symbol,
@@ -186,22 +274,20 @@ export const useRealtimePriceStream = (
           };
           setPriceData(mockPriceUpdate);
           setLastUpdateTime(Date.now());
-          return; // Success - exit early
+          return;
         }
 
-        // Fallback to Tatum if CoinGlass fails (disabled - Tatum requires payment)
-        console.log('CoinGlass polling unavailable, using last known price');
-        setIsPolling(false);
+        console.log('Both Tatum and CoinGlass polling failed, using last known price');
 
       } catch (error) {
         console.error('Polling error:', error);
       }
     };
 
-    // Poll immediately, then every 60 seconds
+    // Poll immediately, then every 10 seconds
     poll();
-    pollingIntervalRef.current = window.setInterval(poll, 60000);
-  }, [symbol, enabled]);
+    pollingIntervalRef.current = window.setInterval(poll, 10000);
+  }, [symbol, enabled, priceData]);
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -243,6 +329,9 @@ export const useRealtimePriceStream = (
       }
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
+      }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
       }
       if (wsRef.current) {
         currentSymbolRef.current = null;
