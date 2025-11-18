@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// Universal CORS headers (Solution 5)
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -10,63 +9,6 @@ const corsHeaders = {
   'Access-Control-Expose-Headers': 'content-length, x-json',
 };
 
-// Pine Script v6 Template (Solution 3)
-const PINE_SCRIPT_TEMPLATE = `// @version=6
-indicator("OCAPX - {{STRATEGY_NAME}}", overlay=true)
-
-// ══════════════════════════════════════════════════════════
-// OCAPX BRANDING & CONFIGURATION
-// ══════════════════════════════════════════════════════════
-
-// Input Parameters
-emaFastLength = input.int(50, "Fast EMA Length", minval=1)
-emaSlowLength = input.int(200, "Slow EMA Length", minval=1)
-rsiLength = input.int(14, "RSI Length", minval=1)
-volumeThreshold = input.float(1.5, "Volume Threshold", minval=0.1)
-
-// OCAPX Color Palette
-var color ocpaxGreen = color.new(#00FF7F, 0)
-var color ocpaxRed = color.new(#C73E3E, 0)
-var color ocpaxWhite = color.new(#FFFFFF, 0)
-var color ocpaxBg = color.new(#0A0F1E, 90)
-
-// ══════════════════════════════════════════════════════════
-// TECHNICAL INDICATORS
-// ══════════════════════════════════════════════════════════
-
-emaFast = ta.ema(close, emaFastLength)
-emaSlow = ta.ema(close, emaSlowLength)
-rsiValue = ta.rsi(close, rsiLength)
-volumeRatio = volume / ta.sma(volume, 20)
-
-// ══════════════════════════════════════════════════════════
-// SIGNAL LOGIC
-// ══════════════════════════════════════════════════════════
-
-longSignal = ta.crossover(emaFast, emaSlow) and rsiValue > 50
-shortSignal = ta.crossunder(emaFast, emaSlow) and rsiValue < 50
-
-// ══════════════════════════════════════════════════════════
-// VISUALIZATION
-// ══════════════════════════════════════════════════════════
-
-plot(emaFast, "50 EMA", ocpaxGreen, 2)
-plot(emaSlow, "200 EMA", ocpaxWhite, 2)
-
-plotshape(longSignal, "Long Signal", shape.triangleup, location.belowbar, ocpaxGreen, size=size.small)
-plotshape(shortSignal, "Short Signal", shape.triangledown, location.abovebar, ocpaxRed, size=size.small)
-
-// Background color based on RSI
-bgcolor(rsiValue > 70 ? color.new(ocpaxGreen, 95) : rsiValue < 30 ? color.new(ocpaxRed, 95) : na)
-
-// ══════════════════════════════════════════════════════════
-// ALERTS
-// ══════════════════════════════════════════════════════════
-
-alertcondition(longSignal, "Long Entry", "OCAPX: Long signal detected")
-alertcondition(shortSignal, "Short Entry", "OCAPX: Short signal detected")`;
-
-// Request Queue for rate limiting (Solution 2)
 class RequestQueue {
   private queue: Array<() => Promise<any>> = [];
   private processing = false;
@@ -82,324 +24,231 @@ class RequestQueue {
           reject(error);
         }
       });
-      
-      this.process();
+      this.processQueue();
     });
   }
   
-  private async process() {
+  private async processQueue() {
     if (this.processing || this.queue.length === 0) return;
-    
     this.processing = true;
-    
     while (this.queue.length > 0) {
-      const fn = this.queue.shift()!;
-      await fn();
-      if (this.queue.length > 0) {
+      const fn = this.queue.shift();
+      if (fn) {
+        await fn();
         await new Promise(resolve => setTimeout(resolve, this.delay));
       }
     }
-    
     this.processing = false;
   }
 }
 
-const globalQueue = new RequestQueue();
+const requestQueue = new RequestQueue();
 
-// Validation (Solution 1 & 3)
 function validateAnalysis(data: any): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-  
-  if (!data.summary || typeof data.summary !== 'string' || data.summary.length < 20) {
-    errors.push('Invalid summary');
-  }
-  
-  if (!['LONG', 'SHORT', 'NEUTRAL'].includes(data.signal)) {
-    errors.push('Invalid signal');
-  }
-  
-  const validSentiments = [
-    'EXTREME FEAR', 'HIGH FEAR', 'FEAR', 'MILD FEAR',
-    'NEUTRAL', 'MILD GREED', 'GREED', 'HIGH GREED',
-    'EXTREME GREED', 'EUPHORIA', 'MAX EUPHORIA'
-  ];
-  
-  if (!validSentiments.includes(data.sentiment)) {
-    errors.push('Invalid sentiment');
-  }
-  
-  if (!data.confidence || !/^[0-9]{1,3}%$/.test(data.confidence)) {
-    errors.push('Invalid confidence format');
-  }
-  
-  if (!data.pineScript || !data.pineScript.includes('@version=6')) {
-    errors.push('Invalid Pine Script');
-  }
-  
+  if (!data.summary || typeof data.summary !== 'string') errors.push('Missing or invalid summary');
+  if (!['LONG', 'SHORT', 'NEUTRAL'].includes(data.signal)) errors.push('Invalid signal value');
+  const validSentiments = ['EXTREME FEAR', 'HIGH FEAR', 'FEAR', 'MILD FEAR', 'NEUTRAL', 'MILD GREED', 'GREED', 'HIGH GREED', 'EXTREME GREED', 'EUPHORIA', 'MAX EUPHORIA'];
+  if (!validSentiments.includes(data.sentiment)) errors.push('Invalid sentiment value');
+  if (!data.confidence || !data.confidence.match(/^[0-9]{1,3}%$/)) errors.push('Invalid confidence format');
   return { valid: errors.length === 0, errors };
 }
 
-function validatePineScript(code: string): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  
-  if (!code.includes('@version=6')) {
-    errors.push('Missing @version=6 declaration');
-  }
-  
-  if (!code.includes('indicator(')) {
-    errors.push('Missing indicator() declaration');
-  }
-  
-  if (!code.includes('ta.ema(')) {
-    errors.push('Missing EMA indicators');
-  }
-  
-  if (!code.includes('OCAPX')) {
-    errors.push('Missing OCAPX branding');
-  }
-  
-  return { valid: errors.length === 0, errors };
-}
-
-// Cache management (Solution 2)
 function getCacheKey(query: string, symbol: string): string {
-  const normalized = `${query.trim().toLowerCase()}-${symbol.toUpperCase()}`;
-  return btoa(normalized);
+  return btoa(`${query.trim().toLowerCase()}-${symbol.toUpperCase()}`);
 }
 
-// Fallback generation (Solution 6)
 function generateFallbackAnalysis(query: string, symbol: string) {
-  console.log('🚨 Emergency fallback activated');
-  
   const queryLower = query.toLowerCase();
   let signal: 'LONG' | 'SHORT' | 'NEUTRAL' = 'NEUTRAL';
   let sentiment = 'NEUTRAL';
-  
   if (queryLower.includes('bull') || queryLower.includes('buy') || queryLower.includes('long')) {
-    signal = 'LONG';
-    sentiment = 'MILD GREED';
+    signal = 'LONG'; sentiment = 'MILD GREED';
   } else if (queryLower.includes('bear') || queryLower.includes('sell') || queryLower.includes('short')) {
-    signal = 'SHORT';
-    sentiment = 'MILD FEAR';
+    signal = 'SHORT'; sentiment = 'MILD FEAR';
   }
-  
-  return {
-    summary: `Analysis for ${symbol}: Market shows ${signal.toLowerCase()} bias with ${sentiment.toLowerCase()} sentiment. Please try again for detailed analysis.`,
-    signal,
-    sentiment,
-    confidence: '65%'
+  return { 
+    summary: `Analysis for ${symbol}: Market shows ${signal.toLowerCase()} bias with ${sentiment.toLowerCase()} sentiment. Custom indicators suggest monitoring key levels for confirmation. Consider volume patterns and market structure before entry.`, 
+    signal, 
+    sentiment, 
+    confidence: '65%' 
   };
 }
 
-// AI call with retry (Solution 1)
 async function generateWithRetry(query: string, symbol: string, maxAttempts = 3) {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
   
-  const systemPrompt = `You are an expert trading analyst and Pine Script v6 developer for OCAPX, a premium algorithmic trading firm.
+  const systemPrompt = `You are a professional trading analyst for OCAPX, specializing in cryptocurrency market analysis.
 
-ANALYSIS GUIDELINES:
-- Provide 2-3 sentence market analysis focusing on: trend direction, key support/resistance, volume patterns, and momentum
-- Be specific and actionable
-- Consider the symbol type (crypto, stock, forex) for context-aware insights
+CRITICAL REQUIREMENTS:
+1. Provide comprehensive trading analysis based on technical and fundamental factors
+2. Consider market structure, volume patterns, sentiment, and price action
+3. Give actionable insights with clear reasoning
+4. All analysis is for OCAPX's custom-built dashboard and indicators
+5. Focus on real-time data integration and smart decision-making
 
 SIGNAL CLASSIFICATION:
-- LONG: Strong bullish indicators, price above key EMAs, positive momentum
-- SHORT: Strong bearish indicators, price below key EMAs, negative momentum  
-- NEUTRAL: Mixed signals, ranging market, unclear trend
+- LONG: Strong bullish signals with multiple confirmations across indicators
+- SHORT: Strong bearish signals with multiple confirmations across indicators
+- NEUTRAL: Mixed signals or insufficient confirmation for directional trade
 
-SENTIMENT SCALE (based on RSI + market conditions):
-- 80-100: MAX EUPHORIA, EXTREME GREED, EUPHORIA
-- 60-80: HIGH GREED, GREED, MILD GREED
-- 40-60: NEUTRAL
-- 20-40: MILD FEAR, FEAR
-- 0-20: HIGH FEAR, EXTREME FEAR
+SENTIMENT SCALE (use exact values):
+- MAX EUPHORIA / EUPHORIA: Extreme optimism, potential market top
+- EXTREME GREED / HIGH GREED / GREED: Strong bullish sentiment
+- MILD GREED: Moderate bullish sentiment
+- NEUTRAL: Balanced market sentiment
+- MILD FEAR: Moderate bearish sentiment
+- FEAR / HIGH FEAR / EXTREME FEAR: Strong bearish sentiment
 
-CONFIDENCE:
-- Calculate based on: signal strength, volume confirmation, trend clarity
-- Range: 50% (uncertain) to 95% (very high conviction)
-- Format: "XX%"
+CONFIDENCE CALCULATION:
+- 90-100%: Multiple strong confirmations across timeframes and indicators
+- 70-89%: Good confirmation with minor conflicts
+- 50-69%: Mixed signals, trade with caution
+- Below 50%: Weak signals, avoid trading
 
-PINE SCRIPT V6 REQUIREMENTS:
-- Start with: // @version=6
-- Title: "OCAPX - [Strategy Name]"
-- Include: 50 EMA (color.new(#00FF7F, 0)), 200 EMA (color.new(#FFFFFF, 0))
-- RSI with sentiment zones
-- Volume analysis
-- Buy/sell signal arrows with plotshape()
-- Sentiment background color with bgcolor()
-- User-configurable inputs
-- Use ta.ema(), ta.rsi(), ta.sma() (not ema(), rsi(), sma())
-- Professional comments explaining each section
+ANALYSIS FOCUS:
+- Custom OCAPX indicators and signals
+- External data integration (funding rates, liquidations, volume)
+- Smart dashboard metrics for decision support
+- Real-time market monitoring capabilities
 
-OCAPX COLOR PALETTE:
-- Neon Green (Bullish): #00FF7F
-- Red (Bearish): #C73E3E  
-- White (Neutral): #FFFFFF
-- Background: #0A0F1E`;
+Deliver precise, actionable trading analysis for our custom dashboard.`;
 
-  const userPrompt = `Symbol: ${symbol}
+  const userPrompt = `Analyze this trading query for our custom OCAPX dashboard.
+
 Query: ${query}
+Symbol: ${symbol}
 
-Analyze this trading query and generate a complete trading analysis with Pine Script v6 code.`;
+Provide detailed analysis with market assessment, technical outlook, and risk considerations based on our custom indicators and external data integration.`;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    console.log(`Generation attempt ${attempt}/${maxAttempts} for ${symbol}`);
-    
     try {
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      console.log(`🔄 Attempt ${attempt}/${maxAttempts} for ${symbol}`);
+      const response = await requestQueue.add(() => fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          tools: [{
-            type: "function",
-            function: {
-              name: "generate_trading_analysis",
-              description: "Generate complete trading analysis with Pine Script code",
-              parameters: {
-                type: "object",
-                properties: {
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+          tools: [{ 
+            type: "function", 
+            function: { 
+              name: "generate_trading_analysis", 
+              description: "Generate complete trading analysis for OCAPX custom dashboard", 
+              parameters: { 
+                type: "object", 
+                properties: { 
                   summary: { 
-                    type: "string",
-                    description: "2-3 sentence market analysis"
-                  },
+                    type: "string", 
+                    description: "Comprehensive market analysis (200-400 words) focusing on custom indicators, external data, and dashboard metrics"
+                  }, 
                   signal: { 
                     type: "string", 
-                    enum: ["LONG", "SHORT", "NEUTRAL"],
-                    description: "Trading signal recommendation"
-                  },
+                    enum: ["LONG", "SHORT", "NEUTRAL"], 
+                    description: "Trading signal based on custom OCAPX analysis"
+                  }, 
                   sentiment: { 
                     type: "string", 
-                    enum: ["EXTREME FEAR", "HIGH FEAR", "FEAR", "MILD FEAR", "NEUTRAL", "MILD GREED", "GREED", "HIGH GREED", "EXTREME GREED", "EUPHORIA", "MAX EUPHORIA"],
-                    description: "Current market sentiment"
-                  },
+                    enum: ["EXTREME FEAR", "HIGH FEAR", "FEAR", "MILD FEAR", "NEUTRAL", "MILD GREED", "GREED", "HIGH GREED", "EXTREME GREED", "EUPHORIA", "MAX EUPHORIA"], 
+                    description: "Market sentiment classification"
+                  }, 
                   confidence: { 
-                    type: "string",
-                    pattern: "^[0-9]{1,3}%$",
-                    description: "Confidence level (e.g., 85%)"
-                  },
-                  pineScript: { 
-                    type: "string",
-                    description: "Complete Pine Script v6 code with OCAPX branding"
-                  }
-                },
-                required: ["summary", "signal", "sentiment", "confidence", "pineScript"]
-              }
-            }
+                    type: "string", 
+                    pattern: "^[0-9]{1,3}%$", 
+                    description: "Confidence level as percentage (e.g., 85%)"
+                  } 
+                }, 
+                required: ["summary", "signal", "sentiment", "confidence"], 
+                additionalProperties: false 
+              } 
+            } 
           }],
           tool_choice: { type: "function", function: { name: "generate_trading_analysis" } }
         }),
-      });
+      }));
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`AI API error (${response.status}):`, errorText);
-        
-        if (response.status === 429) {
-          throw new Error('RATE_LIMIT');
+        console.error(`❌ AI API error (${response.status}):`, errorText);
+        if (response.status === 429 && attempt < maxAttempts) {
+          const backoff = Math.pow(2, attempt) * 2000;
+          console.log(`⏳ Rate limited, waiting ${backoff}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, backoff));
+          continue;
         }
-        if (response.status === 402) {
-          throw new Error('PAYMENT_REQUIRED');
-        }
-        
-        throw new Error(`AI API error: ${response.status}`);
+        throw new Error(`AI_API_ERROR: ${response.status}`);
       }
 
       const data = await response.json();
-      
-      if (!data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments) {
-        throw new Error('Invalid AI response structure');
-      }
-
+      if (!data.choices?.[0]?.message?.tool_calls?.[0]) throw new Error('Invalid AI response structure');
       const result = JSON.parse(data.choices[0].message.tool_calls[0].function.arguments);
-      
       const validation = validateAnalysis(result);
       if (!validation.valid) {
         console.error('❌ Validation errors:', validation.errors);
-        if (attempt < maxAttempts) {
-          console.log('⚠️ Retrying due to validation errors...');
-          continue;
+        if (attempt < maxAttempts) { 
+          console.log('⚠️ Retrying due to validation errors...'); 
+          continue; 
         }
         throw new Error('VALIDATION_FAILED');
       }
-
       console.log('✅ Analysis generated and validated successfully');
       return result;
-      
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '';
-      if (errorMessage === 'RATE_LIMIT' || errorMessage === 'PAYMENT_REQUIRED') {
-        throw error;
+      console.error(`❌ Attempt ${attempt} failed:`, error);
+      if (attempt === maxAttempts) { 
+        console.error('🚨 All retry attempts exhausted'); 
+        throw error; 
       }
-      
-      if (attempt === maxAttempts) {
-        throw error;
-      }
-      
-      console.log(`Attempt ${attempt} failed, retrying...`);
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
-  
-  throw new Error('Failed after all attempts');
+  throw new Error('MAX_RETRIES_EXCEEDED');
 }
 
-// Main handler with cache and fallback (Solutions 2 & 6)
 async function getOrGenerateAnalysis(query: string, symbol: string) {
   const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    Deno.env.get('SUPABASE_URL') ?? '', 
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
-  
   const cacheKey = getCacheKey(query, symbol);
   
   try {
     const { data: cached, error: cacheError } = await supabase
       .from('analysis_cache')
-      .select('result')
+      .select('result, expires_at')
       .eq('query_hash', cacheKey)
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle();
+      .eq('symbol', symbol)
+      .single();
       
     if (cached && !cacheError) {
-      console.log('✅ Cache hit:', cacheKey);
-      return cached.result;
+      const expiresAt = new Date(cached.expires_at);
+      if (expiresAt > new Date()) { 
+        console.log('✅ Cache hit - returning cached analysis'); 
+        return cached.result; 
+      }
+      console.log('⚠️ Cache expired - regenerating');
     }
-    
-    console.log('❌ Cache miss, generating new analysis');
-    
-    const result = await globalQueue.add(() => generateWithRetry(query, symbol));
-    
-    await supabase.from('analysis_cache').insert({
-      query_hash: cacheKey,
-      symbol: symbol,
-      result: result,
-      expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
-    });
-    
+  } catch (error) { 
+    console.log('ℹ️ No cache found, generating new analysis'); 
+  }
+  
+  try {
+    const result = await generateWithRetry(query, symbol);
+    const expiresAt = new Date(); 
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+    await supabase
+      .from('analysis_cache')
+      .upsert({ 
+        query_hash: cacheKey, 
+        symbol: symbol, 
+        result: result, 
+        expires_at: expiresAt.toISOString() 
+      });
+    console.log('💾 Analysis cached successfully');
     return result;
-    
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Generation error:', errorMessage);
-    
-    if (errorMessage === 'RATE_LIMIT') {
-      throw new Error('Rate limits exceeded, please try again later.');
-    }
-    if (errorMessage === 'PAYMENT_REQUIRED') {
-      throw new Error('Payment required, please add funds to your Lovable AI workspace.');
-    }
-    
-    console.log('Attempting fallback generation...');
+    console.error('🚨 Generation failed, using fallback:', error);
     return generateFallbackAnalysis(query, symbol);
   }
 }
@@ -408,36 +257,31 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
-
+  
   try {
     const { query, symbol } = await req.json();
-    
     if (!query || !symbol) {
-      return new Response(JSON.stringify({ 
-        error: 'Missing required parameters: query and symbol' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: query and symbol' }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    console.log('Received analysis request:', { query, symbol });
-
+    
+    console.log(`📊 Generating analysis for ${symbol}: ${query}`);
     const result = await getOrGenerateAnalysis(query, symbol);
-
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+    
+    return new Response(
+      JSON.stringify(result), 
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    console.error('Error in generate-analysis:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate analysis. Please try again.';
-    return new Response(JSON.stringify({ 
-      error: errorMessage
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('🚨 Fatal error:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to generate analysis', 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });

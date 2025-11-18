@@ -53,10 +53,46 @@ This document serves as the **authoritative reference** for library versions and
 
 ---
 
+## 🎯 OCAPX Custom Dashboard Architecture
+
+**CRITICAL:** All charts, indicators, and analysis tools in OCAPX are **custom-built** in-house. We do NOT use TradingView, Pine Script, or any third-party charting platforms.
+
+### Custom Components Built with lightweight-charts
+
+All chart visualizations are developed internally using the lightweight-charts library:
+
+- **OcapxChart.tsx**: Main custom trading chart with volume bubbles and sentiment indicators
+- **ProfessionalTradingChart.tsx**: Advanced chart with multiple timeframes and AI signals
+- **SimplifiedChart.tsx**: Clean, minimal chart for quick analysis
+- **StaticTradingChart.tsx**: Static historical chart with annotations
+- **FundingRateChart.tsx**: Custom funding rate visualization
+- **LiquidationHeatmap.tsx**: Custom liquidation level heatmap
+- **OpenInterestBreakdown.tsx**: Custom open interest distribution
+
+### External Data Integration
+
+The dashboard integrates real-time external data from multiple sources:
+
+- **Coinglass API**: Funding rates, liquidations, long/short ratios, open interest
+- **Tatum API**: Real-time price data and market metrics
+- **Custom Edge Functions**: Data processing, caching, and AI analysis
+
+### Smart Decision-Making Features
+
+- **AI-Powered Analysis**: Custom analysis engine using Lovable AI for market insights
+- **Signal Generation**: Custom signal engine analyzing technical indicators and sentiment
+- **Real-time Monitoring**: Live price updates and market metric tracking
+- **Dashboard Metrics**: Comprehensive market overview with custom visualizations
+
+**Key Principle:** Everything displayed to users is processed through our custom dashboard logic and rendered using our own components. We control the entire data flow from external APIs to visual presentation.
+
+---
+
 ## 📊 lightweight-charts v5.0.9
 
 **Package:** `lightweight-charts: ^5.0.9`  
-**Official Docs:** https://tradingview.github.io/lightweight-charts/
+**Official Docs:** https://lightweight-charts.js.org/  
+**Important:** This is a standalone open-source charting library, NOT TradingView. All charts and indicators in OCAPX are custom-built using this library.
 
 ### ✅ Correct v5 API Patterns
 
