@@ -56,7 +56,7 @@ serve(async (req) => {
         }
       ),
       // Tatum v4 - uses base symbol (BTC) and base pair (USD)
-      fetch(`https://api.tatum.io/v4/data/rate?symbol=${encodeURIComponent(baseSymbol)}&basePair=USD`, {
+      fetch(`https://api.tatum.io/v4/data/rate/symbol?symbol=${encodeURIComponent(baseSymbol)}&basePair=USD`, {
         headers: {
           "x-api-key": TATUM_KEY,
         },
@@ -72,7 +72,11 @@ serve(async (req) => {
     // Process Coinglass data
     let candles = [];
     let candlesError = null;
+    let coinglassResponseTime = 0;
+    const coinglassStart = Date.now();
+    
     if (coinglassRes.status === "fulfilled" && coinglassRes.value.ok) {
+      coinglassResponseTime = Date.now() - coinglassStart;
       const result = await coinglassRes.value.json();
       console.log("Coinglass response:", result);
       
@@ -90,6 +94,7 @@ serve(async (req) => {
         candlesError = `API Error: ${result.msg || "Unknown error"}`;
       }
     } else {
+      coinglassResponseTime = Date.now() - coinglassStart;
       const errorText = coinglassRes.status === "fulfilled" 
         ? await coinglassRes.value.text()
         : coinglassRes.reason.message;
@@ -102,11 +107,16 @@ serve(async (req) => {
     // Process Tatum data
     let spotPrice = null;
     let spotError = null;
+    let tatumResponseTime = 0;
+    const tatumStart = Date.now();
+    
     if (tatumRes.status === "fulfilled" && tatumRes.value.ok) {
+      tatumResponseTime = Date.now() - tatumStart;
       const data = await tatumRes.value.json();
       console.log("Tatum response:", data);
       spotPrice = parseFloat(data.value || data.price);
     } else {
+      tatumResponseTime = Date.now() - tatumStart;
       const errorText = tatumRes.status === "fulfilled" 
         ? await tatumRes.value.text()
         : tatumRes.reason.message;
@@ -119,11 +129,16 @@ serve(async (req) => {
     // Process API Ninjas data
     let cryptoPrice = null;
     let cryptoPriceError = null;
+    let ninjasResponseTime = 0;
+    const ninjasStart = Date.now();
+    
     if (ninjasRes.status === "fulfilled" && ninjasRes.value.ok) {
+      ninjasResponseTime = Date.now() - ninjasStart;
       const data = await ninjasRes.value.json();
       console.log("API Ninjas response:", data);
       cryptoPrice = parseFloat(data.price);
     } else {
+      ninjasResponseTime = Date.now() - ninjasStart;
       const errorText = ninjasRes.status === "fulfilled" 
         ? await ninjasRes.value.text()
         : ninjasRes.reason.message;
@@ -141,21 +156,34 @@ serve(async (req) => {
         candles,
         spotPrice,
         cryptoPrice,
+        timestamp: new Date().toISOString(),
         validation: {
           coinglass: {
             valid: candles.length > 0,
             count: candles.length,
             error: candlesError,
+            responseTime: coinglassResponseTime,
+            endpoint: `https://open-api-v4.coinglass.com/api/futures/price/history`,
+            plan: "Hobbyist",
+            rateLimit: "30/min",
           },
           tatum: {
             valid: spotPrice !== null,
             price: spotPrice,
             error: spotError,
+            responseTime: tatumResponseTime,
+            endpoint: `https://api.tatum.io/v4/data/rate/symbol`,
+            plan: "Free",
+            credits: "100K/month",
           },
           ninjas: {
             valid: cryptoPrice !== null,
             price: cryptoPrice,
             error: cryptoPriceError,
+            responseTime: ninjasResponseTime,
+            endpoint: `https://api.api-ninjas.com/v1/cryptoprice`,
+            plan: "Standard",
+            rateLimit: "3K/month",
           },
         },
       }),

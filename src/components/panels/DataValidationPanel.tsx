@@ -50,32 +50,77 @@ export function DataValidationPanel({ validation, isLoading, error }: DataValida
             )}
           </div>
 
-          <div className="space-y-1.5">
+           <div className="space-y-1.5">
             {validation.items.map((item) => (
               <div
                 key={item.key}
-                className="flex items-start justify-between rounded-md border border-border/50 bg-card/50 px-3 py-2 transition-colors hover:bg-muted/30"
+                className="rounded-md border border-border/50 bg-card/50 px-3 py-2.5 transition-colors hover:bg-muted/30"
               >
-                <div className="flex-1 space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[11px] font-medium text-foreground">
-                      {item.key.replace(/_/g, " ").toUpperCase()}
-                    </span>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[11px] font-medium text-foreground">
+                        {item.key.replace(/_/g, " ").toUpperCase()}
+                      </span>
+                      {item.responseTime !== undefined && (
+                        <span className="text-[10px] text-muted-foreground/70">
+                          {item.responseTime}ms
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">{item.notes}</div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground">{item.notes}</div>
+                  <div className="flex items-center">
+                    {item.valid ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-destructive" />
+                    )}
+                  </div>
+                </div>
+                
+                {/* Technical Details */}
+                <div className="space-y-1 pt-2 border-t border-border/30">
+                  {item.endpoint && (
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[10px] text-muted-foreground/50 min-w-[50px]">Endpoint:</span>
+                      <span className="text-[10px] font-mono text-muted-foreground/70 break-all">
+                        {item.endpoint}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    {item.plan && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground/50">Plan:</span>
+                        <span className="text-[10px] font-medium text-muted-foreground">
+                          {item.plan}
+                        </span>
+                      </div>
+                    )}
+                    {item.rateLimit && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground/50">Limit:</span>
+                        <span className="text-[10px] font-medium text-muted-foreground">
+                          {item.rateLimit}
+                        </span>
+                      </div>
+                    )}
+                    {item.credits && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground/50">Credits:</span>
+                        <span className="text-[10px] font-medium text-muted-foreground">
+                          {item.credits}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   {item.received !== "error" && (
                     <div className="text-[10px] font-mono text-muted-foreground/70">
-                      Received: {typeof item.received === "number" 
+                      Data: {typeof item.received === "number" 
                         ? item.received.toFixed(2) 
                         : String(item.received)}
                     </div>
-                  )}
-                </div>
-                <div className="flex items-center">
-                  {item.valid ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-destructive" />
                   )}
                 </div>
               </div>
