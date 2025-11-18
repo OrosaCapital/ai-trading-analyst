@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { normalizeSymbol } from '@/lib/symbolUtils';
 
 export interface WatchlistItem {
   id: string;
@@ -56,7 +57,7 @@ export const useWatchlist = () => {
           let currentPrice;
           try {
             const priceResponse = await supabase.functions.invoke('fetch-tatum-price', {
-              body: { symbol: `${item.symbol}USD` }
+              body: { symbol: item.symbol }
             });
             currentPrice = priceResponse.data?.price;
           } catch (err) {
@@ -93,11 +94,12 @@ export const useWatchlist = () => {
     }
 
     try {
+      const normalizedSymbol = normalizeSymbol(symbol);
       const response = await (supabase as any)
         .from('user_watchlists')
         .insert([{
           user_id: user.id,
-          symbol: symbol.toUpperCase(),
+          symbol: normalizedSymbol,
           nickname: nickname || null,
           notes: notes || null,
           is_active: true,
@@ -112,7 +114,7 @@ export const useWatchlist = () => {
         throw response.error;
       }
 
-      toast.success(`${symbol.toUpperCase()} added to watchlist`);
+      toast.success(`${normalizedSymbol} added to watchlist`);
       await fetchWatchlist();
       return { error: null };
     } catch (error: any) {
