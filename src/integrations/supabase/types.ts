@@ -242,6 +242,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tatum_price_cache: {
+        Row: {
+          cached_at: string
+          created_at: string
+          expires_at: string
+          id: string
+          price_data: Json
+          symbol: string
+        }
+        Insert: {
+          cached_at?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          price_data: Json
+          symbol: string
+        }
+        Update: {
+          cached_at?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          price_data?: Json
+          symbol?: string
+        }
+        Relationships: []
+      }
       tatum_price_logs: {
         Row: {
           created_at: string | null
