@@ -1,46 +1,35 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Activity, Droplets, BarChart3, Target, Loader2 } from "lucide-react";
+import { TrendingUp, Activity, Droplets, BarChart3, Target } from "lucide-react";
 import { formatCurrency } from "@/lib/mockDataGenerators";
-import { useAITradingData } from "@/hooks/useAITradingData";
+import { useMarketData } from "@/hooks/useMarketData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataValidationPanel } from "@/components/panels/DataValidationPanel";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface AIAnalysisPanelProps {
   symbol: string;
 }
 
 export const AIAnalysisPanel = ({ symbol }: AIAnalysisPanelProps) => {
-  const { data, isLoading, error } = useAITradingData(symbol);
+  const { data, isLoading, error } = useMarketData(symbol);
 
   if (isLoading || data?.status === 'accumulating') {
     return (
       <div className="space-y-4">
-        <Card className="p-6 glass">
-          <div className="flex items-center gap-3 mb-4">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            <div>
-              <div className="text-sm font-semibold">Analyzing Market Data</div>
-              <div className="text-xs text-muted-foreground">
-                {data?.message || "Accumulating data..."}
-              </div>
-            </div>
-          </div>
-          {data?.progress && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Progress</span>
-                <span>{Math.round(data.progress)}%</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
-                  style={{ width: `${data.progress}%` }}
-                />
-              </div>
-            </div>
-          )}
-        </Card>
-        {[...Array(4)].map((_, i) => (
+        {data?.progress ? (
+          <DataValidationPanel 
+            message={data.message || "Accumulating data..."}
+            progress={data.progress}
+          />
+        ) : (
+          <Card className="p-6 glass">
+            <Skeleton className="h-4 w-24 mb-4" />
+            <Skeleton className="h-8 w-full mb-2" />
+            <Skeleton className="h-20 w-full" />
+          </Card>
+        )}
+        {[...Array(3)].map((_, i) => (
           <Card key={i} className="p-6 glass">
             <Skeleton className="h-4 w-24 mb-4" />
             <Skeleton className="h-8 w-full mb-2" />
@@ -52,13 +41,7 @@ export const AIAnalysisPanel = ({ symbol }: AIAnalysisPanelProps) => {
   }
 
   if (error || !data?.aiSignal) {
-    return (
-      <Card className="p-6 glass border-destructive/30">
-        <div className="text-sm text-destructive">
-          Failed to load AI analysis. Please try again.
-        </div>
-      </Card>
-    );
+    return <ErrorState message={error || "Failed to load AI analysis"} />;
   }
 
   const { decision, confidence, summary, action } = data.aiSignal;
