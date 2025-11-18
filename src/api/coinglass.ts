@@ -1,6 +1,6 @@
 import { httpClient } from "./httpClient";
 import { env } from "../config/env";
-import type { ApiResult } from "../types/api";
+import type { ApiResult, ApiError } from "../types/api";
 import type { Candle, SymbolTimeframe } from "../types/market";
 
 // Map your timeframe selectors to Coinglass intervals
@@ -44,7 +44,7 @@ export async function getCoinglassKlines(params: SymbolTimeframe): Promise<ApiRe
     },
   });
 
-  if (!response.ok) return response;
+  if (!response.ok) return response as { ok: false; error: ApiError };
 
   const rows = response.data.data;
 
