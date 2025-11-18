@@ -7,8 +7,8 @@ interface CardProps extends PropsWithChildren {
 
 export function Card({ title, className = "", children }: CardProps) {
   return (
-    <div className={`rounded-xl border border-gray-800 bg-gray-900/60 p-4 ${className}`}>
-      {title && <div className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">{title}</div>}
+    <div className={`rounded-xl border border-border bg-card p-4 backdrop-blur-sm ${className}`}>
+      {title && <div className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</div>}
       {children}
     </div>
   );
@@ -24,7 +24,7 @@ export function CardTitle({ className = "", children }: PropsWithChildren<{ clas
 }
 
 export function CardDescription({ className = "", children }: PropsWithChildren<{ className?: string }>) {
-  return <p className={`text-sm text-gray-500 ${className}`}>{children}</p>;
+  return <p className={`text-sm text-muted-foreground ${className}`}>{children}</p>;
 }
 
 export function CardContent({ className = "", children }: PropsWithChildren<{ className?: string }>) {
