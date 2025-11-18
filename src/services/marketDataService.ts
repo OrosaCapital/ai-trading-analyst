@@ -1,58 +1,69 @@
-import {
-  fetchLongShortRatio,
-  fetchFearGreedIndex,
-  fetchLiquidations,
-  fetchOpenInterest,
-  fetchFundingRateList,
-  fetchTakerVolume,
-  fetchRSI,
-  fetchFuturesBasis,
-  fetchMarketOverview,
-  fetchTradingData,
-} from '@/api';
-import type { CoinglassData, MarketData, TradingData } from '@/types/market';
+import { CoinglassApi, TatumApi, NinjasApi } from "../api";
+import type { MarketSnapshot, SymbolTimeframe, DataValidationSummary } from "../types/market";
+import type { ApiResult } from "../types/api";
 
-export async function aggregateCoinglassData(symbol: string): Promise<CoinglassData> {
-  const [
-    lsRatio,
-    fearGreed,
-    liq,
-    oi,
-    fundingList,
-    takerVol,
-    rsiData,
-    basis
-  ] = await Promise.all([
-    fetchLongShortRatio(symbol),
-    fetchFearGreedIndex(),
-    fetchLiquidations(symbol),
-    fetchOpenInterest(symbol),
-    fetchFundingRateList(symbol),
-    fetchTakerVolume(symbol),
-    fetchRSI(symbol),
-    fetchFuturesBasis(symbol),
+export async function fetchMarketSnapshot(params: SymbolTimeframe): Promise<ApiResult<MarketSnapshot>> {
+  const candlesRes = await CoinglassApi.getCoinglassKlines(params);
+
+  if (!candlesRes.ok) {
+    return { ok: false, error: candlesRes.error };
+  }
+
+  // Placeholder indicators – extend later with real calc.
+  const latest = candlesRes.data.at(-1);
+
+  const snapshot: MarketSnapshot = {
+    symbol: params.symbol,
+    timeframe: params.timeframe,
+    candles: candlesRes.data,
+    indicators: latest
+      ? {
+          emaFast: latest.close,
+          emaSlow: latest.close,
+          rsi: 50,
+          macd: 0,
+          signal: 0,
+        }
+      : undefined,
+  };
+
+  return { ok: true, data: snapshot };
+}
+
+export async function buildDataValidation(params: SymbolTimeframe): Promise<DataValidationSummary> {
+  const [candlesRes, spotRes, newsRes] = await Promise.all([
+    CoinglassApi.getCoinglassKlines(params),
+    TatumApi.getTatumSpotPrice(params.symbol),
+    NinjasApi.getSymbolNews(params.symbol),
   ]);
 
+  const items = [
+    {
+      key: "coinglass_candles",
+      received: candlesRes.ok ? candlesRes.data.length : candlesRes.error,
+      valid: candlesRes.ok && candlesRes.data.length > 0,
+      notes: candlesRes.ok ? `Received ${candlesRes.data.length} candles` : candlesRes.error.message,
+    },
+    {
+      key: "tatum_spot",
+      received: spotRes.ok ? spotRes.data : spotRes.error,
+      valid: spotRes.ok && typeof spotRes.data === "number",
+      notes: spotRes.ok ? "Spot price OK" : spotRes.error.message,
+    },
+    {
+      key: "api_ninjas_news",
+      received: newsRes.ok ? newsRes.data.length : newsRes.error,
+      valid: newsRes.ok,
+      notes: newsRes.ok ? `Received ${newsRes.data.length} news items` : newsRes.error.message,
+    },
+  ];
+
+  const isReadyForDecision = items.every((i) => i.valid);
+
   return {
-    longShortRatio: lsRatio.data,
-    fearGreedIndex: fearGreed.data,
-    liquidations: liq.data,
-    openInterest: oi.data,
-    fundingRateList: fundingList.data,
-    takerVolume: takerVol.data,
-    rsi: rsiData.data,
-    futuresBasis: basis.data,
+    symbol: params.symbol,
+    timeframe: params.timeframe,
+    items,
+    isReadyForDecision,
   };
-}
-
-export async function getSymbolSummary(symbol: string): Promise<MarketData | null> {
-  const { data, error } = await fetchMarketOverview(symbol);
-  if (error || !data) return null;
-  return data;
-}
-
-export async function getTradingAnalysis(symbol: string): Promise<TradingData | null> {
-  const { data, error } = await fetchTradingData(symbol);
-  if (error || !data) return null;
-  return data;
 }
