@@ -1,10 +1,47 @@
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { mockMetrics } from "@/data/mockMetrics";
 import { formatCurrency, formatPercentage } from "@/lib/mockDataGenerators";
 
-export const MarketMetricsPanel = () => {
-  const { price, volume, fundingRate, openInterest, longShortRatio, liquidations } = mockMetrics;
+interface MarketMetricsPanelProps {
+  symbol: string;
+}
+
+export const MarketMetricsPanel = ({ symbol }: MarketMetricsPanelProps) => {
+  const [marketData, setMarketData] = useState<any>(null);
+  
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        const { data } = await supabase.functions.invoke('fetch-cmc-data', {
+          body: { symbol: `${symbol}USD` }
+        });
+        if (data) setMarketData(data);
+      } catch (err) {
+        console.error('Market data fetch error:', err);
+      }
+    };
+    
+    fetchMarketData();
+    const interval = setInterval(fetchMarketData, 60000);
+    return () => clearInterval(interval);
+  }, [symbol]);
+
+  const { fundingRate, openInterest, longShortRatio, liquidations } = mockMetrics;
+  
+  // Use real data if available, otherwise fall back to mock
+  const price = marketData ? {
+    current: marketData.price,
+    changePercent24h: marketData.percentChange24h / 100,
+    change24h: (marketData.price * marketData.percentChange24h) / 100
+  } : mockMetrics.price;
+  
+  const volume = marketData ? {
+    volume24h: marketData.volume24h,
+    volumeChange: 0
+  } : mockMetrics.volume;
 
   return (
     <div className="space-y-4">
