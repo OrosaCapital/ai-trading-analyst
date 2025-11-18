@@ -105,7 +105,91 @@ export const CoinglassPanel = ({
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-50" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Summary Dashboard - Inspired by Block.AI */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Summary Card */}
+        <Card className="lg:col-span-1 p-6 bg-gradient-to-br from-card via-card to-card/80 border border-border/50">
+          <h3 className="text-xl font-black text-foreground mb-6 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            Summary
+          </h3>
+          <div className="space-y-4">
+            {/* Market Sentiment */}
+            <div className="flex justify-between items-center py-3 border-b border-border/30">
+              <span className="text-sm text-muted-foreground font-medium">Market Sentiment</span>
+              <span className={`text-base font-black ${
+                fearGreedIndex?.valueClassification?.includes('Greed') 
+                  ? 'text-chart-green' 
+                  : fearGreedIndex?.valueClassification?.includes('Fear')
+                    ? 'text-chart-red'
+                    : 'text-muted-foreground'
+              }`}>
+                {loading ? '...' : fearGreedIndex?.value || '--'}
+              </span>
+            </div>
+
+            {/* Long/Short Balance */}
+            <div className="flex justify-between items-center py-3 border-b border-border/30">
+              <span className="text-sm text-muted-foreground font-medium">Long/Short Ratio</span>
+              <span className={`text-base font-black ${
+                longShortRatio?.sentiment === 'BULLISH' 
+                  ? 'text-chart-green' 
+                  : longShortRatio?.sentiment === 'BEARISH'
+                    ? 'text-chart-red'
+                    : 'text-muted-foreground'
+              }`}>
+                {loading ? '...' : longShortRatio?.ratio || '--'}
+              </span>
+            </div>
+
+            {/* Liquidations 24h */}
+            <div className="flex justify-between items-center py-3 border-b border-border/30">
+              <span className="text-sm text-muted-foreground font-medium">Liquidations 24h</span>
+              <span className="text-base font-black text-destructive">
+                {loading ? '...' : liquidations?.last24h?.total || '--'}
+              </span>
+            </div>
+
+            {/* RSI */}
+            <div className="flex justify-between items-center py-3 border-b border-border/30">
+              <span className="text-sm text-muted-foreground font-medium">RSI (14)</span>
+              <span className={`text-base font-black ${
+                rsi?.signal === 'OVERBOUGHT' || rsi?.signal === 'BEARISH'
+                  ? 'text-chart-red'
+                  : rsi?.signal === 'OVERSOLD' || rsi?.signal === 'BULLISH'
+                    ? 'text-chart-green'
+                    : 'text-muted-foreground'
+              }`}>
+                {loading ? '...' : rsi?.rsi14?.toFixed(0) || '--'}
+              </span>
+            </div>
+
+            {/* Funding Rate */}
+            <div className="flex justify-between items-center py-3 border-b border-border/30">
+              <span className="text-sm text-muted-foreground font-medium">Funding Rate</span>
+              <span className={`text-base font-black ${
+                fundingRateList?.sentiment?.includes('BULLISH')
+                  ? 'text-chart-green'
+                  : fundingRateList?.sentiment?.includes('BEARISH')
+                    ? 'text-chart-red'
+                    : 'text-muted-foreground'
+              }`}>
+                {loading ? '...' : fundingRateList?.unavailable ? 'N/A' : `${(fundingRateList?.avgRate * 100)?.toFixed(3)}%` || '--'}
+              </span>
+            </div>
+
+            {/* Open Interest */}
+            <div className="flex justify-between items-center py-3">
+              <span className="text-sm text-muted-foreground font-medium">Open Interest</span>
+              <span className="text-base font-black text-foreground">
+                {loading ? '...' : openInterest?.total?.value || 'N/A'}
+              </span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Main Metrics Grid */}
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Long vs Short Ratio */}
         <Card className="group relative p-6 bg-gradient-to-br from-card via-card to-card/50 border border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-chart-green/5 to-chart-red/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -485,6 +569,7 @@ export const CoinglassPanel = ({
               </div> : <p className="text-muted-foreground">No data</p>}
           </div>
         </Card>
+        </div>
       </div>
     </div>;
 };
