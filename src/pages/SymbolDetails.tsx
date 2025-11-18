@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSymbolData } from "@/hooks/useSymbolData";
 import { TechMetricCard } from "@/components/symbol/TechMetricCard";
+import { SymbolAIChat } from "@/components/symbol/SymbolAIChat";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
@@ -156,52 +157,11 @@ export default function SymbolDetails() {
           </div>
         </Card>
 
-        {/* AI Intelligence Panel */}
+        {/* AI Market Analyst Chat */}
         <Card className="relative overflow-hidden bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-primary/20">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
           <div className="relative p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <Zap className="h-6 w-6 text-primary animate-pulse" />
-                <h2 className="text-xl font-bold text-foreground">AI Intelligence</h2>
-              </div>
-              {data.aiDecision && (
-                <Badge className={`${getAIDecisionBadge()} px-4 py-1 text-sm font-bold border`}>
-                  {data.aiDecision}
-                </Badge>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-card/50 border border-border/50">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Decision</p>
-                <p className={`text-3xl font-bold ${getAIDecisionColor()}`}>
-                  {data.aiDecision || "ANALYZING"}
-                </p>
-              </div>
-              
-              <div className="p-4 rounded-xl bg-card/50 border border-border/50">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Confidence</p>
-                <div className="space-y-2">
-                  <p className="text-3xl font-bold text-foreground">
-                    {data.aiConfidence ? `${data.aiConfidence}%` : "--"}
-                  </p>
-                  {data.aiConfidence && (
-                    <Progress value={data.aiConfidence} className="h-2" />
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-card/50 border border-border/50">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Market Sentiment</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {data.fearGreedLabel || "Calculating..."}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Index: {data.fearGreedIndex || "--"}
-                </p>
-              </div>
-            </div>
+            <SymbolAIChat symbolData={{ symbol: normalizedSymbol, ...data }} />
           </div>
         </Card>
 

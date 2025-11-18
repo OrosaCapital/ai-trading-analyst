@@ -71,3 +71,21 @@ verify_jwt = false
 
 [functions.fetch-market-data]
 verify_jwt = false
+
+[functions.fetch-cmc-quotes]
+verify_jwt = false
+
+[functions.fetch-cmc-data]
+verify_jwt = false
+
+[functions.fetch-cmc-global]
+verify_jwt = false
+
+[functions.fetch-cmc-trending]
+verify_jwt = false
+
+[functions.fetch-tatum-price]
+verify_jwt = false
+
+[functions.symbol-ai-chat]
+verify_jwt = false
