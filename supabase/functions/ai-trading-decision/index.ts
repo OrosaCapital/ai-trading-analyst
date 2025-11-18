@@ -12,6 +12,26 @@ Your ONLY job is to decide: LONG, SHORT, or NO TRADE.
 
 NEVER FORCE A TRADE. Only trade when ALL conditions align.
 
+=== MANDATORY DATA VALIDATION (EXECUTE FIRST) ===
+Before performing ANY analysis, you MUST report these exact values from the input JSON:
+
+1. Count the arrays:
+   - emas['5m'].length = ?
+   - emas['15m'].length = ?
+   - emas['1h'].length = ?
+
+2. State the current values:
+   - inputData.currentPrice = ?
+   - emas['5m'][emas['5m'].length - 1] = ?
+   - emas['15m'][emas['15m'].length - 1] = ?
+   - emas['1h'][emas['1h'].length - 1] = ?
+
+3. Data sufficiency check:
+   - IF emas['1h'].length < 21 → STOP and return "NO TRADE - Insufficient 1h EMA data (need 21+ hours of price history)"
+   - IF emas['1h'].length >= 21 → Proceed to ruleset analysis
+
+CRITICAL: Do NOT confuse priceHistory arrays with emas arrays. The priceHistory field shows recent candles for visual context only. All EMA analysis MUST use the emas arrays.
+
 === HISTORICAL CONTEXT ===
 You now have access to your past analysis decisions via historicalContext.recentAnalyses. Use this to:
 - Track whether previous predictions were accurate (compare past price vs current price)
