@@ -558,9 +558,11 @@ async function fetchCoinGlassOHLC(
     
     const requestedInterval = intervalMap[intervalMinutes] || '1h';
     const interval = getValidInterval(requestedInterval);
-    // Fix: Replace USDT first, then USD to avoid corrupting symbols like ETHUSDT
-    const cleanSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '') + 'USDT';
-    console.log(`Cleaned symbol: ${cleanSymbol}, Original: ${symbol}, Interval: ${interval}`);
+    
+    // Import symbol formatter for consistent base symbol formatting
+    const { formatForCoinglass } = await import('../_shared/symbolFormatter.ts');
+    const cleanSymbol = formatForCoinglass(symbol);
+    console.log(`📊 Fetching chart data for base symbol: ${cleanSymbol} (original: ${symbol}), Interval: ${interval}`);
     
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
     
