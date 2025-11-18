@@ -9,7 +9,7 @@ export const CoinglassPanel = ({
   symbol
 }: CoingласsPanelProps) => {
   const [longShortRatio, setLongShortRatio] = useState<any>(null);
-  const [fundingRate, setFundingRate] = useState<any>(null);
+  const [fearGreedIndex, setFearGreedIndex] = useState<any>(null);
   const [liquidations, setLiquidations] = useState<any>(null);
   const [openInterest, setOpenInterest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -19,15 +19,11 @@ export const CoinglassPanel = ({
         setLoading(true);
 
         // Fetch all Coinglass metrics in parallel
-        const [lsRatio, funding, liq, oi] = await Promise.all([supabase.functions.invoke('fetch-long-short-ratio', {
+        const [lsRatio, fearGreed, liq, oi] = await Promise.all([supabase.functions.invoke('fetch-long-short-ratio', {
           body: {
             symbol
           }
-        }), supabase.functions.invoke('fetch-funding-rate', {
-          body: {
-            symbol
-          }
-        }), supabase.functions.invoke('fetch-liquidations', {
+        }), supabase.functions.invoke('fetch-fear-greed-index'), supabase.functions.invoke('fetch-liquidations', {
           body: {
             symbol
           }
@@ -37,11 +33,11 @@ export const CoinglassPanel = ({
           }
         })]);
         console.log('Long/Short data:', lsRatio.data);
-        console.log('Funding data:', funding.data);
+        console.log('Fear & Greed data:', fearGreed.data);
         console.log('Liquidations data:', liq.data);
         console.log('Open Interest data:', oi.data);
         if (lsRatio.data) setLongShortRatio(lsRatio.data);
-        if (funding.data) setFundingRate(funding.data);
+        if (fearGreed.data) setFearGreedIndex(fearGreed.data);
         if (liq.data) setLiquidations(liq.data);
         if (oi.data) setOpenInterest(oi.data);
       } catch (err) {
@@ -68,7 +64,7 @@ export const CoinglassPanel = ({
           <h2 className="text-2xl font-bold text-foreground">Coinglass Intelligence Panel</h2>
           <p className="text-sm text-muted-foreground">
             Real-time derivatives market data 
-            {(longShortRatio?.unavailable || fundingRate?.unavailable || liquidations?.unavailable || openInterest?.unavailable) && <span className="text-accent ml-2">• Limited data for this symbol</span>}
+            {(longShortRatio?.unavailable || fearGreedIndex?.unavailable || liquidations?.unavailable || openInterest?.unavailable) && <span className="text-accent ml-2">• Limited data for this symbol</span>}
           </p>
         </div>
         <Activity className="w-6 h-6 text-primary" />
@@ -110,23 +106,21 @@ export const CoinglassPanel = ({
           </div>
         </Card>
 
-        {/* Funding Rate Trend */}
+        {/* Fear & Greed Index */}
         <Card className="p-6 bg-card border border-border">
           <div className="space-y-3">
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              FEAR & GREED INDEX               
+              FEAR & GREED INDEX               
             </p>
-            {loading ? <LoadingSkeleton /> : fundingRate?.current ? <div className="space-y-2">
-                <div className="text-3xl font-bold text-foreground">
-                  {fundingRate.current.rate}
+            {loading ? <LoadingSkeleton /> : fearGreedIndex && !fearGreedIndex.unavailable ? <div className="space-y-2">
+                <div className="text-4xl font-bold text-foreground">
+                  {fearGreedIndex.index}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {parseFloat(fundingRate.current.rateValue) > 0 ? 'Longs pay shorts' : 'Shorts pay longs'}
-                  </span>
+                <div className={`text-lg font-semibold ${fearGreedIndex.sentiment === 'EXTREME GREED' ? 'text-chart-green' : fearGreedIndex.sentiment === 'GREED' ? 'text-accent' : fearGreedIndex.sentiment === 'FEAR' ? 'text-chart-red' : fearGreedIndex.sentiment === 'EXTREME FEAR' ? 'text-chart-red' : 'text-muted-foreground'}`}>
+                  {fearGreedIndex.sentiment}
                 </div>
-                <div className={`text-sm font-medium ${fundingRate.current.sentiment === 'BULLISH' ? 'text-chart-green' : fundingRate.current.sentiment === 'BEARISH' ? 'text-chart-red' : 'text-muted-foreground'}`}>
-                  {fundingRate.current.sentiment}
+                <div className="text-xs text-muted-foreground">
+                  Market-wide sentiment indicator
                 </div>
               </div> : <p className="text-muted-foreground">No data</p>}
           </div>
@@ -184,13 +178,13 @@ export const CoinglassPanel = ({
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Short Squeeze Probability
             </p>
-            {loading ? <LoadingSkeleton /> : longShortRatio && fundingRate?.current ? <div className="space-y-2">
+            {loading ? <LoadingSkeleton /> : longShortRatio && fearGreedIndex && !fearGreedIndex.unavailable ? <div className="space-y-2">
                 {(() => {
               const shortPercent = parseFloat(longShortRatio.short_percent || 0);
-              const fundingValue = parseFloat(fundingRate.current.rateValue);
+              const fearIndex = fearGreedIndex.index;
               const shortPressure = shortPercent > 55;
-              const negativeFunding = fundingValue < 0;
-              const probability = shortPressure && negativeFunding ? 'HIGH' : shortPressure || negativeFunding ? 'MEDIUM' : 'LOW';
+              const extremeFear = fearIndex < 25;
+              const probability = shortPressure && extremeFear ? 'HIGH' : shortPressure || extremeFear ? 'MEDIUM' : 'LOW';
               const color = probability === 'HIGH' ? 'text-chart-green' : probability === 'MEDIUM' ? 'text-accent' : 'text-muted-foreground';
               return <>
                       <div className={`text-3xl font-bold ${color}`}>
@@ -212,13 +206,13 @@ export const CoinglassPanel = ({
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Long Squeeze Probability
             </p>
-            {loading ? <LoadingSkeleton /> : longShortRatio && fundingRate?.current ? <div className="space-y-2">
+            {loading ? <LoadingSkeleton /> : longShortRatio && fearGreedIndex && !fearGreedIndex.unavailable ? <div className="space-y-2">
                 {(() => {
               const longPercent = parseFloat(longShortRatio.long_percent || 0);
-              const fundingValue = parseFloat(fundingRate.current.rateValue);
+              const fearIndex = fearGreedIndex.index;
               const longPressure = longPercent > 55;
-              const positiveFunding = fundingValue > 0.01;
-              const probability = longPressure && positiveFunding ? 'HIGH' : longPressure || positiveFunding ? 'MEDIUM' : 'LOW';
+              const extremeGreed = fearIndex > 75;
+              const probability = longPressure && extremeGreed ? 'HIGH' : longPressure || extremeGreed ? 'MEDIUM' : 'LOW';
               const color = probability === 'HIGH' ? 'text-chart-red' : probability === 'MEDIUM' ? 'text-accent' : 'text-muted-foreground';
               return <>
                       <div className={`text-3xl font-bold ${color}`}>
