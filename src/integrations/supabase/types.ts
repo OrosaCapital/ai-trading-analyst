@@ -177,6 +177,36 @@ export type Database = {
         }
         Relationships: []
       }
+      api_ninjas_usage: {
+        Row: {
+          api_calls_used: number
+          created_at: string | null
+          fetched_at: string | null
+          id: string
+          interval: string
+          records_fetched: number
+          symbol: string
+        }
+        Insert: {
+          api_calls_used?: number
+          created_at?: string | null
+          fetched_at?: string | null
+          id?: string
+          interval: string
+          records_fetched: number
+          symbol: string
+        }
+        Update: {
+          api_calls_used?: number
+          created_at?: string | null
+          fetched_at?: string | null
+          id?: string
+          interval?: string
+          records_fetched?: number
+          symbol?: string
+        }
+        Relationships: []
+      }
       coinglass_api_endpoints: {
         Row: {
           base_url: string

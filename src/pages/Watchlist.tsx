@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWatchlist, WatchlistItem } from '@/hooks/useWatchlist';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -26,6 +27,28 @@ const Watchlist = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [isAnalyzingAll, setIsAnalyzingAll] = useState(false);
+  const [apiUsage, setApiUsage] = useState<{ current: number; limit: number } | null>(null);
+
+  // Fetch API usage on mount
+  useEffect(() => {
+    const fetchApiUsage = async () => {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('api_ninjas_usage')
+        .select('api_calls_used')
+        .gte('fetched_at', startOfMonth.toISOString());
+
+      if (!error && data) {
+        const total = data.reduce((sum, row) => sum + row.api_calls_used, 0);
+        setApiUsage({ current: total, limit: 3000 });
+      }
+    };
+
+    fetchApiUsage();
+  }, []);
 
   const handleAddSymbol = async () => {
     if (!symbol.trim()) {
@@ -172,6 +195,17 @@ const Watchlist = () => {
             <p className="text-muted-foreground">
               Track your favorite crypto symbols and get AI-powered analysis
             </p>
+            {apiUsage && (
+              <div className="mt-2">
+                <Badge variant="outline" className="gap-1.5">
+                  <Activity className="w-3 h-3" />
+                  API Usage: {apiUsage.current} / {apiUsage.limit} calls
+                  {apiUsage.current > 2500 && (
+                    <span className="text-destructive ml-1">(⚠️ {apiUsage.limit - apiUsage.current} remaining)</span>
+                  )}
+                </Badge>
+              </div>
+            )}
           </div>
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

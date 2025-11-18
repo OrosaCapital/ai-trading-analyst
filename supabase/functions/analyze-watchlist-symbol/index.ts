@@ -50,8 +50,56 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 1: Log the latest price
-    console.log(`[Watchlist Analysis] Logging price for ${symbol}...`);
+    // Step 1: Check if sufficient data exists (15+ minutes of 1m logs)
+    const now = new Date();
+    const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
+
+    const { data: existingLogs, error: checkError } = await supabase
+      .from('tatum_price_logs')
+      .select('id')
+      .eq('symbol', symbol)
+      .eq('interval', '1m')
+      .gte('timestamp', fifteenMinutesAgo.toISOString())
+      .limit(15);
+
+    const hasEnoughData = existingLogs && existingLogs.length >= 15;
+
+    // Step 2: If insufficient data, try to backfill from API Ninjas
+    if (!hasEnoughData) {
+      console.log(`[Watchlist Analysis] Insufficient data for ${symbol}. Attempting historical backfill...`);
+      
+      const backfillResponse = await supabase.functions.invoke('fetch-historical-prices', {
+        body: { symbol, lookback_hours: 24 }
+      });
+
+      if (backfillResponse.error) {
+        console.warn('[Watchlist Analysis] Backfill failed:', backfillResponse.error);
+        // If API limit exceeded, return helpful message
+        if (backfillResponse.data?.error === 'API_LIMIT_EXCEEDED') {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              status: 'api_limit_exceeded',
+              message: 'Monthly API limit reached. New symbols will require 15+ minutes of price accumulation.',
+              usage: backfillResponse.data.usage
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200
+            }
+          );
+        }
+        // Fall back to accumulation method
+        console.log('[Watchlist Analysis] Falling back to accumulation method');
+      } else {
+        console.log(`[Watchlist Analysis] Historical backfill successful: ${backfillResponse.data?.records_added} records`);
+      }
+    } else {
+      console.log(`[Watchlist Analysis] Sufficient data already exists for ${symbol}`);
+    }
+
+    // Step 3: Log the latest price
+    console.log(`[Watchlist Analysis] Logging current price for ${symbol}...`);
     const logResponse = await supabase.functions.invoke('tatum-price-logger', {
       body: { symbol }
     });
@@ -63,10 +111,10 @@ Deno.serve(async (req) => {
 
     console.log(`[Watchlist Analysis] Price logged successfully. Waiting for database write...`);
     
-    // Step 2: Wait for logs to be written
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Step 4: Wait for logs to be written
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Step 3: Trigger full trading analysis
+    // Step 5: Trigger full trading analysis
     console.log(`[Watchlist Analysis] Fetching trading data and running AI analysis...`);
     const analysisResponse = await supabase.functions.invoke('fetch-trading-data', {
       body: { symbol }
