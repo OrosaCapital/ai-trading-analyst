@@ -75,11 +75,17 @@ export const CoinglassPanel = ({
     return () => clearInterval(interval);
   }, [symbol]);
   const LoadingSkeleton = () => <div className="h-24 bg-muted/20 rounded animate-pulse" />;
-  const formatNumber = (num: number) => {
-    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
-    if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
-    return `$${num.toFixed(2)}`;
+  const formatNumber = (num: number | string | undefined | null) => {
+    // Convert to number and validate
+    const numValue = typeof num === 'string' ? parseFloat(num) : num;
+    
+    // Return fallback if invalid
+    if (!numValue || isNaN(numValue)) return 'N/A';
+    
+    if (numValue >= 1e9) return `$${(numValue / 1e9).toFixed(2)}B`;
+    if (numValue >= 1e6) return `$${(numValue / 1e6).toFixed(2)}M`;
+    if (numValue >= 1e3) return `$${(numValue / 1e3).toFixed(2)}K`;
+    return `$${numValue.toFixed(2)}`;
   };
   return <div className="space-y-8">
       {/* Panel Header */}
