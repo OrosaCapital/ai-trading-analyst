@@ -14,6 +14,7 @@ export function Sidebar({ symbol }: SidebarProps) {
   const [openInterest, setOpenInterest] = useState<number | null>(null);
   const [longShortRatio, setLongShortRatio] = useState<{ long: number; short: number } | null>(null);
   const [liquidations, setLiquidations] = useState<{ longs: number; shorts: number } | null>(null);
+  const [volume24h, setVolume24h] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -23,11 +24,12 @@ export function Sidebar({ symbol }: SidebarProps) {
       setIsLoading(true);
       
       try {
-        const [fundingRes, oiRes, lsRes, liqRes] = await Promise.all([
+        const [fundingRes, oiRes, lsRes, liqRes, volRes] = await Promise.all([
           supabase.functions.invoke('fetch-funding-rate', { body: { symbol } }),
           supabase.functions.invoke('fetch-open-interest', { body: { symbol } }),
           supabase.functions.invoke('fetch-long-short-ratio', { body: { symbol } }),
-          supabase.functions.invoke('fetch-liquidations', { body: { symbol } })
+          supabase.functions.invoke('fetch-liquidations', { body: { symbol } }),
+          supabase.functions.invoke('fetch-taker-volume', { body: { symbol } })
         ]);
 
         if (fundingRes.data?.current) {
@@ -47,6 +49,15 @@ export function Sidebar({ symbol }: SidebarProps) {
           const longs = parseFloat(liqRes.data.last24h.totalLongs) || 0;
           const shorts = parseFloat(liqRes.data.last24h.totalShorts) || 0;
           setLiquidations({ longs, shorts });
+        }
+        if (volRes.data?.exchanges && Array.isArray(volRes.data.exchanges)) {
+          // Calculate total volume from exchanges
+          const totalVolume = volRes.data.exchanges.reduce((sum: number, ex: any) => {
+            const buyVol = parseFloat(ex.buy_volume || 0);
+            const sellVol = parseFloat(ex.sell_volume || 0);
+            return sum + buyVol + sellVol;
+          }, 0);
+          setVolume24h(totalVolume);
         }
       } catch (error) {
         console.error('Error fetching sidebar metrics:', error);
@@ -209,10 +220,16 @@ export function Sidebar({ symbol }: SidebarProps) {
             <CardTitle className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Volume 24h</CardTitle>
           </CardHeader>
           <CardContent className="pb-2">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <span className="text-2xl font-bold tabular-nums text-muted-foreground">--</span>
-            </div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-full" />
+            ) : (
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                <span className="text-2xl font-bold tabular-nums">
+                  {volume24h !== null ? formatLargeNumber(volume24h) : 'N/A'}
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
