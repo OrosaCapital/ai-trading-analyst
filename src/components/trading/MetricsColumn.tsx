@@ -100,31 +100,43 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
     <div className="space-y-2">
       {/* Funding Rate */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-2 pt-3">
-          <CardTitle className="text-xs flex items-center gap-2 text-foreground">
-            <Activity className="h-3 w-3 text-primary" />
-            Funding Rate
+        <CardHeader className="pb-1 pt-2">
+          <CardTitle className="text-[10px] font-semibold tracking-wide text-muted-foreground">
+            FUNDING RATE
           </CardTitle>
         </CardHeader>
-        <CardContent className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="text-xl font-bold text-primary">
+        <CardContent className="pb-2 space-y-1">
+          <div className="flex items-baseline justify-between">
+            <div className="text-2xl font-bold text-foreground tabular-nums">
               {(currentFundingRate * 100).toFixed(4)}%
             </div>
             {currentFundingRate > 0 ? (
-              <Badge className="bg-chart-green/10 text-chart-green border-chart-green/30 text-xs py-0">
-                <TrendingUp className="h-2.5 w-2.5 mr-1" />
-                Bullish
-              </Badge>
+              <div className="flex items-center gap-1 text-chart-green">
+                <TrendingUp className="h-3 w-3" />
+                <span className="text-[9px] font-semibold">BULLISH</span>
+              </div>
             ) : (
-              <Badge className="bg-chart-red/10 text-chart-red border-chart-red/30 text-xs py-0">
-                <TrendingDown className="h-2.5 w-2.5 mr-1" />
-                Bearish
-              </Badge>
+              <div className="flex items-center gap-1 text-chart-red">
+                <TrendingDown className="h-3 w-3" />
+                <span className="text-[9px] font-semibold">BEARISH</span>
+              </div>
             )}
           </div>
+          
+          {/* Visual indicator bar */}
+          <div className="h-1 bg-muted rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-300 ${
+                currentFundingRate > 0 ? 'bg-chart-green' : 'bg-chart-red'
+              }`}
+              style={{ 
+                width: `${Math.min(Math.abs(currentFundingRate * 10000), 100)}%` 
+              }}
+            />
+          </div>
+          
           {fundingRate?.current?.nextFunding && (
-            <div className="text-xs text-muted-foreground mt-1">
+            <div className="text-[9px] text-muted-foreground font-medium">
               Next: {new Date(fundingRate.current.nextFunding).toLocaleTimeString()}
             </div>
           )}
@@ -133,19 +145,20 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
       {/* Open Interest */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-2 pt-3">
-          <CardTitle className="text-xs flex items-center gap-2 text-foreground">
-            <BarChart3 className="h-3 w-3 text-primary" />
-            Open Interest
+        <CardHeader className="pb-1 pt-2">
+          <CardTitle className="text-[10px] font-semibold tracking-wide text-muted-foreground">
+            OPEN INTEREST
           </CardTitle>
         </CardHeader>
-        <CardContent className="pb-3">
-          <div className="text-xl font-bold text-primary">
+        <CardContent className="pb-2 space-y-1">
+          <div className="text-2xl font-bold text-foreground tabular-nums">
             ${(currentOpenInterest / 1e9).toFixed(2)}B
           </div>
           {openInterest?.current?.change24h !== undefined && (
-            <div className={`text-xs mt-1 ${openInterest.current.change24h > 0 ? 'text-chart-green' : 'text-chart-red'}`}>
-              24h: {openInterest.current.change24h > 0 ? '+' : ''}{openInterest.current.change24h.toFixed(2)}%
+            <div className="flex items-center gap-1">
+              <div className={`text-[9px] font-semibold ${openInterest.current.change24h > 0 ? 'text-chart-green' : 'text-chart-red'}`}>
+                24H: {openInterest.current.change24h > 0 ? '+' : ''}{openInterest.current.change24h.toFixed(2)}%
+              </div>
             </div>
           )}
         </CardContent>
@@ -153,85 +166,91 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
       {/* Long/Short Ratio */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-2 pt-3">
-          <CardTitle className="text-xs text-foreground">Long/Short Ratio</CardTitle>
+        <CardHeader className="pb-1 pt-2">
+          <CardTitle className="text-[10px] font-semibold tracking-wide text-muted-foreground">
+            LONG/SHORT RATIO
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pb-3">
-          <div className="text-xl font-bold text-primary">
+        <CardContent className="pb-2 space-y-2">
+          <div className="text-2xl font-bold text-foreground tabular-nums">
             {currentLongShortRatio.toFixed(2)}
           </div>
-          <div className="flex gap-2 mt-1.5">
-            <div className="flex-1">
-              <div className="text-xs text-muted-foreground">Longs</div>
-              <div className="text-sm font-semibold text-chart-green">{longPercentage.toFixed(1)}%</div>
+          <div className="grid grid-cols-2 gap-2 text-[9px]">
+            <div>
+              <div className="text-muted-foreground mb-0.5">LONGS</div>
+              <div className="text-sm font-bold text-chart-green">{longPercentage.toFixed(1)}%</div>
             </div>
-            <div className="flex-1">
-              <div className="text-xs text-muted-foreground">Shorts</div>
-              <div className="text-sm font-semibold text-chart-red">{shortPercentage.toFixed(1)}%</div>
+            <div>
+              <div className="text-muted-foreground mb-0.5">SHORTS</div>
+              <div className="text-sm font-bold text-chart-red">{shortPercentage.toFixed(1)}%</div>
             </div>
+          </div>
+          <div className="h-1 bg-muted rounded-full overflow-hidden flex">
+            <div className="bg-chart-green" style={{ width: `${longPercentage}%` }} />
+            <div className="bg-chart-red flex-1" />
           </div>
         </CardContent>
       </Card>
 
       {/* Liquidations 24h */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-2 pt-3">
-          <CardTitle className="text-xs flex items-center gap-2 text-foreground">
-            <AlertTriangle className="h-3 w-3 text-primary" />
-            Liquidations 24h
+        <CardHeader className="pb-1 pt-2">
+          <CardTitle className="text-[10px] font-semibold tracking-wide text-muted-foreground">
+            LIQUIDATIONS 24H
           </CardTitle>
         </CardHeader>
-        <CardContent className="pb-3">
-          <div className="space-y-1.5">
-            <div className="flex justify-between">
-              <span className="text-xs text-muted-foreground">Longs</span>
-              <span className="text-sm font-semibold text-chart-red">
+        <CardContent className="pb-2 space-y-2">
+          <div className="space-y-1">
+            <div className="flex justify-between items-baseline">
+              <span className="text-[9px] text-muted-foreground">LONGS</span>
+              <span className="text-sm font-bold text-chart-red tabular-nums">
                 ${((liquidations?.longs || 0) / 1e6).toFixed(2)}M
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-muted-foreground">Shorts</span>
-              <span className="text-sm font-semibold text-chart-green">
+            <div className="flex justify-between items-baseline">
+              <span className="text-[9px] text-muted-foreground">SHORTS</span>
+              <span className="text-sm font-bold text-chart-green tabular-nums">
                 ${((liquidations?.shorts || 0) / 1e6).toFixed(2)}M
               </span>
             </div>
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden flex mt-2">
-              <div
-                className="bg-chart-red"
-                style={{ width: `${longLiqPercentage}%` }}
-              />
-              <div className="bg-chart-green flex-1" />
-            </div>
+          </div>
+          <div className="h-1 bg-muted rounded-full overflow-hidden flex">
+            <div className="bg-chart-red" style={{ width: `${longLiqPercentage}%` }} />
+            <div className="bg-chart-green flex-1" />
           </div>
         </CardContent>
       </Card>
 
       {/* Volume 24h */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-2 pt-3">
-          <CardTitle className="text-xs text-foreground">Volume 24h</CardTitle>
+        <CardHeader className="pb-1 pt-2">
+          <CardTitle className="text-[10px] font-semibold tracking-wide text-muted-foreground">
+            VOLUME 24H
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pb-3">
-          <div className="text-xl font-bold text-primary">
+        <CardContent className="pb-2">
+          <div className="text-2xl font-bold text-foreground tabular-nums">
             ${(Math.random() * 50 + 10).toFixed(2)}B
           </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Spot + Futures
+          <div className="text-[9px] text-muted-foreground mt-1">
+            SPOT + FUTURES
           </div>
         </CardContent>
       </Card>
 
       {/* Market Dominance */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-2 pt-3">
-          <CardTitle className="text-xs text-foreground">Market Dominance</CardTitle>
+        <CardHeader className="pb-1 pt-2">
+          <CardTitle className="text-[10px] font-semibold tracking-wide text-muted-foreground">
+            MARKET DOMINANCE
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pb-3">
-          <div className="text-xl font-bold text-primary">
+        <CardContent className="pb-2">
+          <div className="text-2xl font-bold text-foreground tabular-nums">
             {(Math.random() * 10 + 40).toFixed(1)}%
           </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Of Total Crypto Market
+          <div className="text-[9px] text-muted-foreground mt-1">
+            OF TOTAL CRYPTO MARKET
           </div>
         </CardContent>
       </Card>
