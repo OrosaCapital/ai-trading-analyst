@@ -28,7 +28,8 @@ serve(async (req) => {
     }
 
     // Convert symbol format (e.g., BTCUSD -> BTC)
-    const cleanSymbol = symbol.replace('USD', '').replace('USDT', '');
+    // Fix: Replace USDT first, then USD to avoid corrupting symbols
+    const cleanSymbol = symbol.replace('USDT', '').replace('USD', '');
 
     const response = await fetch(
       `https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${cleanSymbol}`,

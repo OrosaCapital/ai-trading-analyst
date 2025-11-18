@@ -513,7 +513,8 @@ function detectAssetType(symbol: string): 'crypto' | 'stock' {
   const cryptoSymbols = ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'ADA', 'MATIC', 'LINK', 'DOT', 'UNI', 'AVAX', 'ATOM'];
   const stockSymbols = ['AAPL', 'TSLA', 'GOOGL', 'MSFT', 'NVDA', 'AMZN', 'META', 'NFLX'];
   
-  const upperSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '');
+  // Fix: Replace USDT first, then USD to avoid corrupting symbols
+  const upperSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '');
   
   if (cryptoSymbols.some(c => upperSymbol.includes(c))) return 'crypto';
   if (stockSymbols.includes(upperSymbol)) return 'stock';
@@ -557,7 +558,8 @@ async function fetchCoinGlassOHLC(
     
     const requestedInterval = intervalMap[intervalMinutes] || '1h';
     const interval = getValidInterval(requestedInterval);
-    const cleanSymbol = symbol.toUpperCase().replace('USD', '').replace('USDT', '') + 'USDT';
+    // Fix: Replace USDT first, then USD to avoid corrupting symbols like ETHUSDT
+    const cleanSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '') + 'USDT';
     console.log(`Cleaned symbol: ${cleanSymbol}, Original: ${symbol}, Interval: ${interval}`);
     
     console.log(`Fetching CoinGlass data for ${cleanSymbol}, interval: ${interval}`);
