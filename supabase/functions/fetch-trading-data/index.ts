@@ -374,8 +374,8 @@ serve(async (req) => {
         '1m': priceData1m.slice(-15),
         '5m': priceData5m.slice(-3),
         '10m': priceData10m.slice(-2),
-        '15m': priceData15m.slice(-1),
-        '1h': candles1h.slice(-4)
+        '15m': priceData15m.slice(-1)
+        // Intentionally omitting 1h to prevent AI confusion with emas['1h']
       },
       emas: { '5m': ema5m, '15m': ema15m, '1h': ema1h },
       coinglass: { funding, openInterest, liquidations, longShort, takerVolume },
