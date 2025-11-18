@@ -34,6 +34,11 @@ export interface DataValidationEntry {
   received: unknown;
   valid: boolean;
   notes?: string;
+  responseTime?: number;
+  endpoint?: string;
+  plan?: string;
+  rateLimit?: string;
+  credits?: string;
 }
 
 export interface DataValidationSummary {

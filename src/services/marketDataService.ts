@@ -8,10 +8,35 @@ interface EdgeFunctionResponse {
   candles: Candle[];
   spotPrice: number | null;
   cryptoPrice: number | null;
+  timestamp: string;
   validation: {
-    coinglass: { valid: boolean; count: number; error: string | null };
-    tatum: { valid: boolean; price: number | null; error: string | null };
-    ninjas: { valid: boolean; price: number | null; error: string | null };
+    coinglass: { 
+      valid: boolean; 
+      count: number; 
+      error: string | null;
+      responseTime: number;
+      endpoint: string;
+      plan: string;
+      rateLimit: string;
+    };
+    tatum: { 
+      valid: boolean; 
+      price: number | null; 
+      error: string | null;
+      responseTime: number;
+      endpoint: string;
+      plan: string;
+      credits: string;
+    };
+    ninjas: { 
+      valid: boolean; 
+      price: number | null; 
+      error: string | null;
+      responseTime: number;
+      endpoint: string;
+      plan: string;
+      rateLimit: string;
+    };
   };
 }
 
@@ -105,6 +130,10 @@ export async function buildDataValidation(params: SymbolTimeframe): Promise<Data
         notes: data.validation.coinglass.valid
           ? `Received ${data.validation.coinglass.count} candles`
           : data.validation.coinglass.error || "Failed to fetch candles",
+        responseTime: data.validation.coinglass.responseTime,
+        endpoint: data.validation.coinglass.endpoint,
+        plan: data.validation.coinglass.plan,
+        rateLimit: data.validation.coinglass.rateLimit,
       },
       {
         key: "tatum_spot",
@@ -113,6 +142,10 @@ export async function buildDataValidation(params: SymbolTimeframe): Promise<Data
         notes: data.validation.tatum.valid
           ? "Spot price OK"
           : data.validation.tatum.error || "Failed to fetch spot price",
+        responseTime: data.validation.tatum.responseTime,
+        endpoint: data.validation.tatum.endpoint,
+        plan: data.validation.tatum.plan,
+        credits: data.validation.tatum.credits,
       },
       {
         key: "api_ninjas_price",
@@ -121,6 +154,10 @@ export async function buildDataValidation(params: SymbolTimeframe): Promise<Data
         notes: data.validation.ninjas.valid
           ? `Price: $${data.validation.ninjas.price?.toFixed(2)}`
           : data.validation.ninjas.error || "Failed to fetch crypto price",
+        responseTime: data.validation.ninjas.responseTime,
+        endpoint: data.validation.ninjas.endpoint,
+        plan: data.validation.ninjas.plan,
+        rateLimit: data.validation.ninjas.rateLimit,
       },
     ];
 
