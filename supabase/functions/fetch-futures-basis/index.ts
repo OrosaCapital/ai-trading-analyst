@@ -37,11 +37,46 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching futures basis for ${symbol} from Coinglass`);
 
-    const data = await fetchFromCoinglassV2(
-      'futures_basis_history',
-      { symbol, interval: '4h' },
-      coinglassApiKey
+    // Import validation and monitoring
+    const {
+      validateCoinglassResponse,
+      validateArrayData,
+      logValidationResult,
+      createErrorResponse,
+    } = await import('../_shared/apiValidation.ts');
+    
+    const { monitoredAPICall } = await import('../_shared/apiMonitoring.ts');
+
+    // Use monitored API call
+    const data = await monitoredAPICall(
+      'futures_basis',
+      symbol,
+      async () => await fetchFromCoinglassV2(
+        'futures_basis_history',
+        { symbol, interval: '4h' },
+        coinglassApiKey
+      )
     );
+
+    // Validate response structure
+    const validation = validateCoinglassResponse(data, (responseData) => {
+      return validateArrayData(responseData, 1);
+    });
+    
+    logValidationResult('futures_basis', symbol, validation);
+    
+    if (!validation.isValid) {
+      const errorResponse = createErrorResponse('quote', symbol, validation.errors, validation.warnings);
+      errorResponse.currentBasis = 0;
+      errorResponse.basisPercent = 0;
+      errorResponse.structure = 'NEUTRAL';
+      errorResponse.signal = 'NEUTRAL';
+      errorResponse.history = [];
+      errorResponse.timestamp = Date.now();
+      return new Response(JSON.stringify(errorResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     console.log('Coinglass futures basis response:', JSON.stringify(data));
 

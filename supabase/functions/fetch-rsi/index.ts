@@ -37,11 +37,44 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching RSI for ${symbol} from Coinglass`);
 
-    const data = await fetchFromCoinglassV2(
-      'rsi_list',
-      { symbol },
-      coinglassApiKey
+    // Import validation and monitoring
+    const {
+      validateCoinglassResponse,
+      validateArrayData,
+      logValidationResult,
+      createErrorResponse,
+    } = await import('../_shared/apiValidation.ts');
+    
+    const { monitoredAPICall } = await import('../_shared/apiMonitoring.ts');
+
+    // Use monitored API call
+    const data = await monitoredAPICall(
+      'rsi',
+      symbol,
+      async () => await fetchFromCoinglassV2(
+        'rsi_list',
+        { symbol },
+        coinglassApiKey
+      )
     );
+
+    // Validate response structure
+    const validation = validateCoinglassResponse(data, (responseData) => {
+      return validateArrayData(responseData, 0); // RSI can have empty array
+    });
+    
+    logValidationResult('rsi', symbol, validation);
+    
+    if (!validation.isValid) {
+      const errorResponse = createErrorResponse('quote', symbol, validation.errors, validation.warnings);
+      errorResponse.rsi14 = 50;
+      errorResponse.allPeriods = [];
+      errorResponse.signal = 'NEUTRAL';
+      errorResponse.timestamp = Date.now();
+      return new Response(JSON.stringify(errorResponse), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     console.log('Coinglass RSI response:', JSON.stringify(data));
 
