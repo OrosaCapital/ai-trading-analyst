@@ -1,6 +1,6 @@
 import { httpClient } from "./httpClient";
 import { env } from "../config/env";
-import type { ApiResult } from "../types/api";
+import type { ApiResult, ApiError } from "../types/api";
 
 interface TatumPriceResponse {
   symbol: string;
@@ -17,7 +17,7 @@ export async function getTatumSpotPrice(symbol: string): Promise<ApiResult<numbe
   });
 
   if (!result.ok) {
-    return { ok: false, error: result.error };
+    return result as { ok: false; error: ApiError };
   }
   
   const price = Number(result.data.price);

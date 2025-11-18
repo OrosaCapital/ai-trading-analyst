@@ -1,6 +1,6 @@
 import { httpClient } from "./httpClient";
 import { env } from "../config/env";
-import type { ApiResult } from "../types/api";
+import type { ApiResult, ApiError } from "../types/api";
 import type { Candle, SymbolTimeframe } from "../types/market";
 
 interface CoinglassKlineResponse {
@@ -24,7 +24,7 @@ export async function getCoinglassKlines(params: SymbolTimeframe): Promise<ApiRe
   });
 
   if (!result.ok) {
-    return { ok: false, error: result.error };
+    return result as { ok: false; error: ApiError };
   }
 
   const candles: Candle[] = result.data.data.list.map((row) => ({
