@@ -3,13 +3,23 @@ import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { Topbar } from "./Topbar";
 
-export function AppShell({ children }: PropsWithChildren) {
+interface AppShellProps extends PropsWithChildren {
+  showProgress?: boolean;
+  minutesCollected?: number;
+  minutesRequired?: number;
+}
+
+export function AppShell({ children, showProgress, minutesCollected, minutesRequired }: AppShellProps) {
   return (
     <div className="flex h-screen w-screen bg-gradient-to-br from-black via-slate-950 to-black text-gray-100">
       <Sidebar />
       <div className="flex flex-1 flex-col">
         <Navbar />
-        <Topbar />
+        <Topbar 
+          showProgress={showProgress}
+          minutesCollected={minutesCollected}
+          minutesRequired={minutesRequired}
+        />
         <main className="flex-1 overflow-auto p-4">{children}</main>
       </div>
     </div>

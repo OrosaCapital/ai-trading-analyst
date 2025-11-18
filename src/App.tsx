@@ -11,14 +11,12 @@ assertEnv();
 export default function App() {
   return (
     <BrowserRouter>
-      <AppShell>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/watchlist" element={<Watchlist />} />
-          <Route path="/ai-trading" element={<AITrading />} />
-          <Route path="/trading" element={<TradingDashboard />} />
-        </Routes>
-      </AppShell>
+      <Routes>
+        <Route path="/" element={<AppShell><Dashboard /></AppShell>} />
+        <Route path="/watchlist" element={<AppShell><Watchlist /></AppShell>} />
+        <Route path="/ai-trading" element={<AppShell><AITrading /></AppShell>} />
+        <Route path="/trading" element={<TradingDashboard />} />
+      </Routes>
     </BrowserRouter>
   );
 }
