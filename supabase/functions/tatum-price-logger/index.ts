@@ -95,6 +95,7 @@ function getIntervalsToLog(timestamp: Date): string[] {
   if (minutes % 5 === 0) intervals.push('5m');
   if (minutes % 10 === 0) intervals.push('10m');
   if (minutes % 15 === 0) intervals.push('15m');
+  if (minutes === 0) intervals.push('1h'); // Log 1h at the top of every hour
 
   return intervals;
 }
@@ -147,15 +148,15 @@ serve(async (req) => {
 
     await Promise.all(insertPromises);
 
-    // Clean up old logs (keep last 24 hours only)
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    // Clean up old logs (keep last 7 days for sufficient EMA data)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     try {
       await supabase
         .from('tatum_price_logs')
         .delete()
         .eq('symbol', symbol)
-        .lt('timestamp', oneDayAgo.toISOString());
-      console.log('🧹 Cleaned up old price logs');
+        .lt('timestamp', sevenDaysAgo.toISOString());
+      console.log('🧹 Cleaned up old price logs (keeping 7 days)');
     } catch (err) {
       console.error('Cleanup error:', err);
     }
