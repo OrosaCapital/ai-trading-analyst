@@ -1,110 +1,44 @@
-export interface AISignal {
-  decision: 'LONG' | 'SHORT' | 'NO TRADE';
-  confidence: number;
-  summary: {
-    trend: string;
-    volume: string;
-    liquidity: string;
-    coinglass: string;
-    entryTrigger: string;
-  };
-  action: {
-    entry?: number | null;
-    stopLoss?: number | null;
-    takeProfit?: number | null;
-    reason?: string | null;
-  };
+export interface SymbolTimeframe {
+  symbol: string; // e.g. "BTCUSDT"
+  baseAsset?: string; // e.g. "BTC"
+  quoteAsset?: string; // e.g. "USDT"
+  timeframe: "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
 }
 
-export interface TradingData {
-  status: 'accumulating' | 'ready';
-  message?: string;
-  progress?: number;
-  aiSignal?: AISignal;
-  priceData?: any;
-  emas?: any;
-  coinglass?: any;
-  liquiditySweep?: any;
-  currentPrice?: number;
+export interface Candle {
+  timestamp: number; // ms
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 }
 
-export interface LongShortRatio {
+export interface IndicatorSet {
+  emaFast?: number;
+  emaSlow?: number;
+  rsi?: number;
+  macd?: number;
+  signal?: number;
+}
+
+export interface MarketSnapshot {
   symbol: string;
-  longRatio: number;
-  shortRatio: number;
-  sentiment: string;
-  timestamp: number;
+  timeframe: SymbolTimeframe["timeframe"];
+  candles: Candle[];
+  indicators?: IndicatorSet;
 }
 
-export interface FearGreedIndex {
-  value: number;
-  valueClassification: string;
-  timestamp: number;
+export interface DataValidationEntry {
+  key: string;
+  received: unknown;
+  valid: boolean;
+  notes?: string;
 }
 
-export interface Liquidations {
+export interface DataValidationSummary {
   symbol: string;
-  longLiquidations: number;
-  shortLiquidations: number;
-  totalLiquidations: number;
-  timestamp: number;
-}
-
-export interface OpenInterest {
-  symbol: string;
-  openInterest: number;
-  change24h: number;
-  timestamp: number;
-}
-
-export interface FundingRateList {
-  symbol: string;
-  rates: Array<{
-    exchange: string;
-    rate: number;
-  }>;
-  averageRate: number;
-  timestamp: number;
-}
-
-export interface TakerVolume {
-  symbol: string;
-  buyRatio: number;
-  sellRatio: number;
-  sentiment: string;
-  timestamp: number;
-}
-
-export interface RSI {
-  symbol: string;
-  rsi14: number;
-  signal: string;
-  timestamp: number;
-}
-
-export interface FuturesBasis {
-  symbol: string;
-  basis: number;
-  basisPercentage: number;
-  signal: string;
-  timestamp: number;
-}
-
-export interface MarketData {
-  marketCap?: number;
-  volume24h?: number;
-  percentChange24h?: number;
-  percentChange1h?: number;
-  price?: number;
-}
-
-export interface CoinglassData {
-  longShortRatio: LongShortRatio | null;
-  fearGreedIndex: FearGreedIndex | null;
-  liquidations: Liquidations | null;
-  openInterest: OpenInterest | null;
-  fundingRateList: FundingRateList | null;
-  takerVolume: TakerVolume | null;
-  rsi: RSI | null;
-  futuresBasis: FuturesBasis | null;
+  timeframe: string;
+  items: DataValidationEntry[];
+  isReadyForDecision: boolean;
 }
