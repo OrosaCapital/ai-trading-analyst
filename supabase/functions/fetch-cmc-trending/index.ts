@@ -1,0 +1,124 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const CMC_BASE_URL = 'https://pro-api.coinmarketcap.com/v1';
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { limit = 10 } = await req.json().catch(() => ({}));
+
+    const CMC_API_KEY = Deno.env.get('COINMARKETCAP_API_KEY');
+    if (!CMC_API_KEY) {
+      throw new Error('COINMARKETCAP_API_KEY not configured');
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Check cache first
+    const cacheKey = `cmc_trending_${limit}`;
+    const { data: cachedData } = await supabase
+      .from('market_data_cache')
+      .select('*')
+      .eq('symbol', cacheKey)
+      .eq('data_type', 'cmc_trending')
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (cachedData) {
+      console.log(`✅ Cache HIT for CMC trending (limit: ${limit})`);
+      return new Response(
+        JSON.stringify(cachedData.data),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'HIT' }
+        }
+      );
+    }
+
+    console.log(`❌ Cache MISS for CMC trending - Fetching from API`);
+
+    // Fetch top gainers as "trending" (CMC free tier doesn't have dedicated trending endpoint)
+    const url = `${CMC_BASE_URL}/cryptocurrency/listings/latest?start=1&limit=${limit}&convert=USD&sort=percent_change_24h&sort_dir=desc`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-CMC_PRO_API_KEY': CMC_API_KEY,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('CMC API error:', errorText);
+      throw new Error(`CMC API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    // Transform to trending format
+    const trending = data.data.map((coin: any) => ({
+      id: coin.id,
+      name: coin.name,
+      symbol: coin.symbol,
+      slug: coin.slug,
+      rank: coin.cmc_rank,
+      price: coin.quote.USD.price,
+      percentChange24h: coin.quote.USD.percent_change_24h,
+      marketCap: coin.quote.USD.market_cap,
+      volume24h: coin.quote.USD.volume_24h,
+    }));
+
+    // Cache for 5 minutes
+    const expiresAt = new Date(Date.now() + CACHE_DURATION_MS).toISOString();
+    
+    await supabase
+      .from('market_data_cache')
+      .upsert({
+        symbol: cacheKey,
+        data_type: 'cmc_trending',
+        data: trending,
+        expires_at: expiresAt,
+      }, {
+        onConflict: 'symbol,data_type'
+      });
+
+    console.log(`💾 Cached CMC trending until ${expiresAt}`);
+
+    return new Response(
+      JSON.stringify(trending),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'MISS' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error in fetch-cmc-trending:', error);
+    
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        unavailable: true,
+        reason: 'CMC_API_ERROR'
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+});
