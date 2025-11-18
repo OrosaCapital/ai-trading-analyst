@@ -16,29 +16,45 @@ export function TickerRibbon() {
   const [tickers, setTickers] = useState<TickerSymbol[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Fetch prices for all symbols (only once on mount)
+  // Fetch prices for all symbols from database
   useEffect(() => {
     const fetchPrices = async () => {
       const prices = await Promise.all(
         TICKER_SYMBOLS.map(async (symbol) => {
           try {
-            // Use mock data for ticker to avoid API overload
-            const mockPrice = symbol === "BTCUSDT" ? 43250.50 :
-                            symbol === "ETHUSDT" ? 2275.80 :
-                            symbol === "SOLUSDT" ? 98.45 :
-                            symbol === "BNBUSDT" ? 315.20 :
-                            symbol === "XRPUSDT" ? 0.62 :
-                            125.30; // ADA
-            
-            const change24h = (Math.random() - 0.5) * 5;
+            // Fetch current price from cache
+            const { data: cacheData } = await supabase
+              .from("tatum_price_cache")
+              .select("price_data")
+              .eq("symbol", symbol)
+              .gt("expires_at", new Date().toISOString())
+              .single();
+
+            const currentPrice = (cacheData?.price_data as any)?.value || 0;
+
+            // Fetch price from 24h ago from logs
+            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            const { data: historicalData } = await supabase
+              .from("tatum_price_logs")
+              .select("price")
+              .eq("symbol", symbol)
+              .eq("interval", "1m")
+              .lte("timestamp", twentyFourHoursAgo)
+              .order("timestamp", { ascending: false })
+              .limit(1)
+              .single();
+
+            const pastPrice = historicalData?.price || currentPrice;
+            const change24h = pastPrice > 0 ? ((currentPrice - pastPrice) / pastPrice) * 100 : 0;
 
             return {
               symbol,
-              price: mockPrice,
+              price: currentPrice,
               change24h,
               isPositive: change24h >= 0,
             };
           } catch (error) {
+            console.error(`Error fetching price for ${symbol}:`, error);
             return {
               symbol,
               price: 0,
@@ -53,11 +69,11 @@ export function TickerRibbon() {
     };
 
     fetchPrices();
-    // Update prices every 60s instead of 30s to reduce load
+    // Update prices every 60s
     const interval = setInterval(fetchPrices, 60000);
 
     return () => clearInterval(interval);
-  }, []); // Empty dependency array - only run once
+  }, []);
 
   // Rotate ticker every 3 seconds
   useEffect(() => {
