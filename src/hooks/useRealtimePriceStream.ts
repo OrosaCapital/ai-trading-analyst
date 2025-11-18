@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logWarningToSystem } from '@/store/useSystemAlertsStore';
 
 interface PriceUpdate {
   type: 'price_update';
@@ -186,16 +187,16 @@ export const useRealtimePriceStream = (
             return prev;
           });
         } else if (data.type === 'error') {
-          console.error('WebSocket error message:', data.message);
+          logWarningToSystem('WebSocket Error', data.message || 'Unknown error', 'WebSocket');
           setStableConnectionStatus('error');
         }
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+        logWarningToSystem('WebSocket Parse Error', error instanceof Error ? error.message : 'Failed to parse message', 'WebSocket');
       }
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      // Silent error - will auto-reconnect, logged to admin dashboard
       setStableConnectionStatus('error');
     };
 
