@@ -1,10 +1,10 @@
 import { useState } from "react";
+import { AppShell } from "@/components/layout/AppShell";
 import { TradingCommandCenter } from "@/components/trading/TradingCommandCenter";
 import { ProfessionalTradingChart } from "@/components/ProfessionalTradingChart";
 import { MetricsColumn } from "@/components/trading/MetricsColumn";
 import { AIDecisionPanel } from "@/components/trading/AIDecisionPanel";
 import { AdvancedAnalyticsTabs } from "@/components/trading/AdvancedAnalyticsTabs";
-import { DataAccumulationBanner } from "@/components/trading/DataAccumulationBanner";
 import { useAITradingData } from "@/hooks/useAITradingData";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 
@@ -51,7 +51,11 @@ export default function TradingDashboard() {
   const displayChartError = hasRealError(chartError) ? chartError : null;
 
   return (
-    <div className="flex h-full flex-col gap-4 pb-8">
+    <AppShell 
+      showProgress={isAccumulating}
+      minutesCollected={minutesCollected}
+      minutesRequired={15}
+    >
       {/* Top Command Center */}
       <TradingCommandCenter 
         symbol={symbol}
@@ -60,15 +64,6 @@ export default function TradingDashboard() {
         onTimeframeChange={setTimeframe}
         currentPrice={currentPrice}
       />
-
-      {/* Show accumulation banner if needed */}
-      {isAccumulating && (
-        <DataAccumulationBanner 
-          symbol={symbol}
-          minutesCollected={minutesCollected}
-          minutesRequired={15}
-        />
-      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
@@ -99,6 +94,6 @@ export default function TradingDashboard() {
       <div className="h-[400px]">
         <AdvancedAnalyticsTabs symbol={symbol} />
       </div>
-    </div>
+    </AppShell>
   );
 }
