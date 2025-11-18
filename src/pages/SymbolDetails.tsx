@@ -1,14 +1,32 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/card";
-import { Coins, TrendingUp, Activity } from "lucide-react";
+import { Coins, TrendingUp, Activity, Search } from "lucide-react";
 import { normalizeSymbol, addUsdSuffix } from "@/lib/symbolUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function SymbolDetails() {
   const { symbolParam } = useParams<{ symbolParam: string }>();
+  const navigate = useNavigate();
+  const [searchSymbol, setSearchSymbol] = useState("");
   const normalizedSymbol = normalizeSymbol(symbolParam || "BTC");
   const tradingSymbol = addUsdSuffix(normalizedSymbol);
+
+  const handleSymbolSearch = () => {
+    if (searchSymbol.trim()) {
+      navigate(`/symbol/${searchSymbol.trim().toUpperCase()}`);
+      setSearchSymbol("");
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSymbolSearch();
+    }
+  };
 
   return (
     <AppShell symbol={tradingSymbol}>
@@ -25,8 +43,18 @@ export default function SymbolDetails() {
                 <p className="text-sm text-muted-foreground">{tradingSymbol}</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Select a symbol to begin</p>
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                placeholder="Enter symbol (e.g., BTC, ETH)"
+                value={searchSymbol}
+                onChange={(e) => setSearchSymbol(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="w-64 bg-background"
+              />
+              <Button onClick={handleSymbolSearch} size="icon">
+                <Search className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </Card>
