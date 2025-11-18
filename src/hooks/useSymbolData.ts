@@ -1,20 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimePriceStream } from "./useRealtimePriceStream";
 import { normalizeSymbol } from "@/lib/symbolUtils";
 
 interface SymbolData {
-  // Real-time price
   currentPrice: number | null;
   priceChange24h: number | null;
   volume24h: number | null;
-  
-  // Market data
   marketCap: number | null;
   circulatingSupply: number | null;
   rank: number | null;
-  
-  // Coinglass metrics
   fundingRate: number | null;
   fundingRateTrend: string | null;
   openInterest: number | null;
@@ -23,17 +18,11 @@ interface SymbolData {
   liquidations24h: number | null;
   takerBuyVolume: number | null;
   takerSellVolume: number | null;
-  
-  // Sentiment
   fearGreedIndex: number | null;
   fearGreedLabel: string | null;
-  
-  // Technical indicators
   rsi: number | null;
   ema50: number | null;
   ema200: number | null;
-  
-  // AI signals
   aiDecision: string | null;
   aiConfidence: number | null;
   aiReasoning: any | null;
@@ -64,151 +53,151 @@ export function useSymbolData(symbol: string) {
     aiConfidence: null,
     aiReasoning: null,
   });
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const { priceData } = useRealtimePriceStream(symbol);
 
+  const lastSymbolRef = useRef<string | null>(null);
+  const debounceRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!symbol) return;
 
-    const fetchAllData = async () => {
-      setIsLoading(true);
-      setError(null);
+    // prevent flooding when the same symbol is used
+    if (lastSymbolRef.current === symbol) return;
+    lastSymbolRef.current = symbol;
 
-      // Extract base symbol for CoinMarketCap API
-      const baseSymbol = normalizeSymbol(symbol);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
 
-      try {
-        // Fetch all data in parallel
-        const [
-          cmcQuotes,
-          fundingRate,
-          openInterest,
-          longShortRatio,
-          liquidations,
-          takerVolume,
-          fearGreed,
-          rsiData,
-          aiSignal,
-        ] = await Promise.allSettled([
-          supabase.functions.invoke("fetch-cmc-quotes", { body: { symbol: baseSymbol } }),
-          supabase.functions.invoke("fetch-funding-rate", { body: { symbol } }),
-          supabase.functions.invoke("fetch-open-interest", { body: { symbol } }),
-          supabase.functions.invoke("fetch-long-short-ratio", { body: { symbol } }),
-          supabase.functions.invoke("fetch-liquidations", { body: { symbol } }),
-          supabase.functions.invoke("fetch-taker-volume", { body: { symbol } }),
-          supabase.functions.invoke("fetch-fear-greed-index"),
-          supabase.functions.invoke("fetch-rsi", { body: { symbol } }),
-          supabase.functions.invoke("fetch-trading-data", { body: { symbol } }),
-        ]);
+    debounceRef.current = window.setTimeout(() => {
+      const fetchAll = async () => {
+        setIsLoading(true);
+        setError(null);
 
-        // Process CMC data
-        if (cmcQuotes.status === "fulfilled" && cmcQuotes.value.data) {
-          const symbolData = cmcQuotes.value.data;
-          if (symbolData && !symbolData.error) {
+        const baseSymbol = normalizeSymbol(symbol);
+
+        try {
+          const results = await Promise.allSettled([
+            supabase.functions.invoke("fetch-cmc-quotes", { body: { symbol: baseSymbol } }),
+            supabase.functions.invoke("fetch-funding-rate", { body: { symbol } }),
+            supabase.functions.invoke("fetch-open-interest", { body: { symbol } }),
+            supabase.functions.invoke("fetch-long-short-ratio", { body: { symbol } }),
+            supabase.functions.invoke("fetch-liquidations", { body: { symbol } }),
+            supabase.functions.invoke("fetch-taker-volume", { body: { symbol } }),
+            supabase.functions.invoke("fetch-fear-greed-index"),
+            supabase.functions.invoke("fetch-rsi", { body: { symbol } }),
+            supabase.functions.invoke("fetch-trading-data", { body: { symbol } }),
+          ]);
+
+          const [
+            cmcQuotes,
+            fundingRate,
+            openInterest,
+            longShortRatio,
+            liquidations,
+            takerVolume,
+            fearGreed,
+            rsiData,
+            aiSignal,
+          ] = results;
+
+          if (cmcQuotes.status === "fulfilled" && cmcQuotes.value.data) {
+            const s = cmcQuotes.value.data;
+            if (!s.error) {
+              setData((prev) => ({
+                ...prev,
+                currentPrice: s.price,
+                priceChange24h: s.percentChange24h,
+                volume24h: s.volume24h,
+                marketCap: s.marketCap,
+                circulatingSupply: s.circulatingSupply || null,
+                rank: s.rank || null,
+              }));
+            }
+          }
+
+          if (fundingRate.status === "fulfilled" && fundingRate.value.data) {
+            const fr = fundingRate.value.data;
             setData((prev) => ({
               ...prev,
-              currentPrice: symbolData.price,
-              priceChange24h: symbolData.percentChange24h,
-              volume24h: symbolData.volume24h,
-              marketCap: symbolData.marketCap,
-              circulatingSupply: symbolData.circulatingSupply || null,
-              rank: symbolData.rank || null,
+              fundingRate: fr.rate || fr.fundingRate,
+              fundingRateTrend: fr.trend,
             }));
           }
+
+          if (openInterest.status === "fulfilled" && openInterest.value.data) {
+            const oi = openInterest.value.data;
+            setData((prev) => ({
+              ...prev,
+              openInterest: oi.openInterest,
+              openInterestChange: oi.change24h,
+            }));
+          }
+
+          if (longShortRatio.status === "fulfilled" && longShortRatio.value.data) {
+            const ls = longShortRatio.value.data;
+            setData((prev) => ({
+              ...prev,
+              longShortRatio: ls.ratio || ls.longShortRatio,
+            }));
+          }
+
+          if (liquidations.status === "fulfilled" && liquidations.value.data) {
+            const liq = liquidations.value.data;
+            setData((prev) => ({
+              ...prev,
+              liquidations24h: liq.total24h || liq.liquidations24h,
+            }));
+          }
+
+          if (takerVolume.status === "fulfilled" && takerVolume.value.data) {
+            const tv = takerVolume.value.data;
+            setData((prev) => ({
+              ...prev,
+              takerBuyVolume: tv.buyVolume,
+              takerSellVolume: tv.sellVolume,
+            }));
+          }
+
+          if (fearGreed.status === "fulfilled" && fearGreed.value.data) {
+            const fg = fearGreed.value.data;
+            setData((prev) => ({
+              ...prev,
+              fearGreedIndex: fg.value,
+              fearGreedLabel: fg.valueClassification,
+            }));
+          }
+
+          if (rsiData.status === "fulfilled" && rsiData.value.data) {
+            const rsi = rsiData.value.data;
+            setData((prev) => ({
+              ...prev,
+              rsi: rsi.rsi || rsi.value,
+            }));
+          }
+
+          if (aiSignal.status === "fulfilled" && aiSignal.value.data) {
+            const ai = aiSignal.value.data;
+            setData((prev) => ({
+              ...prev,
+              aiDecision: ai.decision,
+              aiConfidence: ai.confidence,
+              aiReasoning: ai.reasoning,
+            }));
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Failed to fetch data");
+        } finally {
+          setIsLoading(false);
         }
+      };
 
-        // Process Funding Rate
-        if (fundingRate.status === "fulfilled" && fundingRate.value.data) {
-          const fr = fundingRate.value.data;
-          setData((prev) => ({
-            ...prev,
-            fundingRate: fr.rate || fr.fundingRate,
-            fundingRateTrend: fr.trend,
-          }));
-        }
-
-        // Process Open Interest
-        if (openInterest.status === "fulfilled" && openInterest.value.data) {
-          const oi = openInterest.value.data;
-          setData((prev) => ({
-            ...prev,
-            openInterest: oi.openInterest,
-            openInterestChange: oi.change24h,
-          }));
-        }
-
-        // Process Long/Short Ratio
-        if (longShortRatio.status === "fulfilled" && longShortRatio.value.data) {
-          const ls = longShortRatio.value.data;
-          setData((prev) => ({
-            ...prev,
-            longShortRatio: ls.ratio || ls.longShortRatio,
-          }));
-        }
-
-        // Process Liquidations
-        if (liquidations.status === "fulfilled" && liquidations.value.data) {
-          const liq = liquidations.value.data;
-          setData((prev) => ({
-            ...prev,
-            liquidations24h: liq.total24h || liq.liquidations24h,
-          }));
-        }
-
-        // Process Taker Volume
-        if (takerVolume.status === "fulfilled" && takerVolume.value.data) {
-          const tv = takerVolume.value.data;
-          setData((prev) => ({
-            ...prev,
-            takerBuyVolume: tv.buyVolume,
-            takerSellVolume: tv.sellVolume,
-          }));
-        }
-
-        // Process Fear & Greed
-        if (fearGreed.status === "fulfilled" && fearGreed.value.data) {
-          const fg = fearGreed.value.data;
-          setData((prev) => ({
-            ...prev,
-            fearGreedIndex: fg.value,
-            fearGreedLabel: fg.valueClassification,
-          }));
-        }
-
-        // Process RSI
-        if (rsiData.status === "fulfilled" && rsiData.value.data) {
-          const rsi = rsiData.value.data;
-          setData((prev) => ({
-            ...prev,
-            rsi: rsi.rsi || rsi.value,
-          }));
-        }
-
-        // Process AI Signal
-        if (aiSignal.status === "fulfilled" && aiSignal.value.data) {
-          const ai = aiSignal.value.data;
-          setData((prev) => ({
-            ...prev,
-            aiDecision: ai.decision,
-            aiConfidence: ai.confidence,
-            aiReasoning: ai.reasoning,
-          }));
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAllData();
-
-    // Removed polling - data fetched once per page load, updates via WebSocket
+      fetchAll();
+    }, 300);
   }, [symbol]);
 
-  // Update price from WebSocket stream
   useEffect(() => {
     if (priceData?.price) {
       setData((prev) => ({
