@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const CACHE_DURATION_MS = 30 * 1000; // 30 seconds
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -16,6 +19,37 @@ serve(async (req) => {
     if (!symbol) {
       throw new Error('Symbol is required');
     }
+
+    // Initialize Supabase client for caching
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Check cache first
+    const { data: cachedData } = await supabase
+      .from('tatum_price_cache')
+      .select('*')
+      .eq('symbol', symbol)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (cachedData) {
+      console.log(`✅ Cache HIT for ${symbol} - Saved API call!`);
+      return new Response(
+        JSON.stringify(cachedData.price_data),
+        { 
+          status: 200,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-Cache': 'HIT'
+          }
+        }
+      );
+    }
+
+    console.log(`❌ Cache MISS for ${symbol} - Fetching from Tatum API`);
 
     const apiKey = Deno.env.get('TATUM_API_KEY');
     if (!apiKey) {
@@ -71,11 +105,36 @@ serve(async (req) => {
 
     console.log(`✅ Tatum price for ${symbol}: $${priceData.price}`);
 
+    // Cache the fresh data with 30-second expiration
+    const expiresAt = new Date(Date.now() + CACHE_DURATION_MS).toISOString();
+    
+    const { error: cacheError } = await supabase
+      .from('tatum_price_cache')
+      .upsert({
+        symbol,
+        price_data: priceData,
+        expires_at: expiresAt,
+        cached_at: new Date().toISOString()
+      }, {
+        onConflict: 'symbol'
+      });
+
+    if (cacheError) {
+      console.error('Cache write error:', cacheError);
+      // Continue even if caching fails - don't block the response
+    } else {
+      console.log(`💾 Cached ${symbol} until ${expiresAt}`);
+    }
+
     return new Response(
       JSON.stringify(priceData),
       { 
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-Cache': 'MISS'
+        }
       }
     );
 
