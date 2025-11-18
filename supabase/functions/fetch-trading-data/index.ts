@@ -239,23 +239,47 @@ serve(async (req) => {
       console.log(`🎉 Sufficient data now available (${newCount} minutes), proceeding with analysis...`);
     }
 
-    // 2. Fetch price logs for all intervals (need 50+ for EMA50 calculation)
-    const [logs1m, logs5m, logs10m, logs15m] = await Promise.all([
+    // 2. Fetch price logs for all intervals (including 1h from Tatum)
+    const [logs1m, logs5m, logs10m, logs15m, logs1h] = await Promise.all([
       supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '1m').order('timestamp', { ascending: false }).limit(1440), // 24 hours
       supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '5m').order('timestamp', { ascending: false }).limit(288),  // 24 hours
       supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '10m').order('timestamp', { ascending: false }).limit(144), // 24 hours
       supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '15m').order('timestamp', { ascending: false }).limit(96),  // 24 hours
+      supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '1h').order('timestamp', { ascending: false }).limit(168), // 7 days
     ]);
 
     const priceData1m = (logs1m.data || []).reverse();
     const priceData5m = (logs5m.data || []).reverse();
     const priceData10m = (logs10m.data || []).reverse();
     const priceData15m = (logs15m.data || []).reverse();
+    const priceData1h = (logs1h.data || []).reverse();
 
-    // 3. Build 1hr candles from 1m logs (need at least 50 hours for EMA50)
-    const candles1h = build1hrCandles(priceData1m);
+    // 3. Use Tatum 1h logs if available, otherwise build from 1m
+    let candles1h: Candle[] = [];
+    let dataSource1h = 'none';
     
-    console.log(`📊 Data available: 1m=${priceData1m.length}, 5m=${priceData5m.length}, 15m=${priceData15m.length}, 1h=${candles1h.length}`);
+    if (priceData1h.length >= 21) {
+      // Use Tatum 1h logs directly (preferred method)
+      candles1h = priceData1h.map((log: any) => ({
+        time: Math.floor(new Date(log.timestamp).getTime() / 1000),
+        open: log.price,
+        high: log.price,
+        low: log.price,
+        close: log.price,
+        volume: log.volume || 0
+      }));
+      dataSource1h = 'tatum';
+      console.log(`✅ Using Tatum 1h logs (${priceData1h.length} candles)`);
+    } else if (priceData1m.length >= 60 * 21) {
+      // Fallback: Build 1h candles from 1m logs
+      candles1h = build1hrCandles(priceData1m);
+      dataSource1h = 'built-from-1m';
+      console.log(`⚠️ Built 1h candles from 1m data (${candles1h.length} candles)`);
+    } else {
+      console.log(`❌ Insufficient data for 1h EMA (need 21+ hours, have ${priceData1h.length} from Tatum, ${Math.floor(priceData1m.length / 60)} from 1m)`);
+    }
+    
+    console.log(`📊 Data available: 1m=${priceData1m.length}, 5m=${priceData5m.length}, 15m=${priceData15m.length}, 1h=${candles1h.length} (source: ${dataSource1h})`);
 
     // 4. Calculate EMAs (EMA21 for intraday trading - only needs 21 data points)
     const prices5m = priceData5m.map((p: any) => p.price);
