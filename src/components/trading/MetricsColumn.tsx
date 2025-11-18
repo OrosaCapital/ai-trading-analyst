@@ -69,14 +69,14 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2">
         {[...Array(6)].map((_, i) => (
           <Card key={i} className="glass-panel">
-            <CardHeader className="pb-3">
-              <Skeleton className="h-4 w-24" />
+            <CardHeader className="pb-2 pt-3">
+              <Skeleton className="h-3 w-20" />
             </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-full" />
+            <CardContent className="pb-3">
+              <Skeleton className="h-6 w-full" />
             </CardContent>
           </Card>
         ))}
@@ -94,34 +94,34 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
   const longLiqPercentage = totalLiquidations > 0 ? (liquidations?.longs || 0) / totalLiquidations * 100 : 50;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Funding Rate */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2 text-foreground">
-            <Activity className="h-4 w-4 text-primary" />
+        <CardHeader className="pb-2 pt-3">
+          <CardTitle className="text-xs flex items-center gap-2 text-foreground">
+            <Activity className="h-3 w-3 text-primary" />
             Funding Rate
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-3">
           <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold text-primary">
+            <div className="text-xl font-bold text-primary">
               {(currentFundingRate * 100).toFixed(4)}%
             </div>
             {currentFundingRate > 0 ? (
-              <Badge className="bg-chart-green/10 text-chart-green border-chart-green/30">
-                <TrendingUp className="h-3 w-3 mr-1" />
+              <Badge className="bg-chart-green/10 text-chart-green border-chart-green/30 text-xs py-0">
+                <TrendingUp className="h-2.5 w-2.5 mr-1" />
                 Bullish
               </Badge>
             ) : (
-              <Badge className="bg-chart-red/10 text-chart-red border-chart-red/30">
-                <TrendingDown className="h-3 w-3 mr-1" />
+              <Badge className="bg-chart-red/10 text-chart-red border-chart-red/30 text-xs py-0">
+                <TrendingDown className="h-2.5 w-2.5 mr-1" />
                 Bearish
               </Badge>
             )}
           </div>
           {fundingRate?.current?.nextFunding && (
-            <div className="text-xs text-muted-foreground mt-2">
+            <div className="text-xs text-muted-foreground mt-1">
               Next: {new Date(fundingRate.current.nextFunding).toLocaleTimeString()}
             </div>
           )}
@@ -130,19 +130,19 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
       {/* Open Interest */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2 text-foreground">
-            <BarChart3 className="h-4 w-4 text-primary" />
+        <CardHeader className="pb-2 pt-3">
+          <CardTitle className="text-xs flex items-center gap-2 text-foreground">
+            <BarChart3 className="h-3 w-3 text-primary" />
             Open Interest
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-primary">
+        <CardContent className="pb-3">
+          <div className="text-xl font-bold text-primary">
             ${(currentOpenInterest / 1e9).toFixed(2)}B
           </div>
           {openInterest?.current?.change24h !== undefined && (
             <div className={`text-xs mt-1 ${openInterest.current.change24h > 0 ? 'text-chart-green' : 'text-chart-red'}`}>
-              24h Change: {openInterest.current.change24h > 0 ? '+' : ''}{openInterest.current.change24h.toFixed(2)}%
+              24h: {openInterest.current.change24h > 0 ? '+' : ''}{openInterest.current.change24h.toFixed(2)}%
             </div>
           )}
         </CardContent>
@@ -150,14 +150,14 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
       {/* Long/Short Ratio */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-foreground">Long/Short Ratio</CardTitle>
+        <CardHeader className="pb-2 pt-3">
+          <CardTitle className="text-xs text-foreground">Long/Short Ratio</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-primary">
+        <CardContent className="pb-3">
+          <div className="text-xl font-bold text-primary">
             {currentLongShortRatio.toFixed(2)}
           </div>
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 mt-1.5">
             <div className="flex-1">
               <div className="text-xs text-muted-foreground">Longs</div>
               <div className="text-sm font-semibold text-chart-green">{longPercentage.toFixed(1)}%</div>
@@ -172,14 +172,14 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
       {/* Liquidations 24h */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2 text-foreground">
-            <AlertTriangle className="h-4 w-4 text-primary" />
+        <CardHeader className="pb-2 pt-3">
+          <CardTitle className="text-xs flex items-center gap-2 text-foreground">
+            <AlertTriangle className="h-3 w-3 text-primary" />
             Liquidations 24h
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
+        <CardContent className="pb-3">
+          <div className="space-y-1.5">
             <div className="flex justify-between">
               <span className="text-xs text-muted-foreground">Longs</span>
               <span className="text-sm font-semibold text-chart-red">
@@ -192,7 +192,7 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
                 ${((liquidations?.shorts || 0) / 1e6).toFixed(2)}M
               </span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden flex">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden flex mt-2">
               <div
                 className="bg-chart-red"
                 style={{ width: `${longLiqPercentage}%` }}
@@ -205,11 +205,11 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
       {/* Volume 24h */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-foreground">Volume 24h</CardTitle>
+        <CardHeader className="pb-2 pt-3">
+          <CardTitle className="text-xs text-foreground">Volume 24h</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-primary">
+        <CardContent className="pb-3">
+          <div className="text-xl font-bold text-primary">
             ${(Math.random() * 50 + 10).toFixed(2)}B
           </div>
           <div className="text-xs text-muted-foreground mt-1">
@@ -220,11 +220,11 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
       {/* Market Dominance */}
       <Card className="glass-panel border border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-foreground">Market Dominance</CardTitle>
+        <CardHeader className="pb-2 pt-3">
+          <CardTitle className="text-xs text-foreground">Market Dominance</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-primary">
+        <CardContent className="pb-3">
+          <div className="text-xl font-bold text-primary">
             {(Math.random() * 10 + 40).toFixed(1)}%
           </div>
           <div className="text-xs text-muted-foreground mt-1">
