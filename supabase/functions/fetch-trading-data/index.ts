@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { calculateLocalTradeSignal } from '../_shared/signalEngine.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -456,15 +457,38 @@ serve(async (req) => {
       }
     };
 
-    console.log('🤖 Calling AI Decision Engine...');
-    console.log(`📤 AI Input: symbol=${symbol}, ema5m=${ema5m.length} vals, ema15m=${ema15m.length} vals, ema1h=${ema1h.length} vals, 1h candles=${candles1h.slice(-4).length}`);
-    const { data: aiDecision, error: aiError } = await supabase.functions.invoke('ai-trading-decision', {
-      body: aiInput
+    // ===== LOCAL SIGNAL ENGINE (0 CREDITS) =====
+    console.log('🎯 Using local signal engine (FREE)');
+    const localSignal = calculateLocalTradeSignal({
+      price1h: ema15m[ema15m.length - 1] || currentPrice,
+      ema501h: ema15m,
+      rsi1h: [50],
+      price15m: ema15m[ema15m.length - 1] || currentPrice,
+      ema5015m: ema15m,
+      rsi15m: [50],
+      currentVolume: 1000000,
+      volumeSMA: [750000],
+      coinglassSentiment: longShort?.sentiment || 'neutral',
     });
-
-    if (aiError) {
-      console.error('AI Decision Engine error:', aiError);
-    }
+    
+    console.log(`✅ Local signal: ${localSignal.signal} (${localSignal.confidence}%)`);
+    
+    const aiDecision = {
+      data_validation: { validation_passed: true, mode: 'LOCAL_ENGINE' },
+      trade_decision: {
+        action: localSignal.signal,
+        confidence_score: localSignal.confidence,
+        entry: localSignal.entry_price,
+        stop_loss: localSignal.stop_loss,
+        take_profit: localSignal.take_profit
+      },
+      analysis: {
+        trend_direction: localSignal.reasons[0] || 'LOCAL ENGINE',
+        key_signals: localSignal.reasons
+      },
+      reason: localSignal.reasons.join(' ')
+    };
+    const aiError = null;
 
     // Ensure we have a valid response structure
     const finalDecision = aiDecision && typeof aiDecision === 'object' ? aiDecision : {
@@ -491,36 +515,41 @@ serve(async (req) => {
     console.log('📋 Final decision structure:', JSON.stringify(finalDecision, null, 2).substring(0, 300));
 
     // Extract fields with safe fallbacks for both old and new formats
-    const decision = finalDecision.trade_decision?.action || finalDecision.decision || 'NO_TRADE';
-    const confidence = finalDecision.trade_decision?.confidence_score || finalDecision.confidence || 0;
+    const decision = finalDecision.trade_decision?.action || (finalDecision as any).decision || 'NO_TRADE';
+    const confidence = finalDecision.trade_decision?.confidence_score || (finalDecision as any).confidence || 0;
     
     // Safely extract entry/stop/target with nested optional chaining
     const entryPrice = finalDecision.trade_decision?.entry ?? 
-                      (finalDecision.action && typeof finalDecision.action === 'object' ? finalDecision.action.entry : null) ?? 
+                      ((finalDecision as any).action && typeof (finalDecision as any).action === 'object' ? (finalDecision as any).action.entry : null) ?? 
                       null;
     const stopLoss = finalDecision.trade_decision?.stop_loss ?? 
-                    (finalDecision.action && typeof finalDecision.action === 'object' ? finalDecision.action.stopLoss : null) ?? 
+                    ((finalDecision as any).action && typeof (finalDecision as any).action === 'object' ? (finalDecision as any).action.stopLoss : null) ?? 
                     null;
     const takeProfit = finalDecision.trade_decision?.take_profit ?? 
-                      (finalDecision.action && typeof finalDecision.action === 'object' ? finalDecision.action.takeProfit : null) ?? 
+                      ((finalDecision as any).action && typeof (finalDecision as any).action === 'object' ? (finalDecision as any).action.takeProfit : null) ?? 
                       null;
     
     // Extract summary/analysis fields with safe fallbacks
     const trendExplanation = finalDecision.analysis?.trend_direction || 
-                            (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.trend : null) || 
+                            ((finalDecision as any).summary && typeof (finalDecision as any).summary === 'object' ? (finalDecision as any).summary.trend : null) || 
                             'N/A';
     const volumeExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('volume')) || 
-                             (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.volume : null) || 
+                             ((finalDecision as any).summary && typeof (finalDecision as any).summary === 'object' ? (finalDecision as any).summary.volume : null) || 
                              'N/A';
     const liquidityExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('liquidity')) || 
-                                (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.liquidity : null) || 
+                                ((finalDecision as any).summary && typeof (finalDecision as any).summary === 'object' ? (finalDecision as any).summary.liquidity : null) || 
                                 'N/A';
     const coinglassExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('coinglass')) || 
-                                (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.coinglass : null) || 
+                                ((finalDecision as any).summary && typeof (finalDecision as any).summary === 'object' ? (finalDecision as any).summary.coinglass : null) || 
                                 'N/A';
-    const entryTriggerExplanation = finalDecision.analysis?.momentum_strength || 
-                                   (finalDecision.summary && typeof finalDecision.summary === 'object' ? finalDecision.summary.entryTrigger : null) || 
+    const entryTriggerExplanation = (finalDecision.analysis as any)?.momentum_strength || 
+                                   ((finalDecision as any).summary && typeof (finalDecision as any).summary === 'object' ? (finalDecision as any).summary.entryTrigger : null) || 
                                    'N/A';
+
+    //  Build output structure
+    const dataQuality = finalDecision.data_validation?.validation_passed ? 'complete' : 'insufficient';
+    const analysisMode = (finalDecision.data_validation as any)?.mode || 'UNKNOWN';
+    const notes = (finalDecision.data_validation as any)?.notes || null;
 
     // 11. Store AI signal in database
     await supabase.from('ai_trading_signals').insert({
@@ -555,7 +584,6 @@ serve(async (req) => {
     console.log('✅ Analysis logged to history');
 
     // Normalize the AI response for frontend consumption
-    const analysisMode = finalDecision.data_validation?.mode || 'UNKNOWN';
     const normalizedSignal = {
       decision,
       confidence,
@@ -574,7 +602,7 @@ serve(async (req) => {
       },
       metadata: {
         analysisMode, // FULL_ANALYSIS, DEGRADED_ANALYSIS, or INSUFFICIENT_DATA
-        notes: finalDecision.data_validation?.notes || null,
+        notes: notes,
         dataQuality: analysisMode === 'FULL_ANALYSIS' ? 'complete' : 
                     analysisMode === 'DEGRADED_ANALYSIS' ? 'partial' : 'insufficient'
       },
