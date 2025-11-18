@@ -10,16 +10,13 @@ export function Dashboard() {
 
   return (
     <div className="flex h-full flex-col gap-4">
-      {isLoading && <LoadingSpinner />}
-      {error && <ErrorState message={error} />}
-
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <MainChart snapshot={snapshot} />
         </div>
         <div className="space-y-4">
           <SymbolSummaryPanel snapshot={snapshot} />
-          <DataValidationPanel validation={validation} />
+          <DataValidationPanel validation={validation} isLoading={isLoading} error={error} />
         </div>
       </div>
     </div>
