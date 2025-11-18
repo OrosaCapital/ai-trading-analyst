@@ -43,17 +43,17 @@ function build1hrCandles(logs1m: PriceLog[]): Candle[] {
   return hourlyCandles;
 }
 
-// Calculate EMA 50
-function calculateEMA50(prices: number[]): number[] {
+// Calculate EMA 21 (better for intraday trading)
+function calculateEMA21(prices: number[]): number[] {
   const ema: number[] = [];
-  const multiplier = 2 / (50 + 1);
+  const multiplier = 2 / (21 + 1);
   
   // Start with SMA for first value
-  const sma = prices.slice(0, 50).reduce((sum, p) => sum + p, 0) / 50;
+  const sma = prices.slice(0, 21).reduce((sum, p) => sum + p, 0) / 21;
   ema.push(sma);
   
   // Calculate EMA for rest
-  for (let i = 50; i < prices.length; i++) {
+  for (let i = 21; i < prices.length; i++) {
     const newEma = (prices[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1];
     ema.push(newEma);
   }
@@ -239,12 +239,12 @@ serve(async (req) => {
       console.log(`🎉 Sufficient data now available (${newCount} minutes), proceeding with analysis...`);
     }
 
-    // 2. Fetch price logs for all intervals
+    // 2. Fetch price logs for all intervals (need 50+ for EMA50 calculation)
     const [logs1m, logs5m, logs10m, logs15m] = await Promise.all([
-      supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '1m').order('timestamp', { ascending: false }).limit(60),
-      supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '5m').order('timestamp', { ascending: false }).limit(12),
-      supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '10m').order('timestamp', { ascending: false }).limit(6),
-      supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '15m').order('timestamp', { ascending: false }).limit(4),
+      supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '1m').order('timestamp', { ascending: false }).limit(1440), // 24 hours
+      supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '5m').order('timestamp', { ascending: false }).limit(288),  // 24 hours
+      supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '10m').order('timestamp', { ascending: false }).limit(144), // 24 hours
+      supabase.from('tatum_price_logs').select('*').eq('symbol', symbol).eq('interval', '15m').order('timestamp', { ascending: false }).limit(96),  // 24 hours
     ]);
 
     const priceData1m = (logs1m.data || []).reverse();
@@ -252,17 +252,19 @@ serve(async (req) => {
     const priceData10m = (logs10m.data || []).reverse();
     const priceData15m = (logs15m.data || []).reverse();
 
-    // 3. Build 1hr candles from 1m logs
+    // 3. Build 1hr candles from 1m logs (need at least 50 hours for EMA50)
     const candles1h = build1hrCandles(priceData1m);
+    
+    console.log(`📊 Data available: 1m=${priceData1m.length}, 5m=${priceData5m.length}, 15m=${priceData15m.length}, 1h=${candles1h.length}`);
 
-    // 4. Calculate EMAs
+    // 4. Calculate EMAs (EMA21 for intraday trading - only needs 21 data points)
     const prices5m = priceData5m.map((p: any) => p.price);
     const prices15m = priceData15m.map((p: any) => p.price);
     const prices1h = candles1h.map(c => c.close);
 
-    const ema5m = prices5m.length >= 50 ? calculateEMA50(prices5m) : [];
-    const ema15m = prices15m.length >= 50 ? calculateEMA50(prices15m) : [];
-    const ema1h = prices1h.length >= 50 ? calculateEMA50(prices1h) : [];
+    const ema5m = prices5m.length >= 21 ? calculateEMA21(prices5m) : [];
+    const ema15m = prices15m.length >= 21 ? calculateEMA21(prices15m) : [];
+    const ema1h = prices1h.length >= 21 ? calculateEMA21(prices1h) : [];
 
     // 5. Fetch CoinGlass metrics (with 4hr cache)
     const [funding, openInterest, liquidations, longShort, takerVolume] = await Promise.all([
