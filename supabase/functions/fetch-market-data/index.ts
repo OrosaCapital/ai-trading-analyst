@@ -48,7 +48,7 @@ serve(async (req) => {
     const [coinglassRes, tatumRes, ninjasRes] = await Promise.allSettled([
       // Coinglass OHLC - uses full symbol like BTCUSDT
       fetch(
-        `https://open-api-v4.coinglass.com/api/price/ohlc-history?symbol=${encodeURIComponent(symbol)}&interval=${interval}&exchange=binance`,
+        `https://open-api-v4.coinglass.com/api/futures/price/history?exchange=Binance&symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=100`,
         {
           headers: {
             "CG-API-KEY": COINGLASS_KEY,
@@ -73,9 +73,22 @@ serve(async (req) => {
     let candles = [];
     let candlesError = null;
     if (coinglassRes.status === "fulfilled" && coinglassRes.value.ok) {
-      const data = await coinglassRes.value.json();
-      console.log("Coinglass response:", data);
-      candles = data.data || [];
+      const result = await coinglassRes.value.json();
+      console.log("Coinglass response:", result);
+      
+      // Map Coinglass response to our Candle format
+      if (result.code === "0" && result.data) {
+        candles = result.data.map((item: any) => ({
+          timestamp: item.time,
+          open: parseFloat(item.open),
+          high: parseFloat(item.high),
+          low: parseFloat(item.low),
+          close: parseFloat(item.close),
+          volume: parseFloat(item.volume_usd || item.volume || "0"),
+        }));
+      } else {
+        candlesError = `API Error: ${result.msg || "Unknown error"}`;
+      }
     } else {
       const errorText = coinglassRes.status === "fulfilled" 
         ? await coinglassRes.value.text()
