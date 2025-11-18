@@ -1,69 +1,150 @@
-import { CoinglassApi, TatumApi, NinjasApi } from "../api";
-import type { MarketSnapshot, SymbolTimeframe, DataValidationSummary } from "../types/market";
-import type { ApiResult, ApiError } from "../types/api";
+import { supabase } from "../integrations/supabase/client";
+import type { MarketSnapshot, SymbolTimeframe, DataValidationSummary, Candle } from "../types/market";
+import type { ApiResult } from "../types/api";
+
+interface EdgeFunctionResponse {
+  symbol: string;
+  timeframe: string;
+  candles: Candle[];
+  spotPrice: number | null;
+  news: any[];
+  validation: {
+    coinglass: { valid: boolean; count: number; error: string | null };
+    tatum: { valid: boolean; price: number | null; error: string | null };
+    ninjas: { valid: boolean; count: number; error: string | null };
+  };
+}
 
 export async function fetchMarketSnapshot(params: SymbolTimeframe): Promise<ApiResult<MarketSnapshot>> {
-  const candlesRes = await CoinglassApi.getCoinglassKlines(params);
+  try {
+    const { data, error } = await supabase.functions.invoke<EdgeFunctionResponse>("fetch-market-data", {
+      body: {
+        symbol: params.symbol,
+        timeframe: params.timeframe,
+      },
+    });
 
-  if (!candlesRes.ok) {
-    return candlesRes as { ok: false; error: ApiError };
+    if (error) {
+      return {
+        ok: false,
+        error: {
+          message: error.message || "Failed to fetch market data",
+          details: error,
+        },
+      };
+    }
+
+    if (!data) {
+      return {
+        ok: false,
+        error: {
+          message: "No data returned from edge function",
+        },
+      };
+    }
+
+    const latest = data.candles.at(-1);
+
+    const snapshot: MarketSnapshot = {
+      symbol: params.symbol,
+      timeframe: params.timeframe,
+      candles: data.candles,
+      indicators: latest
+        ? {
+            emaFast: latest.close,
+            emaSlow: latest.close,
+            rsi: 50,
+            macd: 0,
+            signal: 0,
+          }
+        : undefined,
+    };
+
+    return { ok: true, data: snapshot };
+  } catch (err: any) {
+    return {
+      ok: false,
+      error: {
+        message: err?.message ?? "Unexpected error",
+        details: err,
+      },
+    };
   }
-
-  // Placeholder indicators – extend later with real calc.
-  const latest = candlesRes.data.at(-1);
-
-  const snapshot: MarketSnapshot = {
-    symbol: params.symbol,
-    timeframe: params.timeframe,
-    candles: candlesRes.data,
-    indicators: latest
-      ? {
-          emaFast: latest.close,
-          emaSlow: latest.close,
-          rsi: 50,
-          macd: 0,
-          signal: 0,
-        }
-      : undefined,
-  };
-
-  return { ok: true, data: snapshot };
 }
 
 export async function buildDataValidation(params: SymbolTimeframe): Promise<DataValidationSummary> {
-  const [candlesRes, spotRes, newsRes] = await Promise.all([
-    CoinglassApi.getCoinglassKlines(params),
-    TatumApi.getTatumSpotPrice(params.symbol),
-    NinjasApi.getSymbolNews(params.symbol),
-  ]);
+  try {
+    const { data, error } = await supabase.functions.invoke<EdgeFunctionResponse>("fetch-market-data", {
+      body: {
+        symbol: params.symbol,
+        timeframe: params.timeframe,
+      },
+    });
 
-  const items = [
-    {
-      key: "coinglass_candles",
-      received: candlesRes.ok ? candlesRes.data.length : "error",
-      valid: candlesRes.ok && candlesRes.data.length > 0,
-      notes: candlesRes.ok ? `Received ${candlesRes.data.length} candles` : "Failed to fetch candles",
-    },
-    {
-      key: "tatum_spot",
-      received: spotRes.ok ? spotRes.data : "error",
-      valid: spotRes.ok && typeof spotRes.data === "number",
-      notes: spotRes.ok ? "Spot price OK" : "Failed to fetch spot price",
-    },
-    {
-      key: "api_ninjas_news",
-      received: newsRes.ok ? newsRes.data.length : "error",
-      valid: newsRes.ok,
-      notes: newsRes.ok ? `Received ${newsRes.data.length} news items` : "Failed to fetch news",
-    },
-  ];
+    if (error || !data) {
+      return {
+        symbol: params.symbol,
+        timeframe: params.timeframe,
+        items: [
+          {
+            key: "edge_function",
+            received: "error",
+            valid: false,
+            notes: error?.message || "Failed to call edge function",
+          },
+        ],
+        isReadyForDecision: false,
+      };
+    }
 
-  const isReadyForDecision = items.every((i) => i.valid);
+    const items = [
+      {
+        key: "coinglass_candles",
+        received: data.validation.coinglass.count,
+        valid: data.validation.coinglass.valid,
+        notes: data.validation.coinglass.valid
+          ? `Received ${data.validation.coinglass.count} candles`
+          : data.validation.coinglass.error || "Failed to fetch candles",
+      },
+      {
+        key: "tatum_spot",
+        received: data.validation.tatum.price,
+        valid: data.validation.tatum.valid,
+        notes: data.validation.tatum.valid
+          ? "Spot price OK"
+          : data.validation.tatum.error || "Failed to fetch spot price",
+      },
+      {
+        key: "api_ninjas_news",
+        received: data.validation.ninjas.count,
+        valid: data.validation.ninjas.valid,
+        notes: data.validation.ninjas.valid
+          ? `Received ${data.validation.ninjas.count} news items`
+          : data.validation.ninjas.error || "Failed to fetch news",
+      },
+    ];
 
-  return {
-    symbol: params.symbol,
-    timeframe: params.timeframe,
-    items,
-    isReadyForDecision,
-  };
+    const isReadyForDecision = items.every((i) => i.valid);
+
+    return {
+      symbol: params.symbol,
+      timeframe: params.timeframe,
+      items,
+      isReadyForDecision,
+    };
+  } catch (err: any) {
+    return {
+      symbol: params.symbol,
+      timeframe: params.timeframe,
+      items: [
+        {
+          key: "unexpected_error",
+          received: "error",
+          valid: false,
+          notes: err?.message || "Unexpected error occurred",
+        },
+      ],
+      isReadyForDecision: false,
+    };
+  }
 }
