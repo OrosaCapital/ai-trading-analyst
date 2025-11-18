@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AISignal {
-  decision: 'LONG' | 'SHORT' | 'NO TRADE';
+  decision: "LONG" | "SHORT" | "NO TRADE";
   confidence: number;
   summary: {
     trend: string;
@@ -21,7 +21,7 @@ interface AISignal {
 }
 
 interface TradingData {
-  status: 'accumulating' | 'ready';
+  status: "accumulating" | "ready";
   message?: string;
   progress?: number;
   aiSignal?: AISignal;
@@ -37,48 +37,54 @@ export const useAITradingData = (symbol: string | null) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const lastSymbolRef = useRef<string | null>(null);
+  const debounceRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!symbol) return;
 
-    const startPriceLogger = async () => {
-      // Start logging prices
-      await supabase.functions.invoke('tatum-price-logger', {
-        body: { symbol }
-      });
-    };
+    // Prevent duplicate loads for the same symbol
+    if (lastSymbolRef.current === symbol) return;
+    lastSymbolRef.current = symbol;
 
-    const fetchTradingData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const { data: tradingData, error: fetchError } = await supabase.functions.invoke('fetch-trading-data', {
-          body: { symbol }
-        });
+    if (debounceRef.current) clearTimeout(debounceRef.current);
 
-        if (fetchError) throw fetchError;
+    debounceRef.current = window.setTimeout(() => {
+      const startPriceLogger = async () => {
+        try {
+          await supabase.functions.invoke("tatum-price-logger", {
+            body: { symbol },
+          });
+        } catch (_) {}
+      };
 
-        setData(tradingData);
+      const fetchTradingData = async () => {
+        setIsLoading(true);
+        setError(null);
 
-        if (tradingData.status === 'ready') {
-          toast.success('AI analysis complete!');
+        try {
+          const { data: tradingData, error: fetchError } = await supabase.functions.invoke("fetch-trading-data", {
+            body: { symbol },
+          });
+
+          if (fetchError) throw fetchError;
+
+          setData(tradingData);
+
+          if (tradingData.status === "ready") {
+            toast.success("AI analysis complete!");
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Failed to fetch data");
+          toast.error("Failed to load trading data");
+        } finally {
+          setIsLoading(false);
         }
-      } catch (err) {
-        console.error('Trading data fetch error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        toast.error('Failed to load trading data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      };
 
-    // Start price logging immediately
-    startPriceLogger();
-
-    // Fetch trading data initially
-    fetchTradingData();
-
-    // Removed polling - data accumulation happens on backend
+      startPriceLogger();
+      fetchTradingData();
+    }, 300);
   }, [symbol]);
 
   return { data, isLoading, error };
