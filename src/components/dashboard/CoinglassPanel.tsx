@@ -86,11 +86,11 @@ export const CoinglassPanel = ({
       <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-primary/10 via-accent/5 to-background p-6 border border-border/50">
         <div className="relative z-10 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-black text-foreground flex items-center gap-3">
-              <Zap className="w-8 h-8 text-primary animate-pulse" />
+            <h2 className="text-2xl font-black text-foreground flex items-center gap-3">
+              <Zap className="w-6 h-6 text-primary animate-pulse" />
               Coinglass Intelligence
             </h2>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Real-time derivatives market analytics 
               {(longShortRatio?.unavailable || liquidations?.unavailable || openInterest?.unavailable) && 
                 <span className="text-accent ml-2 inline-flex items-center gap-1">
@@ -100,7 +100,7 @@ export const CoinglassPanel = ({
               }
             </p>
           </div>
-          <Activity className="w-10 h-10 text-primary/60 animate-spin" style={{ animationDuration: '3s' }} />
+          <Activity className="w-8 h-8 text-primary/60 animate-spin" style={{ animationDuration: '3s' }} />
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-50" />
       </div>
@@ -109,8 +109,8 @@ export const CoinglassPanel = ({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Summary Card */}
         <Card className="lg:col-span-1 p-6 bg-gradient-to-br from-card via-card to-card/80 border border-border/50">
-          <h3 className="text-xl font-black text-foreground mb-6 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-black text-foreground mb-6 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary" />
             Summary
           </h3>
           <div className="space-y-4">
@@ -210,7 +210,7 @@ export const CoinglassPanel = ({
                         <TrendingUp className="w-4 h-4" />
                         Long
                       </span>
-                      <span className="text-3xl font-black text-chart-green">
+                      <span className="text-2xl font-black text-chart-green">
                         {parseFloat(longShortRatio.long_percent || 0).toFixed(1)}%
                       </span>
                     </div>
@@ -225,7 +225,7 @@ export const CoinglassPanel = ({
                         <TrendingDown className="w-4 h-4" />
                         Short
                       </span>
-                      <span className="text-3xl font-black text-chart-red">
+                      <span className="text-2xl font-black text-chart-red">
                         {parseFloat(longShortRatio.short_percent || 0).toFixed(1)}%
                       </span>
                     </div>
@@ -260,10 +260,10 @@ export const CoinglassPanel = ({
               }`} />
             </div>
             {loading ? <LoadingSkeleton /> : fearGreedIndex ? <div className="space-y-3">
-                <div className="text-7xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+                <div className="text-4xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
                   {fearGreedIndex.value}
                 </div>
-                <div className={`inline-block text-xl font-black uppercase px-4 py-2 rounded-full ${
+                <div className={`inline-block text-base font-black uppercase px-4 py-2 rounded-full ${
                   fearGreedIndex.valueClassification === 'Extreme Fear' ? 'bg-chart-red/20 text-chart-red border border-chart-red/30' :
                   fearGreedIndex.valueClassification === 'Fear' ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30' :
                   fearGreedIndex.valueClassification === 'Greed' ? 'bg-chart-green/20 text-chart-green border border-chart-green/30' :
@@ -299,7 +299,7 @@ export const CoinglassPanel = ({
                     <TrendingDown className="w-4 h-4" />
                     Longs
                   </span>
-                  <span className="text-2xl font-black text-chart-red">
+                  <span className="text-xl font-black text-chart-red">
                     ${liquidations.last24h.totalLongs}
                   </span>
                 </div>
@@ -308,7 +308,7 @@ export const CoinglassPanel = ({
                     <TrendingUp className="w-4 h-4" />
                     Shorts
                   </span>
-                  <span className="text-2xl font-black text-chart-green">
+                  <span className="text-xl font-black text-chart-green">
                     ${liquidations.last24h.totalShorts}
                   </span>
                 </div>
@@ -331,7 +331,7 @@ export const CoinglassPanel = ({
               <DollarSign className="w-6 h-6 text-primary/60" />
             </div>
             {loading ? <LoadingSkeleton /> : openInterest?.total ? <div className="space-y-3">
-                <div className="text-5xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+                <div className="text-3xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
                   ${openInterest.total.value}
                 </div>
                 <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-bold ${
@@ -366,7 +366,7 @@ export const CoinglassPanel = ({
               const probability = shortPressure && extremeFear ? 'HIGH' : shortPressure || extremeFear ? 'MEDIUM' : 'LOW';
               const color = probability === 'HIGH' ? 'text-chart-green' : probability === 'MEDIUM' ? 'text-accent' : 'text-muted-foreground';
               return <>
-                      <div className={`text-6xl font-black ${color}`}>
+                      <div className={`text-4xl font-black ${color}`}>
                         {probability}
                       </div>
                       {probability !== 'LOW' && <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-chart-green/10 border border-chart-green/20 rounded-lg p-3">
@@ -399,7 +399,7 @@ export const CoinglassPanel = ({
               const probability = longPressure && extremeGreed ? 'HIGH' : longPressure || extremeGreed ? 'MEDIUM' : 'LOW';
               const color = probability === 'HIGH' ? 'text-chart-red' : probability === 'MEDIUM' ? 'text-accent' : 'text-muted-foreground';
               return <>
-                      <div className={`text-6xl font-black ${color}`}>
+                      <div className={`text-4xl font-black ${color}`}>
                         {probability}
                       </div>
                       {probability !== 'LOW' && <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-chart-red/10 border border-chart-red/20 rounded-lg p-3">
@@ -424,10 +424,10 @@ export const CoinglassPanel = ({
               <Zap className="w-5 h-5 text-accent animate-pulse" />
             </div>
             {loading ? <LoadingSkeleton /> : fundingRateList && !fundingRateList.unavailable ? <div className="space-y-3">
-                <div className="text-5xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+                <div className="text-3xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
                   {(fundingRateList.avgRate * 100).toFixed(4)}%
                 </div>
-                <div className={`inline-block text-lg font-black uppercase px-4 py-2 rounded-full ${
+                <div className={`inline-block text-base font-black uppercase px-4 py-2 rounded-full ${
                   fundingRateList.sentiment.includes('BULLISH') 
                     ? 'bg-chart-green/20 text-chart-green border border-chart-green/30' :
                   fundingRateList.sentiment.includes('BEARISH') 
@@ -461,7 +461,7 @@ export const CoinglassPanel = ({
                       <TrendingUp className="w-4 h-4" />
                       Buy
                     </span>
-                    <span className="text-3xl font-black text-chart-green">
+                    <span className="text-2xl font-black text-chart-green">
                       {takerVolume.buyRatio?.toFixed(1) ?? '50.0'}%
                     </span>
                   </div>
@@ -476,7 +476,7 @@ export const CoinglassPanel = ({
                       <TrendingDown className="w-4 h-4" />
                       Sell
                     </span>
-                    <span className="text-3xl font-black text-chart-red">
+                    <span className="text-2xl font-black text-chart-red">
                       {takerVolume.sellRatio?.toFixed(1) ?? '50.0'}%
                     </span>
                   </div>
@@ -514,10 +514,10 @@ export const CoinglassPanel = ({
               <Activity className="w-5 h-5 text-primary/60" />
             </div>
             {loading ? <LoadingSkeleton /> : rsi && !rsi.unavailable && rsi.rsi14 != null ? <div className="space-y-3">
-                <div className="text-7xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+                <div className="text-4xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
                   {rsi.rsi14?.toFixed(1) ?? '50.0'}
                 </div>
-                <div className={`inline-block text-xl font-black uppercase px-4 py-2 rounded-full ${
+                <div className={`inline-block text-base font-black uppercase px-4 py-2 rounded-full ${
                   rsi.signal === 'OVERBOUGHT' || rsi.signal === 'BEARISH' 
                     ? 'bg-chart-red/20 text-chart-red border border-chart-red/30' :
                   rsi.signal === 'OVERSOLD' || rsi.signal === 'BULLISH' 
@@ -547,10 +547,10 @@ export const CoinglassPanel = ({
               <BarChart3 className="w-5 h-5 text-primary/60" />
             </div>
             {loading ? <LoadingSkeleton /> : futuresBasis && !futuresBasis.unavailable && futuresBasis.basisPercent != null ? <div className="space-y-3">
-                <div className="text-6xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+                <div className="text-4xl font-black bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
                   {futuresBasis.basisPercent?.toFixed(2) ?? '0.00'}%
                 </div>
-                <div className={`inline-block text-xl font-black uppercase px-4 py-2 rounded-full ${
+                <div className={`inline-block text-base font-black uppercase px-4 py-2 rounded-full ${
                   futuresBasis.signal?.includes('SPECULATION') 
                     ? 'bg-chart-red/20 text-chart-red border border-chart-red/30' :
                   futuresBasis.signal?.includes('BULLISH') 
