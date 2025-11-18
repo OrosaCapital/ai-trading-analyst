@@ -105,17 +105,16 @@ export function useSymbolData(symbol: string) {
 
         // Process CMC data
         if (cmcQuotes.status === "fulfilled" && cmcQuotes.value.data) {
-          const symbolData = cmcQuotes.value.data.data?.[baseSymbol];
-          const quote = symbolData?.quote?.USD;
-          if (quote) {
+          const symbolData = cmcQuotes.value.data;
+          if (symbolData && !symbolData.error) {
             setData((prev) => ({
               ...prev,
-              currentPrice: quote.price,
-              priceChange24h: quote.percent_change_24h,
-              volume24h: quote.volume_24h,
-              marketCap: quote.market_cap,
-              circulatingSupply: symbolData?.circulating_supply || null,
-              rank: symbolData?.cmc_rank || null,
+              currentPrice: symbolData.price,
+              priceChange24h: symbolData.percentChange24h,
+              volume24h: symbolData.volume24h,
+              marketCap: symbolData.marketCap,
+              circulatingSupply: symbolData.circulatingSupply || null,
+              rank: symbolData.rank || null,
             }));
           }
         }
