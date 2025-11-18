@@ -56,9 +56,11 @@ serve(async (req) => {
 
     const data = await response.json();
     
+    console.log('Tatum API response:', JSON.stringify(data));
+    
     const priceData = {
       symbol: symbol,
-      price: parseFloat(data.rate),
+      price: parseFloat(data.value), // Tatum v4 uses 'value' not 'rate'
       timestamp: Date.now(),
       source: 'tatum',
       high24h: 0,
@@ -67,7 +69,7 @@ serve(async (req) => {
       volume: 0
     };
 
-    console.log(`Tatum price for ${symbol}:`, priceData.price);
+    console.log(`✅ Tatum price for ${symbol}: $${priceData.price}`);
 
     return new Response(
       JSON.stringify(priceData),
