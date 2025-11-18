@@ -12,8 +12,18 @@ export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
   const [timeframe, setTimeframe] = useState<"1m" | "5m" | "15m" | "1h" | "4h" | "1d">("1h");
 
-  const { data: aiData, isLoading: aiLoading, error: aiError } = useAITradingData(symbol);
-  const { chartData, isLoading: chartLoading, error: chartError } = useProfessionalChartData(symbol);
+  // Normalize symbol to ensure it has USDT suffix for API calls
+  const normalizeSymbol = (sym: string) => {
+    const clean = sym.toUpperCase().replace(/\//g, '');
+    if (clean.endsWith('USDT')) return clean;
+    if (clean.endsWith('USD')) return clean.replace('USD', 'USDT');
+    return `${clean}USDT`;
+  };
+
+  const normalizedSymbol = normalizeSymbol(symbol);
+
+  const { data: aiData, isLoading: aiLoading, error: aiError } = useAITradingData(normalizedSymbol);
+  const { chartData, isLoading: chartLoading, error: chartError } = useProfessionalChartData(normalizedSymbol);
 
   // Safely get current price with fallback
   const currentPrice = chartData?.candles1h?.[chartData.candles1h.length - 1]?.close;
@@ -69,12 +79,12 @@ export default function TradingDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 mb-2">
         {/* Left - Primary Chart (60%) */}
         <div className="lg:col-span-7 flex flex-col h-[450px]">
-          <TradingViewChart symbol={symbol} />
+          <TradingViewChart symbol={normalizedSymbol} />
         </div>
 
         {/* Center - Market Metrics (20%) */}
         <div className="lg:col-span-2 flex flex-col gap-2 overflow-y-auto">
-          <MetricsColumn symbol={symbol} />
+          <MetricsColumn symbol={normalizedSymbol} />
         </div>
 
         {/* Right - AI Decision Panel (20%) */}
@@ -90,7 +100,7 @@ export default function TradingDashboard() {
 
       {/* Bottom - Advanced Analytics */}
       <div className="h-[300px]">
-        <AdvancedAnalyticsTabs symbol={symbol} />
+        <AdvancedAnalyticsTabs symbol={normalizedSymbol} />
       </div>
     </AppShell>
   );
