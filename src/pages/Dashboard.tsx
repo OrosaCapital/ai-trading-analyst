@@ -83,12 +83,7 @@ const Dashboard = () => {
           
         </section>
 
-        {/* Section 3: Coinglass Intelligence Panel */}
-        <section>
-          <CoinglassPanel symbol={symbol} />
-        </section>
-
-        {/* Section 4: AI Analysis - Coming Soon */}
+        {/* Section 3: AI Analysis - Coming Soon */}
         <section className="p-12 bg-card border border-border rounded-lg flex items-center justify-center">
           <div className="text-center">
             <div className="text-4xl font-bold text-muted-foreground mb-2">🤖</div>
@@ -97,6 +92,11 @@ const Dashboard = () => {
               AI-powered market insights in progress
             </div>
           </div>
+        </section>
+
+        {/* Section 4: Coinglass Intelligence Panel */}
+        <section>
+          <CoinglassPanel symbol={symbol} />
         </section>
       </main>
     </div>;
