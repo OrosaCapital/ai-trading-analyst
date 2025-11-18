@@ -1,12 +1,12 @@
 import { CoinglassApi, TatumApi, NinjasApi } from "../api";
 import type { MarketSnapshot, SymbolTimeframe, DataValidationSummary } from "../types/market";
-import type { ApiResult } from "../types/api";
+import type { ApiResult, ApiError } from "../types/api";
 
 export async function fetchMarketSnapshot(params: SymbolTimeframe): Promise<ApiResult<MarketSnapshot>> {
   const candlesRes = await CoinglassApi.getCoinglassKlines(params);
 
   if (!candlesRes.ok) {
-    return { ok: false, error: candlesRes.error };
+    return candlesRes as { ok: false; error: ApiError };
   }
 
   // Placeholder indicators – extend later with real calc.

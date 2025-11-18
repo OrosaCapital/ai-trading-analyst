@@ -13,3 +13,20 @@ export function Card({ title, className = "", children }: CardProps) {
     </div>
   );
 }
+
+// Shadcn-compatible exports
+export function CardHeader({ className = "", children }: PropsWithChildren<{ className?: string }>) {
+  return <div className={`mb-4 ${className}`}>{children}</div>;
+}
+
+export function CardTitle({ className = "", children }: PropsWithChildren<{ className?: string }>) {
+  return <h3 className={`text-lg font-semibold ${className}`}>{children}</h3>;
+}
+
+export function CardDescription({ className = "", children }: PropsWithChildren<{ className?: string }>) {
+  return <p className={`text-sm text-gray-500 ${className}`}>{children}</p>;
+}
+
+export function CardContent({ className = "", children }: PropsWithChildren<{ className?: string }>) {
+  return <div className={className}>{children}</div>;
+}
