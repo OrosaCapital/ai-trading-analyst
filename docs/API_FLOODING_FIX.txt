@@ -1,0 +1,70 @@
+
+LOVABLE_FIX_PACKAGE_STOP_API_FLOODING
+=====================================
+
+GOAL
+Stop all excessive API calls (~104k in 24 hours) across all symbols. Replace polling with WebSockets. Enforce caching and rate-limits.
+
+ROOT PROBLEM
+Frontend is using setInterval polling for:
+- fetch-price
+- fetch-chart-data
+- fetch-rsi
+- fetch-indicators
+- fetch-funding-rate
+- fetch-open-interest
+- fetch-liquidations
+- fetch-taker-volume
+- fetch-market-data
+
+This creates uncontrolled API flooding for every symbol.
+
+REQUIRED FIXES
+--------------
+
+1) DISABLE ALL POLLING INTERVALS
+- Remove all setInterval() loops.
+- No repeated Edge Function calls every few seconds.
+
+2) DISABLE fetch-chart-data COMPLETELY
+- TradingView Lite supplies OHLCV.
+- Do not call backend for chart candles.
+
+3) MOVE PRICE + VOLUME TO WEBSOCKETS ONLY
+- All real-time data must come from websocket-price-stream.
+- Do not call fetch-tatum-price repeatedly.
+
+4) MOVE INDICATORS OFF POLLING
+- Indicators should not call fetch-rsi or fetch-indicators repeatedly.
+- Compute indicators from websocket price stream or scheduled backend tasks.
+
+5) LIMIT DERIVATIVES CALLS
+- Only call derivatives endpoints when user opens a symbol.
+- Do not refresh derivatives more than once every 30–60 seconds.
+
+6) ENABLE RATE LIMIT MIDDLEWARE
+File: _shared/middleware/rateLimitMiddleware.ts
+- Apply rate limit to ALL fetch-* endpoints.
+- Recommended: 1 call / 10s per user per symbol.
+
+7) ENABLE CACHE MIDDLEWARE
+File: _shared/middleware/cacheMiddleware.ts
+- Cache all derivatives 30–60 seconds.
+- Serve cached data instead of calling upstream.
+
+8) FRONTEND BEHAVIOR RULES
+- Use WebSocket for real-time price and volume.
+- Fetch derivatives only once on page load.
+- Request indicators only after receiving new OHLCV data.
+- Never continually call Edge Functions.
+
+ENFORCEMENT RULES
+-----------------
+- Lovable must enforce: NO polling intervals.
+- All real-time updates must come from WebSockets.
+- Derivatives must use cache + rate limit.
+- Indicators must not run on empty OHLCV.
+- No repeated backend calls allowed at any frequency under 10 seconds.
+
+END OF PACKAGE
+=====================================

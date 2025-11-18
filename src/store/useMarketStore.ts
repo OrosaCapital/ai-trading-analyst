@@ -409,23 +409,11 @@ export const useMarketStore = create<MarketState>((set, get) => ({
     state.fetchCMCGlobal();
     state.fetchCMCTrending(10);
     
-    // Set up polling intervals (120s for tickers/metrics, 300s for CMC to save API calls)
-    tickerInterval = setInterval(() => {
-      state.fetchTickers(["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "ADAUSDT", "XRPUSDT"]);
-    }, 120000);
+    // Removed all polling - data updates via WebSocket
+    // Tickers updated in real-time via websocket-price-stream
+    // CMC data cached on backend with 5-minute TTL
     
-    metricsInterval = setInterval(() => {
-      state.fetchMetrics(state.symbol);
-    }, 120000);
-    
-    // CMC polling every 5 minutes (300s) - Free tier optimization
-    cmcInterval = setInterval(() => {
-      state.fetchCMCQuotes(["BTC", "ETH", "BNB", "SOL", "ADA", "XRP"]);
-      state.fetchCMCGlobal();
-      state.fetchCMCTrending(10);
-    }, 300000);
-    
-    console.log("🚀 Market store initialized with Tickers (120s), CMC (300s) polling");
+    console.log("🚀 Market store initialized (no polling - WebSocket only)");
   },
   
   cleanup: () => {

@@ -78,12 +78,8 @@ export const useAITradingData = (symbol: string | null) => {
     // Fetch trading data initially
     fetchTradingData();
 
-    // Poll every 10 seconds while accumulating, every 5 minutes when ready
-    const pollInterval = data?.status === 'accumulating' ? 10000 : 300000;
-    const interval = setInterval(fetchTradingData, pollInterval);
-
-    return () => clearInterval(interval);
-  }, [symbol, data?.status]);
+    // Removed polling - data accumulation happens on backend
+  }, [symbol]);
 
   return { data, isLoading, error };
 };

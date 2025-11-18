@@ -83,8 +83,7 @@ export function MetricsColumn({
       }
     };
     fetchAllMetrics();
-    const interval = setInterval(fetchAllMetrics, 60000);
-    return () => clearInterval(interval);
+    // Removed polling - derivatives data fetched once per page load
   }, [symbol]);
   if (loading) {
     return <div className="space-y-2">

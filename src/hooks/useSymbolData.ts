@@ -205,9 +205,7 @@ export function useSymbolData(symbol: string) {
 
     fetchAllData();
 
-    // Refresh data every 30 seconds
-    const interval = setInterval(fetchAllData, 30000);
-    return () => clearInterval(interval);
+    // Removed polling - data fetched once per page load, updates via WebSocket
   }, [symbol]);
 
   // Update price from WebSocket stream

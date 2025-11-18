@@ -148,9 +148,7 @@ export function useProfessionalChartData(symbol: string | null) {
     };
     
     fetchCoinglass();
-    const interval = setInterval(fetchCoinglass, 5 * 60 * 1000); // Every 5 minutes
-    
-    return () => clearInterval(interval);
+    // Removed polling - chart data comes from TradingView Lite
   }, [symbol]);
   
   const updateChartData = () => {

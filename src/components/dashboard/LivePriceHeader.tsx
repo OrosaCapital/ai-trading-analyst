@@ -67,11 +67,11 @@ export const LivePriceHeader = ({
     }
   };
 
-  // Initial fetch and polling every 5 seconds
+  // REMOVED: No polling for price data - WebSocket only
+  // Price updates come from useRealtimePriceStream hook
   useEffect(() => {
-    fetchPrice();
-    const interval = setInterval(fetchPrice, 5000);
-    return () => clearInterval(interval);
+    if (!symbol) return;
+    // No fetch - WebSocket handles all real-time data
   }, [symbol]);
 
   // Calculate 1-minute price change
