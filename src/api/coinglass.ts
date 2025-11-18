@@ -1,35 +1,41 @@
-import { callEdgeFunction } from './httpClient';
-import type { 
-  LongShortRatio, 
-  FearGreedIndex, 
-  Liquidations, 
-  OpenInterest, 
-  FundingRateList,
-  TakerVolume,
-  RSI,
-  FuturesBasis 
-} from '@/types/market';
+import { httpClient } from "./httpClient";
+import { env } from "../config/env";
+import type { ApiResult } from "../types/api";
+import type { Candle, SymbolTimeframe } from "../types/market";
 
-export const fetchLongShortRatio = (symbol: string) => 
-  callEdgeFunction<LongShortRatio>('fetch-long-short-ratio', { symbol });
+interface CoinglassKlineResponse {
+  data: {
+    symbol: string;
+    list: [number, number, number, number, number, number][];
+  };
+}
 
-export const fetchFearGreedIndex = () => 
-  callEdgeFunction<FearGreedIndex>('fetch-fear-greed-index');
+export async function getCoinglassKlines(params: SymbolTimeframe): Promise<ApiResult<Candle[]>> {
+  const { symbol, timeframe } = params;
 
-export const fetchLiquidations = (symbol: string) => 
-  callEdgeFunction<Liquidations>('fetch-liquidations', { symbol });
+  const url = `https://open-api.coinglass.com/public/v2/kline?symbol=${encodeURIComponent(
+    symbol,
+  )}&interval=${encodeURIComponent(timeframe)}`;
 
-export const fetchOpenInterest = (symbol: string) => 
-  callEdgeFunction<OpenInterest>('fetch-open-interest', { symbol });
+  return httpClient
+    .get<CoinglassKlineResponse>(url, {
+      headers: {
+        coinglassSecret: env.coinglassApiKey ?? "",
+      },
+    })
+    .then((res) => {
+      if (!res.ok) return res;
 
-export const fetchFundingRateList = (symbol: string) => 
-  callEdgeFunction<FundingRateList>('fetch-funding-rate-list', { symbol });
+      const candles: Candle[] =
+        res.data.data.list.map((row) => ({
+          timestamp: row[0],
+          open: row[1],
+          high: row[2],
+          low: row[3],
+          close: row[4],
+          volume: row[5],
+        })) ?? [];
 
-export const fetchTakerVolume = (symbol: string) => 
-  callEdgeFunction<TakerVolume>('fetch-taker-volume', { symbol });
-
-export const fetchRSI = (symbol: string) => 
-  callEdgeFunction<RSI>('fetch-rsi', { symbol });
-
-export const fetchFuturesBasis = (symbol: string) => 
-  callEdgeFunction<FuturesBasis>('fetch-futures-basis', { symbol });
+      return { ok: true, data: candles };
+    });
+}
