@@ -197,16 +197,6 @@ export function AIDecisionPanel({ aiData, isLoading, error, currentPrice }: AIDe
           )}
         </CardContent>
       </Card>
-
-      {/* Sentiment Gauge */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Market Sentiment</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SentimentGauge />
-        </CardContent>
-      </Card>
     </div>
   );
 }
