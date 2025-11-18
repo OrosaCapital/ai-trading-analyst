@@ -23,10 +23,16 @@ async function fetchFundingRateFromCoinglass(symbol: string, interval: string, a
   } = await import('../_shared/apiValidation.ts');
   
   const { monitoredAPICall } = await import('../_shared/apiMonitoring.ts');
+  const { formatForCoinglass, isCoinglassSupported, getUnsupportedMessage } = await import('../_shared/symbolFormatter.ts');
 
   try {
-    // Convert symbol to USDT pair format
-    const cleanSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '') + 'USDT';
+    // Convert symbol to USDT pair format for Coinglass
+    const cleanSymbol = formatForCoinglass(symbol);
+    
+    // Check if symbol is likely supported on Hobbyist plan
+    if (!isCoinglassSupported(symbol)) {
+      console.warn(`⚠️ Symbol ${symbol} may not be supported on Coinglass Hobbyist plan`);
+    }
     
     // Import shared client function
     const { fetchFromCoinglassV2 } = await import('../_shared/coinglassClient.ts');
@@ -59,7 +65,12 @@ async function fetchFundingRateFromCoinglass(symbol: string, interval: string, a
     logValidationResult('funding_rate', cleanSymbol, validation);
     
     if (!validation.isValid) {
-      return createErrorResponse('funding_rate', symbol, validation.errors, validation.warnings);
+      const errorResponse = createErrorResponse('funding_rate', symbol, validation.errors, validation.warnings);
+      // Add helpful message for upgrade plan errors
+      if (validation.errors.some(e => e.includes('Upgrade plan'))) {
+        errorResponse.message = getUnsupportedMessage(symbol);
+      }
+      return errorResponse;
     }
 
     const currentRate = parseFloat(data.data[data.data.length - 1]?.close) || 0;
