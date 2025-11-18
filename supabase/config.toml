@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.fetch-historical-prices]
 verify_jwt = false
+
+[functions.fetch-binance-historical]
+verify_jwt = false
