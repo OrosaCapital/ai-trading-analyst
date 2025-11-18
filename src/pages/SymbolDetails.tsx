@@ -115,7 +115,13 @@ export default function SymbolDetails() {
             </div>
 
             {/* Live price display */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">CMC Rank</p>
+                <p className="text-2xl font-bold text-primary">
+                  {data.rank ? `#${data.rank}` : "--"}
+                </p>
+              </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Live Price</p>
                 <p className="text-3xl font-bold text-foreground">
@@ -138,6 +144,12 @@ export default function SymbolDetails() {
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Market Cap</p>
                 <p className="text-2xl font-bold text-foreground">
                   {data.marketCap ? `$${(data.marketCap / 1e9).toFixed(2)}B` : "--"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Circulating Supply</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {data.circulatingSupply ? `${(data.circulatingSupply / 1e6).toFixed(2)}M` : "--"}
                 </p>
               </div>
             </div>

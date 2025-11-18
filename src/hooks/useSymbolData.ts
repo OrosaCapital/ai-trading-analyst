@@ -101,7 +101,8 @@ export function useSymbolData(symbol: string) {
 
         // Process CMC data
         if (cmcQuotes.status === "fulfilled" && cmcQuotes.value.data) {
-          const quote = cmcQuotes.value.data.data?.[symbol]?.quote?.USD;
+          const symbolData = cmcQuotes.value.data.data?.[symbol];
+          const quote = symbolData?.quote?.USD;
           if (quote) {
             setData((prev) => ({
               ...prev,
@@ -109,6 +110,8 @@ export function useSymbolData(symbol: string) {
               priceChange24h: quote.percent_change_24h,
               volume24h: quote.volume_24h,
               marketCap: quote.market_cap,
+              circulatingSupply: symbolData?.circulating_supply || null,
+              rank: symbolData?.cmc_rank || null,
             }));
           }
         }
