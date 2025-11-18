@@ -14,6 +14,7 @@ interface AIDecisionPanelProps {
 }
 
 export function AIDecisionPanel({ aiData, isLoading, error, currentPrice }: AIDecisionPanelProps) {
+  // During accumulation phase, show loading state
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -31,12 +32,20 @@ export function AIDecisionPanel({ aiData, isLoading, error, currentPrice }: AIDe
     );
   }
 
+  // Only show real errors (not accumulation status)
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">AI Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">{error}</AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -49,11 +58,11 @@ export function AIDecisionPanel({ aiData, isLoading, error, currentPrice }: AIDe
         <CardContent>
           <div className="text-center py-8">
             <Activity className="h-12 w-12 mx-auto mb-4 text-primary animate-pulse" />
-            <div className="text-lg font-medium mb-2">Accumulating Data</div>
+            <div className="text-lg font-medium mb-2">Preparing Analysis</div>
             <div className="text-sm text-muted-foreground mb-4">
-              {aiData.message || "Collecting market data for analysis..."}
+              {aiData.message || "Collecting market data..."}
             </div>
-            {aiData.progress && (
+            {aiData.progress !== undefined && (
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">
                   Progress: {aiData.progress}%
