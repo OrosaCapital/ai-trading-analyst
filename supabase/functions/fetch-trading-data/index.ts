@@ -406,50 +406,66 @@ serve(async (req) => {
     }
 
     const finalDecision = aiDecision || {
-      decision: 'NO TRADE',
-      confidence: 0,
-      summary: {
-        trend: 'AI unavailable',
-        volume: 'AI unavailable',
-        liquidity: 'AI unavailable',
-        coinglass: 'AI unavailable',
-        entryTrigger: 'AI unavailable'
+      data_validation: {
+        validation_passed: false
       },
-      action: {
+      trade_decision: {
+        action: 'NO_TRADE',
+        confidence_score: 0,
         entry: null,
-        stopLoss: null,
-        takeProfit: null,
-        reason: 'AI service unavailable'
-      }
+        stop_loss: null,
+        take_profit: null
+      },
+      analysis: {
+        trend_direction: 'AI unavailable',
+        momentum_strength: 'AI unavailable',
+        volatility: 'AI unavailable',
+        key_signals: []
+      },
+      reason: 'AI service unavailable'
     };
+
+    // Extract fields for backwards compatibility
+    const decision = finalDecision.trade_decision?.action || finalDecision.decision || 'NO_TRADE';
+    const confidence = finalDecision.trade_decision?.confidence_score || finalDecision.confidence || 0;
+    const entryPrice = finalDecision.trade_decision?.entry || finalDecision.action?.entry || null;
+    const stopLoss = finalDecision.trade_decision?.stop_loss || finalDecision.action?.stopLoss || null;
+    const takeProfit = finalDecision.trade_decision?.take_profit || finalDecision.action?.takeProfit || null;
+    
+    // Extract summary/analysis fields
+    const trendExplanation = finalDecision.analysis?.trend_direction || finalDecision.summary?.trend || 'N/A';
+    const volumeExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('volume')) || finalDecision.summary?.volume || 'N/A';
+    const liquidityExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('liquidity')) || finalDecision.summary?.liquidity || 'N/A';
+    const coinglassExplanation = finalDecision.analysis?.key_signals?.find((s: string) => s.toLowerCase().includes('coinglass')) || finalDecision.summary?.coinglass || 'N/A';
+    const entryTriggerExplanation = finalDecision.analysis?.momentum_strength || finalDecision.summary?.entryTrigger || 'N/A';
 
     // 11. Store AI signal in database
     await supabase.from('ai_trading_signals').insert({
       symbol,
-      decision: finalDecision.decision,
-      confidence: finalDecision.confidence,
-      entry_price: finalDecision.action.entry,
-      stop_loss: finalDecision.action.stopLoss,
-      take_profit: finalDecision.action.takeProfit,
+      decision,
+      confidence,
+      entry_price: entryPrice,
+      stop_loss: stopLoss,
+      take_profit: takeProfit,
       reasoning: finalDecision,
-      trend_explanation: finalDecision.summary.trend,
-      volume_explanation: finalDecision.summary.volume,
-      liquidity_explanation: finalDecision.summary.liquidity,
-      coinglass_explanation: finalDecision.summary.coinglass,
-      entry_trigger_explanation: finalDecision.summary.entryTrigger
+      trend_explanation: trendExplanation,
+      volume_explanation: volumeExplanation,
+      liquidity_explanation: liquidityExplanation,
+      coinglass_explanation: coinglassExplanation,
+      entry_trigger_explanation: entryTriggerExplanation
     });
 
     // 12. Store analysis in history for future reference
     await supabase.from('ai_analysis_history').insert({
       symbol,
-      decision: finalDecision.decision,
-      confidence: finalDecision.confidence,
+      decision,
+      confidence,
       price_at_analysis: currentPrice,
-      trend_analysis: finalDecision.summary.trend,
-      volume_analysis: finalDecision.summary.volume,
-      liquidity_analysis: finalDecision.summary.liquidity,
-      coinglass_analysis: finalDecision.summary.coinglass,
-      entry_trigger_analysis: finalDecision.summary.entryTrigger,
+      trend_analysis: trendExplanation,
+      volume_analysis: volumeExplanation,
+      liquidity_analysis: liquidityExplanation,
+      coinglass_analysis: coinglassExplanation,
+      entry_trigger_analysis: entryTriggerExplanation,
       full_reasoning: finalDecision
     });
 

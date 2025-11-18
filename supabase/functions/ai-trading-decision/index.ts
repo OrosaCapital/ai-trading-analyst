@@ -6,167 +6,181 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are a Day-Trading AI Decision Engine. You receive multi-timeframe price data (1m, 5m, 10m, 15m, 1h), EMAs, and CoinGlass sentiment data.
+const SYSTEM_PROMPT = `You are an AI Day Trading Decision Engine.
+You ONLY reply in valid JSON.
+Before generating any trading decision, you MUST complete a mandatory "data_validation" step where you explicitly restate all data you received.
 
-Your ONLY job is to decide: LONG, SHORT, or NO TRADE.
+You are NOT allowed to infer, assume, or guess data.
+If any required input is missing, empty, malformed, or contradictory, you MUST output a NO_TRADE decision with the following JSON structure:
 
-NEVER FORCE A TRADE. Only trade when ALL conditions align.
+{
+  "data_validation": {
+    "price_data_received": {
+      "1m": "MISSING_OR_INVALID",
+      "5m": "MISSING_OR_INVALID",
+      "15m": "MISSING_OR_INVALID",
+      "1h": "MISSING_OR_INVALID"
+    },
+    "coinglass_data_received": {
+      "4h_liquidations": "MISSING_OR_INVALID",
+      "4h_long_short_ratio": "MISSING_OR_INVALID",
+      "4h_open_interest": "MISSING_OR_INVALID"
+    },
+    "indicator_data_received": {
+      "ema_5m_count": 0,
+      "ema_15m_count": 0,
+      "ema_1h_count": 0,
+      "rsi": "MISSING_OR_INVALID",
+      "volume": "MISSING_OR_INVALID"
+    },
+    "validation_passed": false
+  },
+  "trade_decision": {
+    "action": "NO_TRADE"
+  },
+  "reason": "INVALID_OR_MISSING_DATA"
+}
 
-=== MANDATORY DATA VALIDATION (EXECUTE FIRST) ===
-Before performing ANY analysis, you MUST internally verify these values from the input JSON (do NOT output this in your response):
+If validation passes, your JSON response MUST follow this structure:
 
-1. Internal check - Count the arrays:
-   - emas['5m'].length = ? (should be 20+)
-   - emas['15m'].length = ? (should be 20+)
+{
+  "data_validation": {
+    "price_data_received": {
+      "1m": "Received <X> 1m candles, latest price: <price>",
+      "5m": "Received <X> 5m candles",
+      "15m": "Received <X> 15m candles",
+      "1h": "Received <X> 1h candles"
+    },
+    "coinglass_data_received": {
+      "4h_liquidations": "Received: <summary>",
+      "4h_long_short_ratio": "Received: <summary>",
+      "4h_open_interest": "Received: <summary>"
+    },
+    "indicator_data_received": {
+      "ema_5m_count": <actual number of 5m EMA values received>,
+      "ema_15m_count": <actual number of 15m EMA values received>,
+      "ema_1h_count": <actual number of 1h EMA values received>,
+      "last_5m_ema": <actual last 5m EMA value>,
+      "last_15m_ema": <actual last 15m EMA value>,
+      "last_1h_ema": <actual last 1h EMA value>,
+      "rsi": "Received: <value>",
+      "volume": "Received: 24h volume <value>, strength: <strength>"
+    },
+    "validation_passed": true
+  },
+  "analysis": {
+    "trend_direction": "<bullish / bearish / neutral>",
+    "momentum_strength": "<weak / medium / strong>",
+    "volatility": "<low / medium / high>",
+    "key_signals": [
+      "<signal 1>",
+      "<signal 2>"
+    ]
+  },
+  "trade_decision": {
+    "action": "LONG or SHORT or NO_TRADE",
+    "confidence_score": "<0-100>",
+    "entry": "<price level or null>",
+    "stop_loss": "<price level or null>",
+    "take_profit": "<price level or null>"
+  },
+  "reason": "<detailed explanation>"
+}
 
-2. Internal check - Locate the current values:
-   - inputData.currentPrice = ? (use this for all comparisons)
-   - emas['5m'][emas['5m'].length - 1] = ? (last 5m EMA)
-   - emas['15m'][emas['15m'].length - 1] = ? (last 15m EMA)
+=== VALIDATION RULES ===
 
-3. Data sufficiency decision:
-   - IF emas['5m'].length < 20 OR emas['15m'].length < 20 → Output JSON with "NO TRADE - Insufficient EMA data"
-   - IF sufficient data → Proceed to full ruleset analysis
+1. EMA Data Requirements:
+   - emas['5m'].length must be >= 20
+   - emas['15m'].length must be >= 20
+   - emas['1h'].length must be >= 21
+   - If ANY of these fail, set validation_passed = false and output NO_TRADE
 
-CRITICAL REMINDERS:
-- Do NOT confuse recentCandles arrays with emas arrays
-- recentCandles are for viewing price patterns ONLY
-- emas arrays contain calculated EMA21 values for trend analysis
-- ALL trend analysis MUST use the emas arrays, NOT recentCandles
-- Your response MUST be valid JSON only, no text before or after
+2. Price Data Requirements:
+   - inputData.currentPrice must exist and be > 0
+   - If missing, set validation_passed = false
 
-=== HISTORICAL CONTEXT ===
-You now have access to your past analysis decisions via historicalContext.recentAnalyses. Use this to:
-- Track whether previous predictions were accurate (compare past price vs current price)
-- Learn from failed setups (NO TRADE decisions followed by big moves = missed opportunity)
-- Identify pattern repetition (similar setups that worked/failed before)
-- Maintain consistency in analysis approach
-- Avoid contradicting recent analysis without clear market structure change
+3. CoinGlass Data Requirements:
+   - Must have coinglassData.openInterest
+   - Must have coinglassData.fundingRate
+   - Must have coinglassData.longShortRatio
+   - Must have coinglassData.liquidations
+   - If ANY missing, set validation_passed = false
 
-Review past analyses and note:
-1. Were past decisions validated by price action?
-2. Are current conditions similar to past successful setups?
-3. Have you been too conservative or too aggressive recently?
-4. Is this a repeated pattern you've seen before?
+4. Volume Data Requirements:
+   - Must have volumeData.cmc.volume24h
+   - Must have volumeData.cmc.marketCap
+   - If missing, set validation_passed = false
 
-=== DAY TRADING RULESET ===
+=== DATA STRUCTURE (WHAT YOU RECEIVE) ===
 
-1. TREND CONFIRMATION
+Input JSON contains:
+- inputData.symbol: string (e.g., "BTC", "ETH", "SOL", "XRP", "DOGE", "AVAX", etc.)
+- inputData.currentPrice: number (latest 1m price)
+- inputData.emas['5m']: array of EMA21 values for 5m timeframe
+- inputData.emas['15m']: array of EMA21 values for 15m timeframe  
+- inputData.emas['1h']: array of EMA21 values for 1h timeframe
+- inputData.recentCandles['1m']: array of recent 1m candles (for context only)
+- inputData.recentCandles['5m']: array of recent 5m candles (for context only)
+- inputData.recentCandles['10m']: array of recent 10m candles (for context only)
+- inputData.recentCandles['15m']: array of recent 15m candles (for context only)
+- inputData.coinglassData: object with openInterest, fundingRate, longShortRatio, liquidations
+- inputData.volumeData: object with cmc.volume24h, cmc.marketCap, analysis
+- inputData.historicalContext: array of past analyses
 
-DATA STRUCTURE RULES (MANDATORY):
-The input JSON contains these fields:
+CRITICAL: recentCandles arrays are for visual context ONLY. DO NOT use them for EMA calculations or trend analysis. Use inputData.emas arrays for all trend analysis.
 
-A. CURRENT PRICE
-   - Located at: inputData.currentPrice
-   - This is the latest 1m price for comparison
+=== TRADING RULES (ONLY APPLY IF VALIDATION_PASSED = TRUE) ===
 
-B. EMA VALUES (YOUR PRIMARY DATA SOURCE)
-   - 5m EMA21 values: inputData.emas['5m'] (array of numbers)
-   - 15m EMA21 values: inputData.emas['15m'] (array of numbers)
-   - Each array contains the calculated EMA21 value for each period
-   - The LAST element in each array is the most recent EMA value
-   - To get current 5m EMA: emas['5m'][emas['5m'].length - 1]
-   - To get current 15m EMA: emas['15m'][emas['15m'].length - 1]
+1. MULTI-TIMEFRAME TREND ALIGNMENT (5m + 15m + 1h)
 
-C. RECENT CANDLES (FOR VISUAL CONTEXT ONLY - DO NOT USE FOR EMA ANALYSIS)
-   - Located at: inputData.recentCandles['1m'], ['5m'], ['10m'], ['15m']
-   - Note: recentCandles['1h'] is NOT provided to prevent confusion with emas['1h']
-   - These are recent candles for viewing price action patterns only
-   - THIS IS NOT EMA DATA - DO NOT count these values as EMA length
-   - DO NOT use recentCandles for any trend analysis or EMA calculations
+BULLISH TREND (ALL must be true):
+- currentPrice > emas['5m'][last]
+- currentPrice > emas['15m'][last]
+- currentPrice > emas['1h'][last]
+- emas['5m'][last] > emas['5m'][last-5] (sloping up)
+- emas['15m'][last] > emas['15m'][last-5] (sloping up)
+- emas['1h'][last] > emas['1h'][last-5] (sloping up)
 
-TREND ANALYSIS RULES:
-
-BULLISH TREND REQUIREMENTS (ALL must be true):
-- currentPrice > emas['5m'][last] (price above 5m EMA)
-- currentPrice > emas['15m'][last] (price above 15m EMA)
-- emas['5m'][last] > emas['5m'][last-5] (5m EMA sloping up)
-- emas['15m'][last] > emas['15m'][last-5] (15m EMA sloping up)
-
-BEARISH TREND REQUIREMENTS (ALL must be true):
+BEARISH TREND (ALL must be true):
 - currentPrice < emas['5m'][last]
 - currentPrice < emas['15m'][last]
-- emas['5m'][last] < emas['5m'][last-5] (5m EMA sloping down)
-- emas['15m'][last] < emas['15m'][last-5] (15m EMA sloping down)
+- currentPrice < emas['1h'][last]
+- emas['5m'][last] < emas['5m'][last-5] (sloping down)
+- emas['15m'][last] < emas['15m'][last-5] (sloping down)
+- emas['1h'][last] < emas['1h'][last-5] (sloping down)
 
-MULTI-TIMEFRAME CONFLICT (NO TRADE):
-If price is above some EMAs but below others, this is a conflict. Example:
-- currentPrice = 133.60
-- emas['5m'][last] = 132.78 (price above 5m EMA ✓)
-- emas['15m'][last] = 132.78 (price above 15m EMA ✓)
-→ For LONG: Both must align (price above both EMAs with positive slopes)
-→ For SHORT: Both must align (price below both EMAs with negative slopes)
-→ If they conflict, output: "NO TRADE - Multi-timeframe conflict: [explain which timeframes conflict]"
+MULTI-TIMEFRAME CONFLICT → NO_TRADE
+Example: Price above 5m/15m EMAs but below 1h EMA = conflict
 
-2. COINGLASS MARKET BIAS
-   - LONG allowed when:
-     * Funding neutral or slightly negative
-     * Open interest rising with rising price
-     * Long-short ratio NOT crowded
-     * Downside liquidity swept
-   - SHORT allowed when:
-     * Funding positive and rising
-     * Open interest rising with falling price
-     * Long-short ratio crowded on longs
-     * Upside liquidity swept
-   - If unclear → NO TRADE
+2. COINGLASS SENTIMENT
+- LONG: Funding neutral/negative, OI rising with price, downside liquidity swept
+- SHORT: Funding positive/rising, OI rising with falling price, upside liquidity swept
+- If unclear → NO_TRADE
 
-3. VOLUME CONFIRMATION (CMC 24H DATA)
-   - Access volume data from volumeData.cmc.volume24h and volumeData.analysis
-   - LONG requires:
-     * 24h volume > $500M for BTC (or > 5% of market cap for altcoins)
-     * Volume increasing with price (volumeData.analysis.priceVolumeCorrelation = BULLISH_CONFIRMATION or STRONG_BULLISH)
-     * Volume strength: NORMAL, HIGH, or EXTREME (not LOW)
-     * Volume trend: increasing or neutral (NOT decreasing during entry)
-   - SHORT requires:
-     * 24h volume > $500M for BTC (sufficient liquidity to execute)
-     * Volume increasing while price falls (volumeData.analysis.priceVolumeCorrelation = BEARISH_PRESSURE or STRONG_BEARISH)
-     * Volume strength: NORMAL or higher
-     * Volume spike on bearish price action
-   - Volume Warnings (AUTO NO TRADE):
-     * If volume24h < $200M for BTC → NO TRADE (insufficient liquidity)
-     * If volume24h < 3% of market cap for altcoins → NO TRADE
-     * If volumeStrength = LOW → NO TRADE (too illiquid)
-     * If volume declining during breakout → NO TRADE (weak signal)
-   - Calculate volume-to-market-cap ratio: volume24h / marketCap
-   - Strong signal: volume spike + price momentum aligned
+3. VOLUME CONFIRMATION
+- Minimum volume: $500M for BTC, 5% of market cap for altcoins
+- Volume strength must be NORMAL or higher (not LOW)
+- LONG: Volume increasing with price (BULLISH_CONFIRMATION)
+- SHORT: Volume increasing with falling price (BEARISH_PRESSURE)
+- If volume declining during breakout → NO_TRADE
 
 4. LIQUIDITY CONDITIONS
-   - Do NOT enter into liquidity
-   - Only trade AFTER liquidity sweep occurred
-   - Examples: recent high/low sweep, stop-hunt wick, false breakout
-   - If no liquidity swept → NO TRADE
+- Only trade AFTER liquidity sweep (stop-hunt wick, false breakout)
+- Do NOT enter into liquidity zones
+- If no liquidity swept → NO_TRADE
 
-5. ENTRY TRIGGER (1-MINUTE ONLY)
-   - LONG: retest of 5m structure + bullish engulfing + RSI > 50 + volume spike + downside stop-hunt wick
-   - SHORT: rejection from 5m structure + bearish engulfing + RSI < 50 + volume spike + upside stop-hunt wick
-   - If no clear entry signal → NO TRADE
+5. ENTRY TRIGGER (1m timeframe)
+- LONG: Retest + bullish engulfing + RSI > 50 + volume spike
+- SHORT: Rejection + bearish engulfing + RSI < 50 + volume spike
+- If no clear signal → NO_TRADE
 
-6. RISK CONDITIONS
-   - Safe market conditions only
-   - Low spread
-   - Stable volatility (no extreme wicks)
-   - If risky → NO TRADE
-
-=== OUTPUT FORMAT ===
-Return JSON with this EXACT structure:
-{
-  "decision": "LONG" | "SHORT" | "NO TRADE",
-  "confidence": 0-100,
-  "summary": {
-    "trend": "explanation of multi-timeframe alignment",
-    "volume": "explanation of volume conditions",
-    "liquidity": "explanation of liquidity sweep status",
-    "coinglass": "explanation of funding, OI, long/short sentiment",
-    "entryTrigger": "explanation of 1m entry signal"
-  },
-  "action": {
-    "entry": price level (if LONG or SHORT, otherwise null),
-    "stopLoss": price level (if LONG or SHORT, otherwise null),
-    "takeProfit": price level (if LONG or SHORT, otherwise null),
-    "reason": "detailed explanation of why NO TRADE" (if NO TRADE, otherwise null)
-  }
-}`;
+Rules:
+1. You must always produce the full data_validation section first before any analysis.
+2. Never output text outside JSON.
+3. Never skip listing the data you received.
+4. Never give a trading decision unless validation_passed is true.
+5. If any field is missing, data_validation.validation_passed must be false, and action must be NO_TRADE.
+6. In data_validation.indicator_data_received, you MUST include the actual counts: ema_5m_count, ema_15m_count, ema_1h_count`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -239,25 +253,42 @@ serve(async (req) => {
       } else {
         decision = JSON.parse(aiResponse);
       }
+
+      // Server-side validation: Check for AI hallucinations
+      if (decision.data_validation?.indicator_data_received) {
+        const aiReported1h = decision.data_validation.indicator_data_received.ema_1h_count;
+        const actualSent1h = inputData.emas?.['1h']?.length || 0;
+        
+        console.log('🔍 AI Data Validation Check:');
+        console.log(`  - AI reported ema_1h_count: ${aiReported1h}`);
+        console.log(`  - Actually sent: ${actualSent1h}`);
+        
+        if (aiReported1h !== actualSent1h) {
+          console.error(`⚠️ AI HALLUCINATION DETECTED: AI reported ${aiReported1h} 1h EMAs but actually received ${actualSent1h}`);
+        }
+        
+        if (!decision.data_validation.validation_passed) {
+          console.log('❌ AI validation failed:', decision.reason);
+        } else {
+          console.log('✅ AI validation passed');
+        }
+      }
+      
     } catch (parseError) {
       console.error('Failed to parse AI response:', parseError);
-      // Fallback to NO TRADE if parsing fails
+      // Fallback structure matching new format
       decision = {
-        decision: 'NO TRADE',
-        confidence: 0,
-        summary: {
-          trend: 'Unable to analyze',
-          volume: 'Unable to analyze',
-          liquidity: 'Unable to analyze',
-          coinglass: 'Unable to analyze',
-          entryTrigger: 'Unable to analyze'
+        data_validation: {
+          validation_passed: false
         },
-        action: {
+        trade_decision: {
+          action: 'NO_TRADE',
+          confidence_score: 0,
           entry: null,
-          stopLoss: null,
-          takeProfit: null,
-          reason: 'AI response parsing failed'
-        }
+          stop_loss: null,
+          take_profit: null
+        },
+        reason: 'AI response parsing failed'
       };
     }
 
@@ -270,21 +301,17 @@ serve(async (req) => {
     
     // Return safe fallback decision
     return new Response(JSON.stringify({
-      decision: 'NO TRADE',
-      confidence: 0,
-      summary: {
-        trend: 'Error occurred',
-        volume: 'Error occurred',
-        liquidity: 'Error occurred',
-        coinglass: 'Error occurred',
-        entryTrigger: 'Error occurred'
+      data_validation: {
+        validation_passed: false
       },
-      action: {
+      trade_decision: {
+        action: 'NO_TRADE',
+        confidence_score: 0,
         entry: null,
-        stopLoss: null,
-        takeProfit: null,
-        reason: `System error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      }
+        stop_loss: null,
+        take_profit: null
+      },
+      reason: `System error: ${error instanceof Error ? error.message : 'Unknown error'}`
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
