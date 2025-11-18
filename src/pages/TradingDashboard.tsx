@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { TradingCommandCenter } from "@/components/trading/TradingCommandCenter";
-import { ProfessionalTradingChart } from "@/components/ProfessionalTradingChart";
+import { TradingViewChart } from "@/components/TradingViewChart";
 import { MetricsColumn } from "@/components/trading/MetricsColumn";
 import { AIDecisionPanel } from "@/components/trading/AIDecisionPanel";
 import { AdvancedAnalyticsTabs } from "@/components/trading/AdvancedAnalyticsTabs";
@@ -69,9 +69,7 @@ export default function TradingDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0 mb-2">
         {/* Left - Primary Chart (60%) */}
         <div className="lg:col-span-7 flex flex-col min-h-0">
-          <ProfessionalTradingChart
-            symbol={symbol}
-          />
+          <TradingViewChart symbol={symbol} />
         </div>
 
         {/* Center - Market Metrics (20%) */}
