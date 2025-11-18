@@ -266,10 +266,10 @@ export const useRealtimePriceStream = (
       }
     };
 
-    // Poll immediately, then every 10 seconds
-    poll();
-    pollingIntervalRef.current = window.setInterval(poll, 10000);
-  }, [symbol, enabled, priceData]);
+    // Removed Tatum polling fallback - rely on WebSocket only
+    // If WebSocket fails, show error state instead of polling
+    // This prevents API flooding while maintaining UX clarity
+  }, [symbol, enabled]);
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {

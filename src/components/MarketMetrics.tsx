@@ -73,9 +73,7 @@ export const MarketMetrics = ({ symbol }: MarketMetricsProps) => {
   useEffect(() => {
     fetchMarketData();
     
-    // Auto-refresh every 15 minutes
-    const interval = setInterval(fetchMarketData, 15 * 60 * 1000);
-    return () => clearInterval(interval);
+    // Removed auto-refresh polling - data refreshed via WebSocket only
   }, [symbol]);
 
   if (loading) {

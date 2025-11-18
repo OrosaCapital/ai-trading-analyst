@@ -25,8 +25,7 @@ export const MarketMetricsPanel = ({ symbol }: MarketMetricsPanelProps) => {
     };
     
     fetchMarketData();
-    const interval = setInterval(fetchMarketData, 60000);
-    return () => clearInterval(interval);
+    // Removed polling - derivatives data cached and rate-limited on backend
   }, [symbol]);
 
   const { fundingRate, openInterest, longShortRatio, liquidations } = mockMetrics;
