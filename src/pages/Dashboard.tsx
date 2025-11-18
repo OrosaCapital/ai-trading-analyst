@@ -1,8 +1,8 @@
 import { Activity, Shield, Terminal } from "lucide-react";
-import { MainChart } from "../components/charts/MainChart";
 import { SymbolSummaryPanel } from "../components/panels/SymbolSummaryPanel";
 import { DataValidationPanel } from "../components/panels/DataValidationPanel";
 import { SystemOverview } from "../components/admin/SystemOverview";
+import { SystemAlerts } from "../components/admin/SystemAlerts";
 import { BackendStatus } from "../components/admin/BackendStatus";
 import { EdgeFunctionsList } from "../components/admin/EdgeFunctionsList";
 import { EnvironmentInfo } from "../components/admin/EnvironmentInfo";
@@ -45,7 +45,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left Column - 2/3 width */}
         <div className="lg:col-span-2 space-y-4">
-          <MainChart snapshot={snapshot} />
+          <SystemAlerts />
           <DataValidationPanel validation={validation} isLoading={isLoading} error={error} />
         </div>
 
