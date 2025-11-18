@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.fetch-trading-data]
 verify_jwt = false
+
+[functions.fetch-fear-greed-index]
+verify_jwt = false

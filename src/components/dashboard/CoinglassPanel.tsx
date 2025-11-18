@@ -64,7 +64,7 @@ export const CoinglassPanel = ({
           <h2 className="text-2xl font-bold text-foreground">Coinglass Intelligence Panel</h2>
           <p className="text-sm text-muted-foreground">
             Real-time derivatives market data 
-            {(longShortRatio?.unavailable || fearGreedIndex?.unavailable || liquidations?.unavailable || openInterest?.unavailable) && <span className="text-accent ml-2">• Limited data for this symbol</span>}
+            {(longShortRatio?.unavailable || liquidations?.unavailable || openInterest?.unavailable) && <span className="text-accent ml-2">• Limited data for this symbol</span>}
           </p>
         </div>
         <Activity className="w-6 h-6 text-primary" />
@@ -112,16 +112,24 @@ export const CoinglassPanel = ({
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               FEAR & GREED INDEX               
             </p>
-            {loading ? <LoadingSkeleton /> : fearGreedIndex && !fearGreedIndex.unavailable ? <div className="space-y-2">
-                <div className="text-4xl font-bold text-foreground">
-                  {fearGreedIndex.index}
+            {loading ? <LoadingSkeleton /> : fearGreedIndex ? <div className="space-y-2">
+                <div className="text-5xl font-bold text-foreground">
+                  {fearGreedIndex.value}
                 </div>
-                <div className={`text-lg font-semibold ${fearGreedIndex.sentiment === 'EXTREME GREED' ? 'text-chart-green' : fearGreedIndex.sentiment === 'GREED' ? 'text-accent' : fearGreedIndex.sentiment === 'FEAR' ? 'text-chart-red' : fearGreedIndex.sentiment === 'EXTREME FEAR' ? 'text-chart-red' : 'text-muted-foreground'}`}>
-                  {fearGreedIndex.sentiment}
+                <div className={`text-lg font-semibold ${
+                  fearGreedIndex.valueClassification === 'Extreme Fear' ? 'text-chart-red' :
+                  fearGreedIndex.valueClassification === 'Fear' ? 'text-orange-500' :
+                  fearGreedIndex.valueClassification === 'Greed' ? 'text-chart-green' :
+                  fearGreedIndex.valueClassification === 'Extreme Greed' ? 'text-emerald-400' :
+                  'text-muted-foreground'
+                }`}>
+                  {fearGreedIndex.valueClassification}
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Market-wide sentiment indicator
-                </div>
+                {fearGreedIndex.change24h !== 0 && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span>{fearGreedIndex.change24h > 0 ? '+' : ''}{fearGreedIndex.change24h?.toFixed(0)} from yesterday</span>
+                  </div>
+                )}
               </div> : <p className="text-muted-foreground">No data</p>}
           </div>
         </Card>
@@ -178,12 +186,12 @@ export const CoinglassPanel = ({
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Short Squeeze Probability
             </p>
-            {loading ? <LoadingSkeleton /> : longShortRatio && fearGreedIndex && !fearGreedIndex.unavailable ? <div className="space-y-2">
+            {loading ? <LoadingSkeleton /> : longShortRatio && fearGreedIndex ? <div className="space-y-2">
                 {(() => {
               const shortPercent = parseFloat(longShortRatio.short_percent || 0);
-              const fearIndex = fearGreedIndex.index;
+              const fearValue = fearGreedIndex.value;
               const shortPressure = shortPercent > 55;
-              const extremeFear = fearIndex < 25;
+              const extremeFear = fearValue < 25;
               const probability = shortPressure && extremeFear ? 'HIGH' : shortPressure || extremeFear ? 'MEDIUM' : 'LOW';
               const color = probability === 'HIGH' ? 'text-chart-green' : probability === 'MEDIUM' ? 'text-accent' : 'text-muted-foreground';
               return <>
@@ -206,12 +214,12 @@ export const CoinglassPanel = ({
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Long Squeeze Probability
             </p>
-            {loading ? <LoadingSkeleton /> : longShortRatio && fearGreedIndex && !fearGreedIndex.unavailable ? <div className="space-y-2">
+            {loading ? <LoadingSkeleton /> : longShortRatio && fearGreedIndex ? <div className="space-y-2">
                 {(() => {
               const longPercent = parseFloat(longShortRatio.long_percent || 0);
-              const fearIndex = fearGreedIndex.index;
+              const fearValue = fearGreedIndex.value;
               const longPressure = longPercent > 55;
-              const extremeGreed = fearIndex > 75;
+              const extremeGreed = fearValue > 75;
               const probability = longPressure && extremeGreed ? 'HIGH' : longPressure || extremeGreed ? 'MEDIUM' : 'LOW';
               const color = probability === 'HIGH' ? 'text-chart-red' : probability === 'MEDIUM' ? 'text-accent' : 'text-muted-foreground';
               return <>
