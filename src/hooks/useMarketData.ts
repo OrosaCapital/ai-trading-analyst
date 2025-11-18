@@ -1,14 +1,29 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMarketStore } from "../store/useMarketStore";
 import { fetchMarketSnapshot, buildDataValidation } from "../services/marketDataService";
 
 export function useMarketData() {
   const { symbol, timeframe, snapshot, validation, isLoading, error, setData } = useMarketStore();
 
-  useEffect(() => {
-    let cancelled = false;
+  const lastSymbolRef = useRef<string | null>(null);
+  const lastTimeframeRef = useRef<string | null>(null);
+  const debounceRef = useRef<number | null>(null);
 
-    async function load() {
+  useEffect(() => {
+    if (!symbol || !timeframe) return;
+
+    if (lastSymbolRef.current === symbol && lastTimeframeRef.current === timeframe) {
+      return; // prevent duplicate fetch
+    }
+
+    lastSymbolRef.current = symbol;
+    lastTimeframeRef.current = timeframe;
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = window.setTimeout(async () => {
+      let cancelled = false;
+
       setData({ isLoading: true, error: undefined });
 
       try {
@@ -40,12 +55,11 @@ export function useMarketData() {
           error: err?.message ?? "Unexpected error",
         });
       }
-    }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
+      return () => {
+        cancelled = true;
+      };
+    }, 300); // debounce to prevent flood
   }, [symbol, timeframe, setData]);
 
   return {
