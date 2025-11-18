@@ -47,3 +47,15 @@ verify_jwt = false
 
 [functions.fetch-fear-greed-index]
 verify_jwt = false
+
+[functions.fetch-funding-rate-list]
+verify_jwt = false
+
+[functions.fetch-taker-volume]
+verify_jwt = false
+
+[functions.fetch-rsi]
+verify_jwt = false
+
+[functions.fetch-futures-basis]
+verify_jwt = false
