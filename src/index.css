@@ -8,84 +8,89 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Robinhood-Inspired Black/White Foundation */
-    --background: 0 0% 5%;
-    --foreground: 0 0% 98%;
+    /* High-Tech Cyber Foundation */
+    --background: 220 20% 8%;
+    --foreground: 210 100% 98%;
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 98%;
+    --card: 220 18% 12%;
+    --card-foreground: 210 100% 98%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 220 18% 12%;
+    --popover-foreground: 210 100% 98%;
 
-    /* Robinhood Teal Primary */
-    --primary: 197 100% 44%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 197 100% 54%;
+    /* Cyber Blue Primary */
+    --primary: 200 100% 55%;
+    --primary-foreground: 220 20% 8%;
+    --primary-glow: 200 100% 65%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 210 100% 98%;
 
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 220 15% 20%;
+    --muted-foreground: 210 40% 70%;
 
-    /* Robin Neon Yellow-Green Accent */
-    --accent: 75 100% 50%;
-    --accent-foreground: 0 0% 10%;
+    /* Neon Cyan Accent */
+    --accent: 180 100% 50%;
+    --accent-foreground: 220 20% 8%;
 
-    /* Coral Red for Negative/Destructive */
-    --destructive: 5 85% 60%;
-    --destructive-foreground: 0 0% 98%;
+    /* Electric Red for Negative/Destructive */
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 210 100% 98%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 15%;
-    --ring: 197 100% 44%;
+    --border: 220 25% 25%;
+    --input: 220 18% 16%;
+    --ring: 200 100% 55%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Robinhood Brand Colors */
-    --robin-teal: 197 100% 44%;
-    --robin-neon: 75 100% 50%;
-    --robin-coral: 5 85% 60%;
-    --robin-black: 0 0% 5%;
-    --robin-white: 0 0% 98%;
+    /* Cyber Colors */
+    --cyber-blue: 200 100% 55%;
+    --cyber-cyan: 180 100% 50%;
+    --cyber-purple: 270 100% 65%;
+    --cyber-pink: 330 100% 60%;
+    --cyber-green: 150 100% 45%;
 
-    /* Trading sentiment colors - adjusted for new scheme */
-    --sentiment-euphoria: 5 85% 60%;
+    /* Trading sentiment colors - cyber theme */
+    --sentiment-euphoria: 0 85% 60%;
     --sentiment-extreme-greed: 10 85% 58%;
-    --sentiment-high-greed: 20 85% 56%;
-    --sentiment-greed: 35 85% 54%;
-    --sentiment-mild-greed: 50 85% 52%;
-    --sentiment-neutral: 60 10% 60%;
-    --sentiment-mild-caution: 180 50% 50%;
-    --sentiment-caution: 190 60% 48%;
-    --sentiment-concern: 195 70% 46%;
-    --sentiment-fear: 197 85% 44%;
-    --sentiment-max-fear: 75 100% 50%;
+    --sentiment-high-greed: 25 90% 55%;
+    --sentiment-greed: 40 90% 52%;
+    --sentiment-mild-greed: 80 85% 50%;
+    --sentiment-neutral: 210 30% 60%;
+    --sentiment-mild-caution: 180 60% 55%;
+    --sentiment-caution: 190 70% 50%;
+    --sentiment-concern: 200 80% 50%;
+    --sentiment-fear: 210 90% 50%;
+    --sentiment-max-fear: 220 100% 55%;
 
-    /* Chart colors - Robinhood style */
-    --chart-green: 75 100% 50%;
-    --chart-red: 5 85% 60%;
-    --chart-grid: 0 0% 15%;
+    /* Chart colors - cyber style */
+    --chart-green: 150 100% 45%;
+    --chart-red: 0 85% 60%;
+    --chart-grid: 220 20% 18%;
 
-    /* Minimal Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(197 100% 44%), hsl(197 100% 54%));
-    --gradient-mesh: radial-gradient(at 50% 0%, hsl(197 100% 44% / 0.08) 0px, transparent 50%),
-                     radial-gradient(at 0% 100%, hsl(75 100% 50% / 0.05) 0px, transparent 50%);
-    --gradient-glass: linear-gradient(135deg, hsl(0 0% 10% / 0.9), hsl(0 0% 10% / 0.6));
+    /* Futuristic Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(200 100% 55%), hsl(180 100% 50%));
+    --gradient-cyber: linear-gradient(135deg, hsl(200 100% 55% / 0.2), hsl(270 100% 65% / 0.2));
+    --gradient-mesh: radial-gradient(at 30% 20%, hsl(200 100% 55% / 0.15) 0px, transparent 50%),
+                     radial-gradient(at 70% 80%, hsl(270 100% 65% / 0.1) 0px, transparent 50%),
+                     radial-gradient(at 50% 50%, hsl(180 100% 50% / 0.08) 0px, transparent 50%);
+    --gradient-glass: linear-gradient(135deg, hsl(220 18% 12% / 0.95), hsl(220 18% 12% / 0.7));
+    --gradient-hologram: linear-gradient(135deg, hsl(200 100% 55% / 0.1), hsl(270 100% 65% / 0.1), hsl(180 100% 50% / 0.1));
     
-    /* Clean Effects */
-    --glow-primary: 0 0 30px hsl(197 100% 44% / 0.3);
-    --glow-accent: 0 0 25px hsl(75 100% 50% / 0.3);
-    --glow-success: 0 0 20px hsl(75 100% 50% / 0.4);
-    --shadow-glass: 0 4px 16px rgba(0, 0, 0, 0.6);
-    --shadow-elevated: 0 8px 32px -8px rgba(0, 0, 0, 0.8);
-    --shadow-floating: 0 4px 24px -4px rgba(0, 0, 0, 0.6);
+    /* Neon Glow Effects */
+    --glow-primary: 0 0 40px hsl(200 100% 55% / 0.5);
+    --glow-accent: 0 0 35px hsl(180 100% 50% / 0.5);
+    --glow-success: 0 0 30px hsl(150 100% 45% / 0.5);
+    --glow-cyber: 0 0 50px hsl(200 100% 55% / 0.4), 0 0 100px hsl(270 100% 65% / 0.2);
+    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.7);
+    --shadow-elevated: 0 12px 48px -12px rgba(0, 128, 255, 0.4);
+    --shadow-floating: 0 6px 32px -6px rgba(0, 255, 255, 0.3);
     
-    /* Subtle Glass */
-    --glass-bg: hsl(0 0% 10% / 0.8);
-    --glass-border: hsl(0 0% 20% / 0.3);
-    --blur-amount: 12px;
+    /* Advanced Glass */
+    --glass-bg: hsl(220 18% 12% / 0.85);
+    --glass-border: hsl(200 100% 55% / 0.2);
+    --glass-border-accent: hsl(180 100% 50% / 0.3);
+    --blur-amount: 16px;
   }
 }
 
@@ -99,36 +104,44 @@ All colors MUST be HSL.
     font-feature-settings: "ss01", "cv05", "cv09";
   }
 
-  /* Animated gradient mesh background */
+  /* Animated cyber gradient mesh background */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
     z-index: -1;
     background: var(--gradient-mesh);
-    animation: mesh-shift 20s ease-in-out infinite;
+    animation: cyber-pulse 15s ease-in-out infinite;
   }
 
-  @keyframes mesh-shift {
-    0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
-    50% { opacity: 0.8; transform: scale(1.1) rotate(2deg); }
+  @keyframes cyber-pulse {
+    0%, 100% { opacity: 1; filter: hue-rotate(0deg); }
+    33% { opacity: 0.9; filter: hue-rotate(10deg); }
+    66% { opacity: 0.95; filter: hue-rotate(-10deg); }
   }
 }
 
 @layer utilities {
-  /* Glassmorphism utilities */
+  /* Cyber Glassmorphism */
   .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur-amount));
+    backdrop-filter: blur(var(--blur-amount)) saturate(180%);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-glass);
   }
 
   .glass-strong {
-    background: hsl(0 0% 10% / 0.95);
-    backdrop-filter: blur(16px);
-    border: 1px solid hsl(0 0% 20% / 0.4);
-    box-shadow: var(--shadow-glass);
+    background: hsl(220 18% 12% / 0.95);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--glass-border-accent);
+    box-shadow: var(--shadow-glass), inset 0 1px 0 hsl(200 100% 55% / 0.1);
+  }
+
+  .glass-panel {
+    background: linear-gradient(135deg, hsl(220 18% 14% / 0.9), hsl(220 18% 12% / 0.85));
+    backdrop-filter: blur(var(--blur-amount)) saturate(200%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-elevated), inset 0 1px 0 hsl(200 100% 55% / 0.15);
   }
 
   /* Neon glow effects */
