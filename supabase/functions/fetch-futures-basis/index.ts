@@ -23,47 +23,51 @@ Deno.serve(async (req) => {
     const { data: cachedData } = await supabase
       .from('coinglass_metrics_cache')
       .select('*')
-      .eq('metric_type', 'taker_volume')
+      .eq('metric_type', 'futures_basis')
       .eq('symbol', symbol)
       .gt('expires_at', new Date().toISOString())
       .single();
 
     if (cachedData) {
-      console.log(`✅ Returning cached taker volume for ${symbol}`);
+      console.log(`✅ Returning cached futures basis for ${symbol}`);
       return new Response(JSON.stringify(cachedData.data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`Fetching taker volume for ${symbol} from Coinglass`);
+    console.log(`Fetching futures basis for ${symbol} from Coinglass`);
 
     const data = await fetchFromCoinglassV2(
-      'taker_volume_exchange_list',
-      { symbol },
+      'futures_basis_history',
+      { symbol, interval: '4h' },
       coinglassApiKey
     );
 
-    console.log('Coinglass taker volume response:', JSON.stringify(data));
+    console.log('Coinglass futures basis response:', JSON.stringify(data));
+
+    const historyData = data.data || [];
+    const latest = historyData[historyData.length - 1];
 
     const responseData = {
       symbol,
-      exchanges: data.data || [],
-      buyRatio: calculateBuyRatio(data.data),
-      sellRatio: calculateSellRatio(data.data),
-      sentiment: getVolumeSentiment(data.data),
+      currentBasis: latest?.basis || 0,
+      basisPercent: latest?.basis_percent || 0,
+      structure: getBasisStructure(latest?.basis_percent || 0),
+      signal: getBasisSignal(latest?.basis_percent || 0),
+      history: historyData.slice(-24), // Last 24 data points
       timestamp: Date.now(),
       isMockData: false
     };
 
-    console.log(`✅ Taker volume for ${symbol}:`, responseData);
+    console.log(`✅ Futures basis for ${symbol}:`, responseData);
 
-    // Cache for 5 minutes
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    // Cache for 15 minutes
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
     await supabase
       .from('coinglass_metrics_cache')
       .upsert({
         symbol,
-        metric_type: 'taker_volume',
+        metric_type: 'futures_basis',
         data: responseData,
         expires_at: expiresAt.toISOString(),
       });
@@ -73,18 +77,19 @@ Deno.serve(async (req) => {
     });
 
   } catch (error: any) {
-    console.error('Error fetching taker volume:', error);
+    console.error('Error fetching futures basis:', error);
     
     const fallbackData = {
       symbol: 'UNKNOWN',
-      exchanges: [],
-      buyRatio: 50,
-      sellRatio: 50,
-      sentiment: 'NEUTRAL',
+      currentBasis: 0,
+      basisPercent: 0,
+      structure: 'NEUTRAL',
+      signal: 'NEUTRAL',
+      history: [],
       timestamp: Date.now(),
       isMockData: true,
       unavailable: true,
-      message: 'Taker volume data temporarily unavailable'
+      message: 'Futures basis data temporarily unavailable'
     };
 
     return new Response(JSON.stringify(fallbackData), {
@@ -93,26 +98,16 @@ Deno.serve(async (req) => {
   }
 });
 
-function calculateBuyRatio(exchanges: any[]): number {
-  if (!exchanges || exchanges.length === 0) return 50;
-  
-  const totalBuy = exchanges.reduce((sum, ex) => sum + parseFloat(ex.buy_volume || 0), 0);
-  const totalSell = exchanges.reduce((sum, ex) => sum + parseFloat(ex.sell_volume || 0), 0);
-  const total = totalBuy + totalSell;
-  
-  return total > 0 ? (totalBuy / total) * 100 : 50;
+function getBasisStructure(basisPercent: number): string {
+  if (basisPercent > 0) return 'CONTANGO';
+  if (basisPercent < 0) return 'BACKWARDATION';
+  return 'FLAT';
 }
 
-function calculateSellRatio(exchanges: any[]): number {
-  return 100 - calculateBuyRatio(exchanges);
-}
-
-function getVolumeSentiment(exchanges: any[]): string {
-  const buyRatio = calculateBuyRatio(exchanges);
-  
-  if (buyRatio > 65) return 'STRONG BUYING';
-  if (buyRatio > 55) return 'BUYING';
-  if (buyRatio < 35) return 'STRONG SELLING';
-  if (buyRatio < 45) return 'SELLING';
-  return 'BALANCED';
+function getBasisSignal(basisPercent: number): string {
+  if (basisPercent > 5) return 'EXTREME SPECULATION';
+  if (basisPercent > 2) return 'HIGH SPECULATION';
+  if (basisPercent < -2) return 'STRONG BULLISH';
+  if (basisPercent < -1) return 'BULLISH';
+  return 'NEUTRAL';
 }

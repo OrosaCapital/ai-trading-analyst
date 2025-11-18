@@ -23,47 +23,49 @@ Deno.serve(async (req) => {
     const { data: cachedData } = await supabase
       .from('coinglass_metrics_cache')
       .select('*')
-      .eq('metric_type', 'taker_volume')
+      .eq('metric_type', 'rsi')
       .eq('symbol', symbol)
       .gt('expires_at', new Date().toISOString())
       .single();
 
     if (cachedData) {
-      console.log(`✅ Returning cached taker volume for ${symbol}`);
+      console.log(`✅ Returning cached RSI for ${symbol}`);
       return new Response(JSON.stringify(cachedData.data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`Fetching taker volume for ${symbol} from Coinglass`);
+    console.log(`Fetching RSI for ${symbol} from Coinglass`);
 
     const data = await fetchFromCoinglassV2(
-      'taker_volume_exchange_list',
+      'rsi_list',
       { symbol },
       coinglassApiKey
     );
 
-    console.log('Coinglass taker volume response:', JSON.stringify(data));
+    console.log('Coinglass RSI response:', JSON.stringify(data));
+
+    const rsiData = data.data || [];
+    const rsi14 = rsiData.find((r: any) => r.period === '14d' || r.period === '14')?.value || 50;
 
     const responseData = {
       symbol,
-      exchanges: data.data || [],
-      buyRatio: calculateBuyRatio(data.data),
-      sellRatio: calculateSellRatio(data.data),
-      sentiment: getVolumeSentiment(data.data),
+      rsi14: parseFloat(rsi14),
+      allPeriods: rsiData,
+      signal: getRSISignal(parseFloat(rsi14)),
       timestamp: Date.now(),
       isMockData: false
     };
 
-    console.log(`✅ Taker volume for ${symbol}:`, responseData);
+    console.log(`✅ RSI for ${symbol}:`, responseData);
 
-    // Cache for 5 minutes
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    // Cache for 15 minutes
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
     await supabase
       .from('coinglass_metrics_cache')
       .upsert({
         symbol,
-        metric_type: 'taker_volume',
+        metric_type: 'rsi',
         data: responseData,
         expires_at: expiresAt.toISOString(),
       });
@@ -73,18 +75,17 @@ Deno.serve(async (req) => {
     });
 
   } catch (error: any) {
-    console.error('Error fetching taker volume:', error);
+    console.error('Error fetching RSI:', error);
     
     const fallbackData = {
       symbol: 'UNKNOWN',
-      exchanges: [],
-      buyRatio: 50,
-      sellRatio: 50,
-      sentiment: 'NEUTRAL',
+      rsi14: 50,
+      allPeriods: [],
+      signal: 'NEUTRAL',
       timestamp: Date.now(),
       isMockData: true,
       unavailable: true,
-      message: 'Taker volume data temporarily unavailable'
+      message: 'RSI data temporarily unavailable'
     };
 
     return new Response(JSON.stringify(fallbackData), {
@@ -93,26 +94,10 @@ Deno.serve(async (req) => {
   }
 });
 
-function calculateBuyRatio(exchanges: any[]): number {
-  if (!exchanges || exchanges.length === 0) return 50;
-  
-  const totalBuy = exchanges.reduce((sum, ex) => sum + parseFloat(ex.buy_volume || 0), 0);
-  const totalSell = exchanges.reduce((sum, ex) => sum + parseFloat(ex.sell_volume || 0), 0);
-  const total = totalBuy + totalSell;
-  
-  return total > 0 ? (totalBuy / total) * 100 : 50;
-}
-
-function calculateSellRatio(exchanges: any[]): number {
-  return 100 - calculateBuyRatio(exchanges);
-}
-
-function getVolumeSentiment(exchanges: any[]): string {
-  const buyRatio = calculateBuyRatio(exchanges);
-  
-  if (buyRatio > 65) return 'STRONG BUYING';
-  if (buyRatio > 55) return 'BUYING';
-  if (buyRatio < 35) return 'STRONG SELLING';
-  if (buyRatio < 45) return 'SELLING';
-  return 'BALANCED';
+function getRSISignal(rsi: number): string {
+  if (rsi >= 70) return 'OVERBOUGHT';
+  if (rsi >= 60) return 'BULLISH';
+  if (rsi <= 30) return 'OVERSOLD';
+  if (rsi <= 40) return 'BEARISH';
+  return 'NEUTRAL';
 }

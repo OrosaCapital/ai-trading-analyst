@@ -12,34 +12,45 @@ export const CoinglassPanel = ({
   const [fearGreedIndex, setFearGreedIndex] = useState<any>(null);
   const [liquidations, setLiquidations] = useState<any>(null);
   const [openInterest, setOpenInterest] = useState<any>(null);
+  const [fundingRateList, setFundingRateList] = useState<any>(null);
+  const [takerVolume, setTakerVolume] = useState<any>(null);
+  const [rsi, setRsi] = useState<any>(null);
+  const [futuresBasis, setFuturesBasis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const fetchCoinglassData = async () => {
       try {
         setLoading(true);
 
-        // Fetch all Coinglass metrics in parallel
-        const [lsRatio, fearGreed, liq, oi] = await Promise.all([supabase.functions.invoke('fetch-long-short-ratio', {
-          body: {
-            symbol
-          }
-        }), supabase.functions.invoke('fetch-fear-greed-index'), supabase.functions.invoke('fetch-liquidations', {
-          body: {
-            symbol
-          }
-        }), supabase.functions.invoke('fetch-open-interest', {
-          body: {
-            symbol
-          }
-        })]);
+        // Fetch all Coinglass metrics in parallel (8 total metrics)
+        const [lsRatio, fearGreed, liq, oi, fundingList, takerVol, rsiData, basis] = await Promise.all([
+          supabase.functions.invoke('fetch-long-short-ratio', { body: { symbol } }),
+          supabase.functions.invoke('fetch-fear-greed-index'),
+          supabase.functions.invoke('fetch-liquidations', { body: { symbol } }),
+          supabase.functions.invoke('fetch-open-interest', { body: { symbol } }),
+          supabase.functions.invoke('fetch-funding-rate-list', { body: { symbol } }),
+          supabase.functions.invoke('fetch-taker-volume', { body: { symbol } }),
+          supabase.functions.invoke('fetch-rsi', { body: { symbol } }),
+          supabase.functions.invoke('fetch-futures-basis', { body: { symbol } })
+        ]);
+        
         console.log('Long/Short data:', lsRatio.data);
         console.log('Fear & Greed data:', fearGreed.data);
         console.log('Liquidations data:', liq.data);
         console.log('Open Interest data:', oi.data);
+        console.log('Funding Rate List data:', fundingList.data);
+        console.log('Taker Volume data:', takerVol.data);
+        console.log('RSI data:', rsiData.data);
+        console.log('Futures Basis data:', basis.data);
+        
         if (lsRatio.data) setLongShortRatio(lsRatio.data);
         if (fearGreed.data) setFearGreedIndex(fearGreed.data);
         if (liq.data) setLiquidations(liq.data);
         if (oi.data) setOpenInterest(oi.data);
+        if (fundingList.data) setFundingRateList(fundingList.data);
+        if (takerVol.data) setTakerVolume(takerVol.data);
+        if (rsiData.data) setRsi(rsiData.data);
+        if (basis.data) setFuturesBasis(basis.data);
       } catch (err) {
         console.error('Error fetching Coinglass data:', err);
       } finally {
@@ -232,6 +243,119 @@ export const CoinglassPanel = ({
                         </div>}
                     </>;
             })()}
+              </div> : <p className="text-muted-foreground">No data</p>}
+          </div>
+        </Card>
+
+        {/* Funding Rate */}
+        <Card className="p-6 bg-card border border-border">
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Funding Rate
+            </p>
+            {loading ? <LoadingSkeleton /> : fundingRateList && !fundingRateList.unavailable ? <div className="space-y-2">
+                <div className="text-3xl font-bold text-foreground">
+                  {(fundingRateList.avgRate * 100).toFixed(4)}%
+                </div>
+                <div className={`text-sm font-semibold ${
+                  fundingRateList.sentiment.includes('BULLISH') ? 'text-chart-green' :
+                  fundingRateList.sentiment.includes('BEARISH') ? 'text-chart-red' :
+                  'text-muted-foreground'
+                }`}>
+                  {fundingRateList.sentiment}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {fundingRateList.avgRate > 0 ? 'Longs pay shorts' : 'Shorts pay longs'}
+                </div>
+              </div> : <p className="text-muted-foreground">No data</p>}
+          </div>
+        </Card>
+
+        {/* Taker Buy/Sell Volume */}
+        <Card className="p-6 bg-card border border-border">
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Taker Volume Ratio
+            </p>
+            {loading ? <LoadingSkeleton /> : takerVolume && !takerVolume.unavailable ? <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-chart-green text-sm font-medium">Buy</span>
+                  <span className="text-xl font-bold text-chart-green">
+                    {takerVolume.buyRatio.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-chart-green" style={{ width: `${takerVolume.buyRatio}%` }} />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-chart-red text-sm font-medium">Sell</span>
+                  <span className="text-xl font-bold text-chart-red">
+                    {takerVolume.sellRatio.toFixed(1)}%
+                  </span>
+                </div>
+                <div className={`text-xs font-medium mt-2 ${
+                  takerVolume.sentiment.includes('BUYING') ? 'text-chart-green' :
+                  takerVolume.sentiment.includes('SELLING') ? 'text-chart-red' :
+                  'text-muted-foreground'
+                }`}>
+                  {takerVolume.sentiment}
+                </div>
+              </div> : <p className="text-muted-foreground">No data</p>}
+          </div>
+        </Card>
+
+        {/* RSI Indicator */}
+        <Card className="p-6 bg-card border border-border">
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              RSI (14)
+            </p>
+            {loading ? <LoadingSkeleton /> : rsi && !rsi.unavailable ? <div className="space-y-2">
+                <div className="text-5xl font-bold text-foreground">
+                  {rsi.rsi14.toFixed(1)}
+                </div>
+                <div className={`text-lg font-semibold ${
+                  rsi.signal === 'OVERBOUGHT' ? 'text-chart-red' :
+                  rsi.signal === 'OVERSOLD' ? 'text-chart-green' :
+                  rsi.signal === 'BULLISH' ? 'text-chart-green' :
+                  rsi.signal === 'BEARISH' ? 'text-chart-red' :
+                  'text-muted-foreground'
+                }`}>
+                  {rsi.signal}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {rsi.signal === 'OVERBOUGHT' ? 'Potential reversal zone' :
+                   rsi.signal === 'OVERSOLD' ? 'Potential buying opportunity' :
+                   'Neutral momentum'}
+                </div>
+              </div> : <p className="text-muted-foreground">No data</p>}
+          </div>
+        </Card>
+
+        {/* Futures Basis */}
+        <Card className="p-6 bg-card border border-border">
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Futures Basis
+            </p>
+            {loading ? <LoadingSkeleton /> : futuresBasis && !futuresBasis.unavailable ? <div className="space-y-2">
+                <div className="text-3xl font-bold text-foreground">
+                  {futuresBasis.basisPercent.toFixed(2)}%
+                </div>
+                <div className={`text-sm font-semibold ${
+                  futuresBasis.signal.includes('SPECULATION') ? 'text-chart-red' :
+                  futuresBasis.signal.includes('BULLISH') ? 'text-chart-green' :
+                  'text-muted-foreground'
+                }`}>
+                  {futuresBasis.signal}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {futuresBasis.structure} - {
+                    futuresBasis.structure === 'CONTANGO' ? 'Futures premium' :
+                    futuresBasis.structure === 'BACKWARDATION' ? 'Spot premium' :
+                    'Neutral pricing'
+                  }
+                </div>
               </div> : <p className="text-muted-foreground">No data</p>}
           </div>
         </Card>
