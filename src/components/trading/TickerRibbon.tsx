@@ -16,21 +16,18 @@ export function TickerRibbon() {
   const [tickers, setTickers] = useState<TickerSymbol[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Fetch prices for all symbols from database
+  // Fetch prices for all symbols and ensure they're being logged
   useEffect(() => {
     const fetchPrices = async () => {
       const prices = await Promise.all(
         TICKER_SYMBOLS.map(async (symbol) => {
           try {
-            // Fetch current price from cache
-            const { data: cacheData } = await supabase
-              .from("tatum_price_cache")
-              .select("price_data")
-              .eq("symbol", symbol)
-              .gt("expires_at", new Date().toISOString())
-              .single();
+            // First, trigger price logger to ensure data is being collected
+            const { data: loggerData } = await supabase.functions.invoke('tatum-price-logger', {
+              body: { symbol }
+            });
 
-            const currentPrice = (cacheData?.price_data as any)?.value || 0;
+            const currentPrice = loggerData?.price || 0;
 
             // Fetch price from 24h ago from logs
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -42,7 +39,7 @@ export function TickerRibbon() {
               .lte("timestamp", twentyFourHoursAgo)
               .order("timestamp", { ascending: false })
               .limit(1)
-              .single();
+              .maybeSingle();
 
             const pastPrice = historicalData?.price || currentPrice;
             const change24h = pastPrice > 0 ? ((currentPrice - pastPrice) / pastPrice) * 100 : 0;
