@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LivePriceHeader } from '@/components/dashboard/LivePriceHeader';
 import { CoinglassPanel } from '@/components/dashboard/CoinglassPanel';
+import { AIAnalysisPanel } from '@/components/dashboard/AIAnalysisPanel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, TrendingUp, TrendingDown } from 'lucide-react';
@@ -83,15 +84,13 @@ const Dashboard = () => {
           
         </section>
 
-        {/* Section 3: AI Analysis - Coming Soon */}
-        <section className="p-12 bg-card border border-border rounded-lg flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-muted-foreground mb-2">🤖</div>
-            <div className="text-xl font-semibold text-muted-foreground">AI Analysis Coming Soon</div>
-            <div className="text-sm text-muted-foreground mt-2">
-              AI-powered market insights in progress
-            </div>
+        {/* Section 3: AI Analysis */}
+        <section>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-foreground mb-1">AI Trading Analyst</h2>
+            <p className="text-sm text-muted-foreground">Live AI-powered trade signals and market analysis</p>
           </div>
+          <AIAnalysisPanel symbol={symbol} />
         </section>
 
         {/* Section 4: Coinglass Intelligence Panel */}
