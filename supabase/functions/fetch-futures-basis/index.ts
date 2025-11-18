@@ -74,6 +74,10 @@ Deno.serve(async (req) => {
     } = await import('../_shared/apiValidation.ts');
     
     const { monitoredAPICall } = await import('../_shared/apiMonitoring.ts');
+    const { formatForCoinglass } = await import('../_shared/symbolFormatter.ts');
+
+    // Format symbol to base only (e.g., ETH not ETHUSDT)
+    const cleanSymbol = formatForCoinglass(symbol);
 
     // Use monitored API call
     const data = await monitoredAPICall(
@@ -81,7 +85,7 @@ Deno.serve(async (req) => {
       symbol,
       async () => await fetchFromCoinglassV2(
         'futures_basis_history',
-        { symbol, interval: '4h' },
+        { symbol: cleanSymbol, interval: '4h' },
         coinglassApiKey
       )
     );

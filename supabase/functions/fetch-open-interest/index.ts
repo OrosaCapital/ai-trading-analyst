@@ -54,7 +54,7 @@ async function fetchOpenInterestFromCoinglass(symbol: string, apiKey: string) {
         async () => await fetchFromCoinglassV2(
           'open_interest_list',
           {
-            symbol: cleanSymbol.replace('USDT', '')
+            symbol: cleanSymbol  // Already base symbol from formatForCoinglass()
           },
           apiKey
         )
