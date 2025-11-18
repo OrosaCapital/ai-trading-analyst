@@ -193,13 +193,60 @@ serve(async (req) => {
       .eq('interval', '1m');
 
     if (!count || count < 15) {
-      return new Response(JSON.stringify({
-        status: 'accumulating',
-        message: `Collecting data... ${count || 0}/15 minutes`,
-        progress: ((count || 0) / 15) * 100
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.log(`⚠️ Insufficient data: ${count || 0}/15 minutes. Attempting API Ninjas backfill...`);
+      
+      // Try to backfill historical data from API Ninjas
+      try {
+        const { data: backfillResult, error: backfillError } = await supabase.functions.invoke(
+          'fetch-historical-prices',
+          { body: { symbol, lookback_hours: 24 } }
+        );
+
+        if (backfillError) {
+          console.error('❌ Backfill error:', backfillError);
+        } else if (backfillResult?.success) {
+          console.log(`✅ Backfilled ${backfillResult.records_added} records using ${backfillResult.api_calls_used} API calls`);
+          
+          // Re-check data availability after backfill
+          const { count: newCount } = await supabase
+            .from('tatum_price_logs')
+            .select('id', { count: 'exact', head: true })
+            .eq('symbol', symbol)
+            .eq('interval', '1m');
+
+          if (newCount && newCount >= 15) {
+            console.log(`🎉 Sufficient data now available (${newCount} minutes), proceeding with analysis...`);
+            // Don't return early - continue to analysis below
+          } else {
+            console.log(`⏳ Still insufficient data after backfill (${newCount || 0}/15), will accumulate naturally`);
+            return new Response(JSON.stringify({
+              status: 'accumulating',
+              message: `Collecting data... ${newCount || 0}/15 minutes`,
+              progress: ((newCount || 0) / 15) * 100
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        } else {
+          console.log('⏳ Backfill not successful, falling back to accumulation');
+          return new Response(JSON.stringify({
+            status: 'accumulating',
+            message: `Collecting data... ${count || 0}/15 minutes`,
+            progress: ((count || 0) / 15) * 100
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      } catch (backfillException) {
+        console.error('❌ Exception during backfill:', backfillException);
+        return new Response(JSON.stringify({
+          status: 'accumulating',
+          message: `Collecting data... ${count || 0}/15 minutes`,
+          progress: ((count || 0) / 15) * 100
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // 2. Fetch price logs for all intervals
