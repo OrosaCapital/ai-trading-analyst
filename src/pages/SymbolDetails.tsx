@@ -197,7 +197,7 @@ export default function SymbolDetails() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <TechMetricCard
             title="Funding Rate"
-            value={data.fundingRate ? `${(data.fundingRate * 100).toFixed(4)}` : null}
+            value={typeof data.fundingRate === 'number' ? `${(data.fundingRate * 100).toFixed(4)}` : null}
             unit="%"
             icon={<Target className="h-5 w-5" />}
             isLoading={isLoading}
@@ -207,7 +207,7 @@ export default function SymbolDetails() {
           
           <TechMetricCard
             title="Open Interest"
-            value={data.openInterest ? `$${(data.openInterest / 1e6).toFixed(2)}M` : null}
+            value={typeof data.openInterest === 'number' ? `$${(data.openInterest / 1e6).toFixed(2)}M` : null}
             change={data.openInterestChange}
             icon={<BarChart3 className="h-5 w-5" />}
             isLoading={isLoading}
@@ -215,15 +215,15 @@ export default function SymbolDetails() {
           
           <TechMetricCard
             title="Long/Short Ratio"
-            value={data.longShortRatio ? data.longShortRatio.toFixed(2) : null}
+            value={typeof data.longShortRatio === 'number' ? data.longShortRatio.toFixed(2) : null}
             icon={<PieChart className="h-5 w-5" />}
             isLoading={isLoading}
-            trend={data.longShortRatio && data.longShortRatio > 1 ? "up" : "down"}
+            trend={typeof data.longShortRatio === 'number' && data.longShortRatio > 1 ? "up" : "down"}
           />
           
           <TechMetricCard
             title="24h Liquidations"
-            value={data.liquidations24h ? `$${(data.liquidations24h / 1e6).toFixed(2)}M` : null}
+            value={typeof data.liquidations24h === 'number' ? `$${(data.liquidations24h / 1e6).toFixed(2)}M` : null}
             icon={<ActivityIcon className="h-5 w-5" />}
             isLoading={isLoading}
             highlight={(data.liquidations24h || 0) > 100e6}
@@ -240,23 +240,23 @@ export default function SymbolDetails() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <TechMetricCard
               title="RSI (14)"
-              value={data.rsi ? data.rsi.toFixed(2) : null}
+              value={typeof data.rsi === 'number' ? data.rsi.toFixed(2) : null}
               icon={<Gauge className="h-5 w-5" />}
               isLoading={isLoading}
-              trend={data.rsi && data.rsi > 70 ? "up" : data.rsi && data.rsi < 30 ? "down" : "neutral"}
-              highlight={data.rsi && (data.rsi > 70 || data.rsi < 30)}
+              trend={typeof data.rsi === 'number' && data.rsi > 70 ? "up" : typeof data.rsi === 'number' && data.rsi < 30 ? "down" : "neutral"}
+              highlight={typeof data.rsi === 'number' && (data.rsi > 70 || data.rsi < 30)}
             />
             
             <TechMetricCard
               title="Taker Buy Volume"
-              value={data.takerBuyVolume ? `$${(data.takerBuyVolume / 1e6).toFixed(2)}M` : null}
+              value={typeof data.takerBuyVolume === 'number' ? `$${(data.takerBuyVolume / 1e6).toFixed(2)}M` : null}
               icon={<TrendingUp className="h-5 w-5" />}
               isLoading={isLoading}
             />
             
             <TechMetricCard
               title="Taker Sell Volume"
-              value={data.takerSellVolume ? `$${(data.takerSellVolume / 1e6).toFixed(2)}M` : null}
+              value={typeof data.takerSellVolume === 'number' ? `$${(data.takerSellVolume / 1e6).toFixed(2)}M` : null}
               icon={<TrendingDown className="h-5 w-5" />}
               isLoading={isLoading}
             />
