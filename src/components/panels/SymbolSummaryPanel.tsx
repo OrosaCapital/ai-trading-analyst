@@ -7,14 +7,17 @@ interface SymbolSummaryPanelProps {
 
 export function SymbolSummaryPanel({ snapshot }: SymbolSummaryPanelProps) {
   const last = snapshot?.candles.at(-1);
+  const title = snapshot && last 
+    ? `${snapshot.symbol} - $${last.close.toLocaleString()}`
+    : "Symbol Summary";
 
   return (
-    <Card title="Symbol Summary">
+    <Card title={title}>
       {snapshot && last ? (
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
             <div className="text-gray-500">Last Price</div>
-            <div className="text-sm font-semibold">{last.close.toLocaleString()}</div>
+            <div className="text-sm font-semibold">${last.close.toLocaleString()}</div>
           </div>
           <div>
             <div className="text-gray-500">Volume</div>
