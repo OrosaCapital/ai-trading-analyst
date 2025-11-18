@@ -168,12 +168,100 @@ export const useWatchlist = () => {
     }
   }, [user]);
 
+  const analyzeSymbol = async (watchlistId: string, symbol: string) => {
+    if (!user) {
+      toast.error('Please sign in to analyze symbols');
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    try {
+      console.log(`Analyzing ${symbol}...`);
+      
+      const response = await supabase.functions.invoke('analyze-watchlist-symbol', {
+        body: { symbol, watchlist_id: watchlistId }
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      const data = response.data;
+
+      if (!data.success) {
+        if (data.status === 'insufficient_data') {
+          toast.error(data.message);
+          return { success: false, status: 'insufficient_data', message: data.message };
+        }
+        throw new Error(data.error || 'Analysis failed');
+      }
+
+      toast.success(`${symbol}: ${data.decision} (${data.confidence}% confidence)`);
+      await fetchWatchlist(); // Refresh to show new data
+      
+      return { success: true, data };
+    } catch (error: any) {
+      console.error('Error analyzing symbol:', error);
+      toast.error(`Failed to analyze ${symbol}`);
+      return { success: false, error };
+    }
+  };
+
+  const analyzeAllSymbols = async () => {
+    if (!user || watchlist.length === 0) return;
+
+    toast.info(`Analyzing ${watchlist.length} symbols...`);
+    
+    const results = {
+      total: watchlist.length,
+      success: 0,
+      failed: 0,
+      insufficient_data: 0,
+      decisions: { LONG: 0, SHORT: 0, 'NO TRADE': 0 }
+    };
+
+    for (let i = 0; i < watchlist.length; i++) {
+      const item = watchlist[i];
+      toast.info(`Analyzing ${item.symbol} (${i + 1}/${watchlist.length})...`);
+      
+      const result = await analyzeSymbol(item.id, item.symbol);
+      
+      if (result.success && result.data) {
+        results.success++;
+        const decision = result.data.decision as 'LONG' | 'SHORT' | 'NO TRADE';
+        results.decisions[decision]++;
+      } else if (result.status === 'insufficient_data') {
+        results.insufficient_data++;
+      } else {
+        results.failed++;
+      }
+
+      // Wait between requests to avoid overwhelming the system
+      if (i < watchlist.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+
+    // Show summary
+    const summary = [
+      `✅ ${results.success} analyzed`,
+      results.decisions.LONG > 0 ? `📈 ${results.decisions.LONG} LONG` : null,
+      results.decisions.SHORT > 0 ? `📉 ${results.decisions.SHORT} SHORT` : null,
+      results.decisions['NO TRADE'] > 0 ? `⏸️ ${results.decisions['NO TRADE']} NO TRADE` : null,
+      results.insufficient_data > 0 ? `⚠️ ${results.insufficient_data} need more data` : null,
+      results.failed > 0 ? `❌ ${results.failed} failed` : null
+    ].filter(Boolean).join(' • ');
+
+    toast.success(summary);
+  };
+
   return {
     watchlist,
     isLoading,
     addToWatchlist,
     removeFromWatchlist,
     updateWatchlistItem,
+    analyzeSymbol,
+    analyzeAllSymbols,
     refetch: fetchWatchlist
   };
 };

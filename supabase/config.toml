@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.fetch-futures-basis]
 verify_jwt = false
+
+[functions.analyze-watchlist-symbol]
+verify_jwt = false

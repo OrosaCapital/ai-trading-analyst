@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useWatchlist } from '@/hooks/useWatchlist';
+import { useWatchlist, WatchlistItem } from '@/hooks/useWatchlist';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,12 +18,14 @@ import { formatDistanceToNow } from 'date-fns';
 const Watchlist = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { watchlist, isLoading, addToWatchlist, removeFromWatchlist } = useWatchlist();
+  const { watchlist, isLoading, addToWatchlist, removeFromWatchlist, analyzeSymbol, analyzeAllSymbols } = useWatchlist();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [symbol, setSymbol] = useState('');
   const [nickname, setNickname] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [isAnalyzingAll, setIsAnalyzingAll] = useState(false);
 
   const handleAddSymbol = async () => {
     if (!symbol.trim()) {
@@ -83,6 +85,24 @@ const Watchlist = () => {
     }).format(price);
   };
 
+  const handleAnalyze = async (item: WatchlistItem) => {
+    setAnalyzingId(item.id);
+    await analyzeSymbol(item.id, item.symbol);
+    setAnalyzingId(null);
+  };
+
+  const handleAnalyzeAll = async () => {
+    setIsAnalyzingAll(true);
+    await analyzeAllSymbols();
+    setIsAnalyzingAll(false);
+  };
+
+  const isAnalysisOld = (lastAnalysisTime?: string) => {
+    if (!lastAnalysisTime) return false;
+    const hoursSince = (Date.now() - new Date(lastAnalysisTime).getTime()) / (1000 * 60 * 60);
+    return hoursSince > 1;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation Bar */}
@@ -94,6 +114,23 @@ const Watchlist = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              onClick={handleAnalyzeAll}
+              disabled={isAnalyzingAll || watchlist.length === 0}
+            >
+              {isAnalyzingAll ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Activity className="w-4 h-4 mr-2" />
+                  Analyze All
+                </>
+              )}
+            </Button>
             <Button variant="outline" onClick={() => navigate('/dashboard')}>
               Back to Dashboard
             </Button>
@@ -245,14 +282,14 @@ const Watchlist = () => {
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-2xl font-black text-accent">
+                      <h3 className="text-2xl font-black text-accent flex items-center gap-2">
                         {item.symbol}
+                        {item.nickname && (
+                          <span className="text-sm font-normal text-muted-foreground">
+                            ({item.nickname})
+                          </span>
+                        )}
                       </h3>
-                      {item.nickname && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {item.nickname}
-                        </p>
-                      )}
                     </div>
                     
                     <DropdownMenu>
@@ -267,7 +304,7 @@ const Watchlist = () => {
                           className="cursor-pointer"
                         >
                           <Eye className="mr-2 h-4 w-4" />
-                          View Details
+                          View Full Analysis
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -282,46 +319,74 @@ const Watchlist = () => {
                   </div>
 
                   {/* Current Price */}
-                  <div className="flex items-center gap-2 text-lg font-semibold">
-                    <DollarSign className="w-5 h-5 text-muted-foreground" />
-                    {formatPrice(item.current_price)}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-xl font-semibold text-foreground">
+                        {formatPrice(item.current_price)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isAnalysisOld(item.last_analysis_time) && item.last_decision && (
+                        <Badge variant="outline" className="text-xs">
+                          ⚠️ Outdated
+                        </Badge>
+                      )}
+                      {getDecisionBadge(item.last_decision)}
+                    </div>
                   </div>
 
-                  {/* Latest Analysis */}
-                  {item.last_decision ? (
-                    <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Latest Signal</span>
-                        {getDecisionBadge(item.last_decision)}
+                  {/* Confidence Bar */}
+                  {item.last_confidence && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Confidence</span>
+                        <span className="font-semibold text-foreground">{Math.round(item.last_confidence)}%</span>
                       </div>
-                      
-                      {item.last_confidence && (
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Confidence</span>
-                            <span className="font-medium">{Math.round(item.last_confidence)}%</span>
-                          </div>
-                          <div className="h-2 bg-background rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-accent transition-all"
-                              style={{ width: `${item.last_confidence}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      
-                      {item.last_analysis_time && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3" />
-                          {formatDistanceToNow(new Date(item.last_analysis_time), { addSuffix: true })}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-muted/50 rounded-lg text-center text-sm text-muted-foreground">
-                      No analysis available yet
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-accent transition-all"
+                          style={{ width: `${item.last_confidence}%` }}
+                        />
+                      </div>
                     </div>
                   )}
+
+                  {/* Last Analysis Time */}
+                  <div className="flex items-center justify-between">
+                    {item.last_analysis_time ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          {formatDistanceToNow(new Date(item.last_analysis_time), { addSuffix: true })}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        <span>Never analyzed</span>
+                      </div>
+                    )}
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAnalyze(item)}
+                      disabled={analyzingId === item.id || isAnalyzingAll}
+                    >
+                      {analyzingId === item.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Activity className="w-4 h-4 mr-2" />
+                          Analyze
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
                   {/* Notes Preview */}
                   {item.notes && (
@@ -329,30 +394,6 @@ const Watchlist = () => {
                       <p className="line-clamp-2">{item.notes}</p>
                     </div>
                   )}
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => navigate(`/dashboard?symbol=${item.symbol}`)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => {
-                        navigate(`/dashboard?symbol=${item.symbol}`);
-                        toast.info('Navigate to dashboard to run analysis');
-                      }}
-                    >
-                      <Activity className="w-4 h-4 mr-2" />
-                      Analyze
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             ))}
