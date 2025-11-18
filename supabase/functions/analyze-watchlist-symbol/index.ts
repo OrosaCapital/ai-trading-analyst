@@ -64,35 +64,19 @@ Deno.serve(async (req) => {
 
     const hasEnoughData = existingLogs && existingLogs.length >= 15;
 
-    // Step 2: If insufficient data, try to backfill from API Ninjas
+    // Step 2: If insufficient data, try to backfill from Binance
     if (!hasEnoughData) {
-      console.log(`[Watchlist Analysis] Insufficient data for ${symbol}. Attempting historical backfill...`);
+      console.log(`[Watchlist Analysis] Insufficient data for ${symbol}. Attempting Binance backfill...`);
       
-      const backfillResponse = await supabase.functions.invoke('fetch-historical-prices', {
+      const backfillResponse = await supabase.functions.invoke('fetch-binance-historical', {
         body: { symbol, lookback_hours: 24 }
       });
 
       if (backfillResponse.error) {
-        console.warn('[Watchlist Analysis] Backfill failed:', backfillResponse.error);
-        // If API limit exceeded, return helpful message
-        if (backfillResponse.data?.error === 'API_LIMIT_EXCEEDED') {
-          return new Response(
-            JSON.stringify({
-              success: false,
-              status: 'api_limit_exceeded',
-              message: 'Monthly API limit reached. New symbols will require 15+ minutes of price accumulation.',
-              usage: backfillResponse.data.usage
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200
-            }
-          );
-        }
-        // Fall back to accumulation method
+        console.warn('[Watchlist Analysis] Binance backfill failed:', backfillResponse.error);
         console.log('[Watchlist Analysis] Falling back to accumulation method');
       } else {
-        console.log(`[Watchlist Analysis] Historical backfill successful: ${backfillResponse.data?.records_added} records`);
+        console.log(`[Watchlist Analysis] Binance backfill successful: ${backfillResponse.data?.totalRecordsAdded} records`);
       }
     } else {
       console.log(`[Watchlist Analysis] Sufficient data already exists for ${symbol}`);
