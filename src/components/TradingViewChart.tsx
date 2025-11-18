@@ -43,10 +43,13 @@ export const TradingViewChart = memo(({ symbol }: TradingViewChartProps) => {
 
       // Convert symbol format (BTCUSDT -> BTCUSD or keep as is)
       const tvSymbol = symbol.includes('USDT') ? symbol.replace('USDT', 'USD') : symbol;
+      
+      // Sanitize symbol for DOM ID (remove special characters)
+      const sanitizedSymbol = symbol.replace(/[^a-zA-Z0-9]/g, '_');
 
       // Create new TradingView widget
       widgetRef.current = new window.TradingView.widget({
-        container_id: containerRef.current.id,
+        container_id: sanitizedSymbol,
         width: '100%',
         height: '100%',
         symbol: `BINANCE:${tvSymbol}`,
@@ -88,10 +91,13 @@ export const TradingViewChart = memo(({ symbol }: TradingViewChartProps) => {
     };
   }, [symbol]);
 
+  // Sanitize symbol for DOM ID
+  const sanitizedSymbol = symbol.replace(/[^a-zA-Z0-9]/g, '_');
+
   return (
     <div className="w-full h-full glass-panel rounded-lg border border-border/50 overflow-hidden">
       <div
-        id={`tradingview_${symbol}`}
+        id={sanitizedSymbol}
         ref={containerRef}
         className="w-full h-full"
       />

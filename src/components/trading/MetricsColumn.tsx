@@ -20,9 +20,12 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
     const fetchAllMetrics = async () => {
       setLoading(true);
       try {
+        // Normalize symbol format - ensure it's just the base (e.g., "BTC" from "BTCUSDT")
+        const baseSymbol = symbol.toUpperCase().replace('USDT', '').replace('USD', '').replace('/', '');
+        
         // Fetch funding rate from Coinglass
         const { data: frData, error: frError } = await supabase.functions.invoke("fetch-funding-rate", {
-          body: { symbol: symbol.replace('USDT', ''), interval: 'h1' },
+          body: { symbol: baseSymbol, interval: 'h1' },
         });
 
         if (!frError && frData) {
@@ -31,7 +34,7 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
         // Fetch open interest from Coinglass
         const { data: oiData, error: oiError } = await supabase.functions.invoke("fetch-open-interest", {
-          body: { symbol: symbol.replace('USDT', ''), interval: 'h1' },
+          body: { symbol: baseSymbol, interval: 'h1' },
         });
 
         if (!oiError && oiData) {
@@ -40,7 +43,7 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
         // Fetch long/short ratio from Coinglass
         const { data: lsrData, error: lsrError } = await supabase.functions.invoke("fetch-long-short-ratio", {
-          body: { symbol: symbol.replace('USDT', ''), interval: 'h1' },
+          body: { symbol: baseSymbol, interval: 'h1' },
         });
 
         if (!lsrError && lsrData) {
@@ -49,7 +52,7 @@ export function MetricsColumn({ symbol }: MetricsColumnProps) {
 
         // Fetch liquidations from Coinglass
         const { data: liqData, error: liqError } = await supabase.functions.invoke("fetch-liquidations", {
-          body: { symbol: symbol.replace('USDT', '') },
+          body: { symbol: baseSymbol },
         });
 
         if (!liqError && liqData) {
