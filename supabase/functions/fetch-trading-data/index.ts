@@ -555,6 +555,7 @@ serve(async (req) => {
     console.log('✅ Analysis logged to history');
 
     // Normalize the AI response for frontend consumption
+    const analysisMode = finalDecision.data_validation?.mode || 'UNKNOWN';
     const normalizedSignal = {
       decision,
       confidence,
@@ -570,6 +571,12 @@ serve(async (req) => {
         stopLoss: stopLoss,
         takeProfit: takeProfit,
         reason: finalDecision.reason || (decision === 'NO_TRADE' ? 'Conditions not met' : null)
+      },
+      metadata: {
+        analysisMode, // FULL_ANALYSIS, DEGRADED_ANALYSIS, or INSUFFICIENT_DATA
+        notes: finalDecision.data_validation?.notes || null,
+        dataQuality: analysisMode === 'FULL_ANALYSIS' ? 'complete' : 
+                    analysisMode === 'DEGRADED_ANALYSIS' ? 'partial' : 'insufficient'
       },
       rawResponse: finalDecision // Include raw response for debugging
     };
