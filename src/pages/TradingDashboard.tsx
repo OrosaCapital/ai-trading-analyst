@@ -15,7 +15,9 @@ export default function TradingDashboard() {
 
   // Normalize symbol to ensure it has USDT suffix for API calls
   const normalizeSymbol = (sym: string) => {
-    const clean = sym.toUpperCase().replace(/\//g, '');
+    const clean = sym.toUpperCase().replace(/\//g, '').trim();
+    // If it's empty or just "USDT", default to BTCUSDT
+    if (!clean || clean === 'USDT' || clean === 'USD') return 'BTCUSDT';
     if (clean.endsWith('USDT')) return clean;
     if (clean.endsWith('USD')) return clean.replace('USD', 'USDT');
     return `${clean}USDT`;
