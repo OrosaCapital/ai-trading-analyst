@@ -106,7 +106,7 @@ export default function SymbolDetails() {
                     value={searchSymbol}
                     onChange={(e) => setSearchSymbol(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    className="w-64 bg-background/50 backdrop-blur-sm border-primary/30 focus:border-primary"
+                    className="w-64 bg-background/50 backdrop-blur-sm border-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
                 <Button onClick={handleSymbolSearch} size="icon" className="bg-primary/20 hover:bg-primary/30 border border-primary/50">
