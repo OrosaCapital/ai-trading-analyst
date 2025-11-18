@@ -493,10 +493,30 @@ serve(async (req) => {
 
     console.log('✅ Analysis logged to history');
 
+    // Normalize the AI response for frontend consumption
+    const normalizedSignal = {
+      decision,
+      confidence,
+      summary: {
+        trend: trendExplanation,
+        volume: volumeExplanation,
+        liquidity: liquidityExplanation,
+        coinglass: coinglassExplanation,
+        entryTrigger: entryTriggerExplanation
+      },
+      action: {
+        entry: entryPrice,
+        stopLoss: stopLoss,
+        takeProfit: takeProfit,
+        reason: finalDecision.reason || (decision === 'NO_TRADE' ? 'Conditions not met' : null)
+      },
+      rawResponse: finalDecision // Include raw response for debugging
+    };
+
     // 10. Return everything to frontend
     return new Response(JSON.stringify({
       status: 'ready',
-      aiSignal: finalDecision,
+      aiSignal: normalizedSignal,
       priceData: {
         '1m': priceData1m,
         '5m': priceData5m,
