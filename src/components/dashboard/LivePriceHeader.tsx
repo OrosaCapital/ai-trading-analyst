@@ -15,14 +15,15 @@ interface LivePriceHeaderProps {
 
 export const LivePriceHeader = ({ symbol = 'BTC', marketData }: LivePriceHeaderProps) => {
   const [price, setPrice] = useState<number | null>(null);
-  const [previousPrice, setPreviousPrice] = useState<number | null>(null);
+  const [priceOneMinuteAgo, setPriceOneMinuteAgo] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch price from Tatum
+  // Fetch current price from Tatum and 1-minute ago price from logs
   const fetchPrice = async () => {
     try {
+      // Fetch current price
       const { data, error } = await supabase.functions.invoke('fetch-tatum-price', {
         body: { symbol: `${symbol}USD` }
       });
@@ -39,10 +40,25 @@ export const LivePriceHeader = ({ symbol = 'BTC', marketData }: LivePriceHeaderP
       }
 
       if (data?.price) {
-        setPreviousPrice(price);
         setPrice(data.price);
         setLastUpdate(new Date());
         setError(null);
+      }
+
+      // Fetch price from 1 minute ago from tatum_price_logs
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+      const { data: logData, error: logError } = await supabase
+        .from('tatum_price_logs')
+        .select('price')
+        .eq('symbol', `${symbol}USD`)
+        .eq('interval', '1m')
+        .lte('timestamp', oneMinuteAgo.toISOString())
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!logError && logData) {
+        setPriceOneMinuteAgo(logData.price);
       }
     } catch (err) {
       console.error('Price fetch error:', err);
@@ -59,10 +75,10 @@ export const LivePriceHeader = ({ symbol = 'BTC', marketData }: LivePriceHeaderP
     return () => clearInterval(interval);
   }, [symbol]);
 
-  // Calculate price change
-  const priceChange = previousPrice && price ? price - previousPrice : 0;
-  const priceChangePercent = previousPrice && price 
-    ? ((price - previousPrice) / previousPrice) * 100 
+  // Calculate 1-minute price change
+  const priceChange = priceOneMinuteAgo && price ? price - priceOneMinuteAgo : 0;
+  const priceChangePercent = priceOneMinuteAgo && price 
+    ? ((price - priceOneMinuteAgo) / priceOneMinuteAgo) * 100 
     : 0;
   const isUp = priceChange > 0;
   const isDown = priceChange < 0;
