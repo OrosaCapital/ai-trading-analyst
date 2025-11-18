@@ -1,8 +1,8 @@
 // Local trading signal generation engine (0 credits)
-// This replicates the logic from src/lib/signalEngine.ts for edge functions
+// Safe version for edge functions (handles partial data)
 
 export interface TradeSignal {
-  signal: 'BUY' | 'SELL' | 'NO TRADE';
+  signal: "BUY" | "SELL" | "NO TRADE";
   confidence: number;
   reasons: string[];
   failedConditions: string[];
@@ -16,45 +16,51 @@ export interface ChartDataForSignal {
   price1h: number;
   ema501h: number[];
   rsi1h: number[];
-  
+
   price15m: number;
   ema5015m: number[];
   rsi15m: number[];
-  
+
   currentVolume: number;
   volumeSMA: number[];
-  
-  coinglassSentiment: 'bullish' | 'bearish' | 'neutral';
+
+  coinglassSentiment: "bullish" | "bearish" | "neutral";
 }
 
-function calculateEMASlope(ema: number[], lookback: number = 5): number {
-  if (ema.length < lookback + 1) return 0;
-  
-  const recent = ema.slice(-lookback);
-  let totalChange = 0;
-  
+function safeGetLatest(arr: number[], fallback = 0): number {
+  if (!Array.isArray(arr) || arr.length === 0) return fallback;
+  const v = arr[arr.length - 1];
+  return typeof v === "number" && !isNaN(v) ? v : fallback;
+}
+
+function calculateEMASlope(arr: number[], lookback = 5): number {
+  if (!Array.isArray(arr) || arr.length < lookback + 1) return 0;
+  const recent = arr.slice(-lookback);
+
+  let total = 0;
   for (let i = 1; i < recent.length; i++) {
-    totalChange += recent[i] - recent[i - 1];
+    const a = recent[i - 1];
+    const b = recent[i];
+    if (typeof a !== "number" || typeof b !== "number") return 0;
+    total += b - a;
   }
-  
-  return totalChange / lookback;
+  return total / lookback;
 }
 
 export function calculateLocalTradeSignal(data: ChartDataForSignal): TradeSignal {
   const failedConditions: string[] = [];
-  
-  // Get latest values
-  const currentEMA1h = data.ema501h[data.ema501h.length - 1] || 0;
-  const currentEMA15m = data.ema5015m[data.ema5015m.length - 1] || 0;
-  const currentRSI1h = data.rsi1h[data.rsi1h.length - 1] || 50;
-  const currentRSI15m = data.rsi15m[data.rsi15m.length - 1] || 50;
-  const currentVolumeSMA = data.volumeSMA[data.volumeSMA.length - 1] || 0;
-  
-  // Calculate EMA slopes
+
+  // Safe reads
+  const currentEMA1h = safeGetLatest(data.ema501h);
+  const currentEMA15m = safeGetLatest(data.ema5015m);
+  const currentRSI1h = safeGetLatest(data.rsi1h, 50);
+  const currentRSI15m = safeGetLatest(data.rsi15m, 50);
+  const currentVolumeSMA = safeGetLatest(data.volumeSMA, 1);
+
   const ema1hSlope = calculateEMASlope(data.ema501h);
   const ema15mSlope = calculateEMASlope(data.ema5015m);
-  
-  // Check BUY conditions
+
+  // BUY conditions
   const buyConditions = {
     price1hAboveEMA: data.price1h > currentEMA1h,
     ema1hSlopePositive: ema1hSlope > 0,
@@ -62,36 +68,34 @@ export function calculateLocalTradeSignal(data: ChartDataForSignal): TradeSignal
     price15mAboveEMA: data.price15m > currentEMA15m,
     ema15mSlopePositive: ema15mSlope > 0,
     rsi15mBullish: currentRSI15m > 50,
-    volumeIncreasing: data.currentVolume > currentVolumeSMA,
-    coinglassBullish: data.coinglassSentiment === 'bullish',
+    volumeIncreasing: data.currentVolume > currentVolumeSMA * 1.05,
+    coinglassBullish: data.coinglassSentiment === "bullish",
   };
-  
-  const buyConditionsMet = Object.values(buyConditions).every(c => c);
-  
+
+  const buyMetCount = Object.values(buyConditions).filter(Boolean).length;
+  const buyConditionsMet = buyMetCount === Object.keys(buyConditions).length;
+
   if (buyConditionsMet) {
     const entry = data.price1h;
-    const stopLoss = entry * 0.97; // 3% stop loss
-    const takeProfit = entry * 1.06; // 6% take profit
-    
+
     return {
-      signal: 'BUY',
-      confidence: 95,
+      signal: "BUY",
+      confidence: 70 + Math.min(30, (buyMetCount / 8) * 30),
       reasons: [
-        '1H trend is bullish (price above 50 EMA, upward slope)',
-        '15M confirms bullish momentum',
-        `RSI favorable (1H: ${currentRSI1h.toFixed(0)}, 15M: ${currentRSI15m.toFixed(0)})`,
-        'Volume increasing above average',
-        'Coinglass 4H sentiment supports bullish conditions',
+        "Strong bullish alignment across 1H and 15M charts",
+        `RSI: 1H ${currentRSI1h.toFixed(1)}, 15M ${currentRSI15m.toFixed(1)}`,
+        "Volume increasing above SMA",
+        "4H sentiment from CoinGlass confirms bullish environment",
       ],
       failedConditions: [],
       timestamp: Date.now(),
       entry_price: entry,
-      stop_loss: stopLoss,
-      take_profit: takeProfit,
+      stop_loss: entry * 0.97,
+      take_profit: entry * 1.06,
     };
   }
-  
-  // Check SELL conditions
+
+  // SELL conditions
   const sellConditions = {
     price1hBelowEMA: data.price1h < currentEMA1h,
     ema1hSlopeNegative: ema1hSlope < 0,
@@ -99,56 +103,48 @@ export function calculateLocalTradeSignal(data: ChartDataForSignal): TradeSignal
     price15mBelowEMA: data.price15m < currentEMA15m,
     ema15mSlopeNegative: ema15mSlope < 0,
     rsi15mBearish: currentRSI15m < 50,
-    volumeIncreasing: data.currentVolume > currentVolumeSMA,
-    coinglassBearish: data.coinglassSentiment === 'bearish',
+    volumeIncreasing: data.currentVolume > currentVolumeSMA * 1.05,
+    coinglassBearish: data.coinglassSentiment === "bearish",
   };
-  
-  const sellConditionsMet = Object.values(sellConditions).every(c => c);
-  
+
+  const sellMetCount = Object.values(sellConditions).filter(Boolean).length;
+  const sellConditionsMet = sellMetCount === Object.keys(sellConditions).length;
+
   if (sellConditionsMet) {
     const entry = data.price1h;
-    const stopLoss = entry * 1.03; // 3% stop loss (higher for short)
-    const takeProfit = entry * 0.94; // 6% take profit (lower for short)
-    
+
     return {
-      signal: 'SELL',
-      confidence: 95,
+      signal: "SELL",
+      confidence: 70 + Math.min(30, (sellMetCount / 8) * 30),
       reasons: [
-        '1H trend is bearish (price below 50 EMA, downward slope)',
-        '15M confirms bearish momentum',
-        `RSI favorable (1H: ${currentRSI1h.toFixed(0)}, 15M: ${currentRSI15m.toFixed(0)})`,
-        'Volume increasing on red candles',
-        'Coinglass 4H sentiment supports bearish conditions',
+        "Strong bearish alignment across 1H and 15M charts",
+        `RSI: 1H ${currentRSI1h.toFixed(1)}, 15M ${currentRSI15m.toFixed(1)}`,
+        "Volume rising into selling pressure",
+        "4H sentiment from CoinGlass confirms bearish environment",
       ],
       failedConditions: [],
       timestamp: Date.now(),
       entry_price: entry,
-      stop_loss: stopLoss,
-      take_profit: takeProfit,
+      stop_loss: entry * 1.03,
+      take_profit: entry * 0.94,
     };
   }
-  
-  // NO TRADE - conditions not met
-  if (!buyConditions.price1hAboveEMA && !sellConditions.price1hBelowEMA) {
-    failedConditions.push('1H price not clearly above/below 50 EMA');
-  }
-  if (!buyConditions.ema1hSlopePositive && !sellConditions.ema1hSlopeNegative) {
-    failedConditions.push('1H EMA not trending clearly');
-  }
-  if (!buyConditions.rsi1hBullish && !sellConditions.rsi1hBearish) {
-    failedConditions.push('1H RSI neutral (near 50)');
-  }
-  if (!buyConditions.volumeIncreasing) {
-    failedConditions.push('Volume below average');
-  }
-  if (data.coinglassSentiment === 'neutral') {
-    failedConditions.push('Coinglass sentiment neutral');
-  }
-  
+
+  // Build failed condition log
+  if (!buyConditions.price1hAboveEMA && !sellConditions.price1hBelowEMA)
+    failedConditions.push("1H price not clearly above or below EMA 50");
+
+  if (!buyConditions.ema1hSlopePositive && !sellConditions.ema1hSlopeNegative)
+    failedConditions.push("1H EMA slope flat");
+
+  if (!buyConditions.volumeIncreasing) failedConditions.push("Volume below SMA (weak conviction)");
+
+  if (data.coinglassSentiment === "neutral") failedConditions.push("CoinGlass 4H sentiment neutral");
+
   return {
-    signal: 'NO TRADE',
+    signal: "NO TRADE",
     confidence: 0,
-    reasons: ['Market conditions are mixed. Multiple conflicting signals detected.'],
+    reasons: ["Market mixed. No clean directional trend."],
     failedConditions,
     timestamp: Date.now(),
   };
