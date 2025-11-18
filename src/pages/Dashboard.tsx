@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LivePriceHeader } from '@/components/dashboard/LivePriceHeader';
 import { CoinglassPanel } from '@/components/dashboard/CoinglassPanel';
 import { AIAnalysisPanel } from '@/components/dashboard/AIAnalysisPanel';
@@ -16,10 +16,21 @@ import { toast } from 'sonner';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const [symbol, setSymbol] = useState('BTC');
-  const [inputValue, setInputValue] = useState('BTC');
+  const [searchParams] = useSearchParams();
+  const urlSymbol = searchParams.get('symbol');
+  
+  const [symbol, setSymbol] = useState(urlSymbol || 'BTC');
+  const [inputValue, setInputValue] = useState(urlSymbol || 'BTC');
   const [marketData, setMarketData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Update symbol when URL parameter changes
+  useEffect(() => {
+    if (urlSymbol) {
+      setSymbol(urlSymbol);
+      setInputValue(urlSymbol);
+    }
+  }, [urlSymbol]);
   const handleSymbolChange = () => {
     const cleanSymbol = inputValue.trim().toUpperCase();
     if (cleanSymbol) {
