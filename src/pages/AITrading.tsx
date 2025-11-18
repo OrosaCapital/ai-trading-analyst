@@ -7,6 +7,7 @@ import { DataAccumulationProgress } from '@/components/DataAccumulationProgress'
 import { SimplifiedChart } from '@/components/SimplifiedChart';
 import { PremiumMarketMetrics } from '@/components/PremiumMarketMetrics';
 import { useAITradingData } from '@/hooks/useAITradingData';
+import { normalizeSymbol } from '@/lib/symbolUtils';
 import { Zap } from 'lucide-react';
 
 const popularSymbols = ['BTC', 'ETH', 'SOL', 'XRP'];
@@ -19,7 +20,7 @@ export default function AITrading() {
 
   const handleAnalyze = (sym?: string) => {
     const targetSymbol = sym || input.toUpperCase();
-    setSymbol(`${targetSymbol}USD`);
+    setSymbol(normalizeSymbol(targetSymbol));
   };
 
   return (
