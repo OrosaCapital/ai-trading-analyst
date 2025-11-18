@@ -84,18 +84,21 @@ const Dashboard = () => {
           
         </section>
 
-        {/* Section 3: AI Analysis */}
-        <section>
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-foreground mb-1">AI Trading Analyst</h2>
-            <p className="text-sm text-muted-foreground">Live AI-powered trade signals and market analysis</p>
+        {/* Sections 3 & 4: AI Analysis + Coinglass Side by Side */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: AI Analysis */}
+          <div>
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold text-foreground mb-1">AI Trading Analyst</h2>
+              <p className="text-sm text-muted-foreground">Live AI-powered trade signals and market analysis</p>
+            </div>
+            <AIAnalysisPanel symbol={symbol} />
           </div>
-          <AIAnalysisPanel symbol={symbol} />
-        </section>
 
-        {/* Section 4: Coinglass Intelligence Panel */}
-        <section>
-          <CoinglassPanel symbol={symbol} />
+          {/* Right: Coinglass Intelligence Panel */}
+          <div>
+            <CoinglassPanel symbol={symbol} />
+          </div>
         </section>
       </main>
     </div>;
