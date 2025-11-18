@@ -66,9 +66,9 @@ export default function TradingDashboard() {
       />
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0 mb-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 mb-2">
         {/* Left - Primary Chart (60%) */}
-        <div className="lg:col-span-7 flex flex-col min-h-0">
+        <div className="lg:col-span-7 flex flex-col h-[450px]">
           <TradingViewChart symbol={symbol} />
         </div>
 
@@ -89,7 +89,7 @@ export default function TradingDashboard() {
       </div>
 
       {/* Bottom - Advanced Analytics */}
-      <div className="h-[350px]">
+      <div className="h-[300px]">
         <AdvancedAnalyticsTabs symbol={symbol} />
       </div>
     </AppShell>
