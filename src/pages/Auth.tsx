@@ -78,8 +78,22 @@ const Auth = () => {
         }
       } else {
         toast.success('Welcome back!');
-        const redirectTo = searchParams.get('redirect') || '/';
-        navigate(redirectTo);
+        
+        // Fetch user role and redirect accordingly
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .single();
+          
+          const userRole = roleData?.role;
+          const redirectTo = searchParams.get('redirect') || (userRole === 'superuser' ? '/' : '/trading');
+          navigate(redirectTo);
+        }
       }
     } catch (err) {
       toast.error('An unexpected error occurred');
@@ -103,7 +117,9 @@ const Auth = () => {
         }
       } else {
         toast.success('Account created! Welcome aboard!');
-        const redirectTo = searchParams.get('redirect') || '/';
+        // New users are automatically assigned 'user' role by trigger
+        // Redirect to trading page
+        const redirectTo = searchParams.get('redirect') || '/trading';
         navigate(redirectTo);
       }
     } catch (err) {
