@@ -8,6 +8,9 @@
 ### Architecture
 - **SIMPLE_MODE_ARCHITECTURE.md** - Core architecture overview, data sources, and development guidelines
 
+### API Integration
+- **COINGLASS_API.md** - CoinGlass API integration guide, endpoints, and usage patterns
+
 ### Library Reference
 - **LIBRARY_REFERENCE.md** - Library versions and API patterns (lightweight-charts, React, etc.)
 
@@ -17,20 +20,21 @@ This is a **Simple Mode Trading Dashboard** built with:
 - React + TypeScript
 - TradingView Lightweight Charts
 - Local technical indicators
-- Minimal external APIs (Tatum + WebSocket + CoinGlass only)
+- Minimal external APIs (Tatum + WebSocket + CoinGlass)
 
-CoinGlass API is used exclusively for Trading Dashboard sidebar market metrics (funding rate, open interest, liquidations, long/short ratio).
+CoinGlass API provides real-time market data including funding rates, exchange coverage, and derivatives metrics.
 
 ## Quick Start
 
 1. Review `SIMPLE_MODE_ARCHITECTURE.md` for system overview
-2. Check `LIBRARY_REFERENCE.md` for library API patterns
-3. Main entry point: `src/pages/TradingDashboard.tsx`
-4. Local indicators: `src/components/trading/LocalIndicatorsPanel.tsx`
+2. Check `COINGLASS_API.md` for API integration patterns
+3. Check `LIBRARY_REFERENCE.md` for library API patterns
+4. Main entry point: `src/pages/TradingDashboard.tsx`
+5. Local indicators: `src/components/trading/LocalIndicatorsPanel.tsx`
 
 ## Key Principles
 
 - **Local-first**: All technical indicators calculated from chart data
-- **CoinGlass metrics**: Market data for Trading Dashboard sidebar only
+- **CoinGlass integration**: Real-time funding rates, exchange pairs, market coverage
 - **WebSocket-only**: Real-time price updates via WebSocket
 - **Simple & fast**: Minimal architecture, maximum performance
