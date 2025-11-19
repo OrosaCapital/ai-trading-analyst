@@ -45,7 +45,7 @@ This project is **"Simple Mode Only"**.
 - WebSocket live price
 - Optional Tatum price fallback
 - **Local market metrics generator** (replaces all external derivative APIs)
-- **CoinGlass supported coins API** (for ticker symbols only)
+- **CoinGlass supported coins & exchange pairs APIs** (for market coverage data only)
 
 **Nothing else.**
 

@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.fetch-coinglass-coins]
 verify_jwt = false
+
+[functions.fetch-exchange-pairs]
+verify_jwt = false

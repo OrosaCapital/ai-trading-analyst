@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { TradingCommandCenter } from "@/components/trading/TradingCommandCenter";
 import { TradingViewChart } from "@/components/TradingViewChart";
 import { LocalIndicatorsPanel } from "@/components/trading/LocalIndicatorsPanel";
+import { ExchangeCoverage } from "@/components/trading/ExchangeCoverage";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 
 type Severity = "info" | "warn" | "danger";
@@ -62,6 +63,7 @@ export default function TradingDashboard() {
         </div>
 
         <div className="lg:col-span-4 flex flex-col gap-4 max-h-[700px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent hover:scrollbar-thumb-border/60">
+          <ExchangeCoverage />
           <LocalIndicatorsPanel candles={candles1m} />
           <MicroTimeframePanel candles1m={candles1m} candles15m={candles15m} />
         </div>
