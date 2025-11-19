@@ -39,6 +39,13 @@ export default function TradingDashboard() {
       ? candles[candles.length - 1].close
       : null;
 
+  console.log("TradingDashboard - chartData:", {
+    has1h: !!chartData?.candles1h?.length,
+    has15m: !!chartData?.candles15m?.length,
+    hasIndicators: !!chartData?.indicators,
+    chartData
+  });
+
   const { analysis, isAnalyzing } = useAIAnalysis(
     normalizedSymbol,
     chartData?.candles1h || [],
