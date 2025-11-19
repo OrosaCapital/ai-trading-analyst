@@ -49,8 +49,6 @@ This project follows a **Database-Centric Architecture**:
 External APIs → Database Tables → React Components
      ↓                ↓                  ↓
 CoinGlass API   market_candles      Chart Hook
-CoinMarketCap API  market_funding      Price Display
-
 ## 🚨 CRITICAL: CoinMarketCap API Rate Limits
 
 **Monthly Allowance**: 10,000 credits/month (Basic Plan)
@@ -73,6 +71,103 @@ CoinMarketCap API  market_funding      Price Display
 - ❌ NO auto-refresh on page load if cache is valid
 - ❌ NO background polling of CMC API
 - ❌ NO individual calls per symbol (use batch endpoints)
+
+---
+
+## 🔷 CoinGlass API Integration
+
+**Base URL**: `https://open-api-v4.coinglass.com`
+**Plan**: Hobbyist (Limited daily requests)
+**Cache TTL**: 4 hours minimum
+
+### What CoinGlass Provides:
+- **Funding Rates**: Current and historical funding rates per exchange
+- **Open Interest**: Total open positions across exchanges
+- **Liquidations**: Real-time liquidation data
+- **Long/Short Ratios**: Market sentiment indicators
+- **Exchange Coverage**: Trading pairs per exchange
+
+### Database Tables Used:
+1. **market_funding_rates**:
+   - Stores current and historical funding rates
+   - Columns: symbol, exchange, rate, timestamp
+   - Primary use: FundingRateChart component
+
+### CoinGlass API Conservation Rules:
+1. **ALWAYS** check 4-hour cache before API call
+2. **LIMIT** populate-coinglass-data to 1x per 4 hours
+3. **BATCH** multiple symbols when possible
+4. **RESPECT** Hobbyist plan rate limits
+5. Use `4h` interval for history (required for Hobbyist plan)
+
+### Edge Functions:
+- `populate-coinglass-data`: Main population function (runs every 4h)
+- `fetch-current-funding`: Get current funding rates on demand
+- `fetch-funding-history`: Get historical funding rates (4h intervals)
+- `fetch-coinglass-coins`: Get supported coins list
+- `fetch-exchange-pairs`: Get all exchange trading pairs
+
+### Recommended Schedule:
+```sql
+-- Run CoinGlass population every 4 hours
+select cron.schedule(
+  'populate-coinglass-data',
+  '0 */4 * * *',  -- Every 4 hours
+  $$
+  select net.http_post(
+    url:='https://alzxeplijnbpuqkfnpjk.supabase.co/functions/v1/populate-coinglass-data',
+    headers:='{"Content-Type": "application/json", "Authorization": "Bearer [ANON_KEY]"}'::jsonb,
+    body:='{}'::jsonb
+  ) as request_id;
+  $$
+);
+```
+
+---
+
+## 📊 Data Flow Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   PRICE DATA                        │
+├─────────────────────────────────────────────────────┤
+│ CoinMarketCap API → market_snapshots (5min cache)  │
+│ CoinMarketCap API → market_candles (simulated)     │
+│ WebSocket → Real-time price updates (no cache)     │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│                 FUNDING RATE DATA                   │
+├─────────────────────────────────────────────────────┤
+│ CoinGlass API → market_funding_rates (4h cache)    │
+│   - Current rates (per exchange)                    │
+│   - Historical rates (4h intervals, 100 candles)    │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔄 Automated Population
+
+### Schedule Overview:
+- **CMC Price Data**: Manual/on-demand only (conserve credits)
+- **CoinGlass Funding**: Every 4 hours (automated via pg_cron)
+
+### Setting Up Automation:
+1. Enable pg_cron extension in Supabase
+2. Create cron job for CoinGlass:
+   ```sql
+   select cron.schedule(
+     'populate-coinglass-every-4h',
+     '0 */4 * * *',
+     $$
+     select net.http_post(
+       url:='https://alzxeplijnbpuqkfnpjk.supabase.co/functions/v1/populate-coinglass-data',
+       headers:='{"Authorization": "Bearer eyJhbGc..."}'::jsonb
+     );
+     $$
+   );
+   ```
                market_snapshots    Live Updates
 ```
 
