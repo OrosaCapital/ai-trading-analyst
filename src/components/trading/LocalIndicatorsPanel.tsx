@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { TradingCommandCenter } from "@/components/trading/TradingCommandCenter";
 import { TradingViewChart } from "@/components/TradingViewChart";
-import { LocalIndicatorsPanel } from "@/components/trading/LocalIndicatorsPanel";
+import { SimpleIndicatorPanel } from "@/components/trading/LocalIndicatorsPanel";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 
 export default function TradingDashboard() {
@@ -33,7 +33,7 @@ export default function TradingDashboard() {
         </div>
 
         <div className="lg:col-span-4 flex flex-col gap-2 overflow-y-auto">
-          <LocalIndicatorsPanel candles={chartData?.candles1m || []} />
+          <SimpleIndicatorPanel candles={chartData?.candles1m || []} />
         </div>
       </div>
 
