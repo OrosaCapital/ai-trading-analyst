@@ -35,9 +35,18 @@ export default function TradingDashboard() {
   const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000);
   const { chartData } = useProfessionalChartData(normalizedSymbol);
 
+  console.log("TradingDashboard - RAW chartData:", chartData);
+
   // DEBUG: Show what data we have
   useEffect(() => {
     if (chartData) {
+      console.log("TradingDashboard - chartData loaded:", {
+        has1h: !!chartData.candles1h,
+        count1h: chartData.candles1h?.length,
+        has15m: !!chartData.candles15m,
+        count15m: chartData.candles15m?.length,
+        hasIndicators: !!chartData.indicators
+      });
       toast({
         title: "📊 Chart Data Loaded",
         description: `1h: ${chartData.candles1h?.length || 0} candles, 15m: ${chartData.candles15m?.length || 0} candles`,
