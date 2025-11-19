@@ -1,11 +1,25 @@
 import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Props {
   candles: Array<{ close: number; high: number; low: number; volume: number; open: number }>;
 }
 
 export function LocalIndicatorsPanel({ candles }: Props) {
-  if (!candles || candles.length < 2) return null;
+  if (!candles || candles.length < 20) {
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="text-sm">Technical Indicators</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-muted-foreground py-8">
+            Loading indicators...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const closes = candles.map(c => c.close);
   const volumes = candles.map(c => c.volume);
@@ -15,7 +29,8 @@ export function LocalIndicatorsPanel({ candles }: Props) {
 
   // RSI
   let gains = 0, losses = 0;
-  for (let i = closes.length - 14; i < closes.length; i++) {
+  for (let i = Math.max(0, closes.length - 14); i < closes.length; i++) {
+    if (i === 0) continue;
     const diff = closes[i] - closes[i - 1];
     if (diff > 0) gains += diff;
     else losses -= diff;
@@ -40,24 +55,31 @@ export function LocalIndicatorsPanel({ candles }: Props) {
 
   // Last candle strength
   const last = candles[candles.length - 1];
-  const candleStrength = ((last.close - last.open) / (last.high - last.low)) || 0;
+  const candleStrength = last.high !== last.low 
+    ? ((last.close - last.open) / (last.high - last.low)) 
+    : 0;
 
   return (
-    <div className="flex flex-col gap-3 p-4 bg-[#0d0f12] rounded-xl text-white text-sm">
-      <Indicator label="SMA-20" value={sma.toFixed(4)} />
-      <Indicator label="RSI-14" value={rsi.toFixed(2)} />
-      <Indicator label="ATR-14" value={atr.toFixed(4)} />
-      <Indicator label="Volume SMA-20" value={volSMA.toFixed(0)} />
-      <Indicator label="Candle Strength" value={candleStrength.toFixed(2)} />
-    </div>
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="text-sm">Technical Indicators</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Indicator label="SMA-20" value={sma.toFixed(4)} />
+        <Indicator label="RSI-14" value={rsi.toFixed(2)} />
+        <Indicator label="ATR-14" value={atr.toFixed(6)} />
+        <Indicator label="Volume SMA-20" value={volSMA.toFixed(0)} />
+        <Indicator label="Candle Strength" value={candleStrength.toFixed(2)} />
+      </CardContent>
+    </Card>
   );
 }
 
 function Indicator({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between border-b border-white/10 pb-2">
-      <span className="text-gray-400">{label}</span>
-      <span className="font-semibold">{value}</span>
+    <div className="flex justify-between items-center border-b border-border pb-2">
+      <span className="text-muted-foreground text-sm">{label}</span>
+      <span className="font-semibold text-foreground">{value}</span>
     </div>
   );
 }
