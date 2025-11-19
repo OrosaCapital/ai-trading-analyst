@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
       
       if (message.action === 'subscribe' && message.symbol) {
         currentSymbol = message.symbol;
-        connectToCoinGlass(message.symbol);
+        connectToKraken(message.symbol);
       } else if (message.action === 'unsubscribe') {
         currentSymbol = null;
         if (coinglassWS) {
