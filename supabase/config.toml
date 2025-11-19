@@ -3,9 +3,6 @@ project_id = "alzxeplijnbpuqkfnpjk"
 [functions.ai-chat]
 verify_jwt = false
 
-[functions.tatum-price-logger]
-verify_jwt = false
-
 [functions.populate-market-data]
 verify_jwt = false
 

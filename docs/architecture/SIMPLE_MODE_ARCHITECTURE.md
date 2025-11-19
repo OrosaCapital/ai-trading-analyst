@@ -1,138 +1,241 @@
 # Simple Mode Architecture
 
+**Status**: Active  
+**Data Sources**: Kraken API (price/candles) + CoinGlass API (derivatives)  
+**Philosophy**: Minimal backend, maximum client-side processing
+
+---
+
 ## Overview
 
-This trading dashboard operates in **Simple Mode** - a streamlined architecture using only local chart calculations and minimal external API dependencies.
+This trading dashboard follows a **Kraken + CoinGlass** architecture:
+- **Kraken Public API** provides price data, OHLC candles, and real-time WebSocket feeds
+- **CoinGlass API v4** provides funding rates, open interest, and derivatives metrics
+- **Local calculations** handle all technical indicators and market metrics
+- **Minimal backend** stores only essential data (candles, funding rates, user watchlists)
 
-## Core Principles
-
-1. **Local-First**: All technical indicators calculated locally from chart data
-2. **Minimal APIs**: Only CoinMarketCap for price data and WebSocket for real-time updates
-3. **No External Derivatives**: Market metrics generated locally using deterministic algorithms
-4. **Self-Contained**: All analytics run client-side from chart stream
+---
 
 ## Data Sources
 
-### Active APIs
-- **CoinMarketCap API**: Historical price data (via `cmc-price-logger`)
-- **WebSocket Stream**: Real-time price updates via `websocket-price-stream` edge function
-- **CoinGlass API v4**: Market derivatives data (funding rates, exchange pairs, market coverage)
-  - See [COINGLASS_API.md](COINGLASS_API.md) for complete integration details
+### 1. Kraken Public API (Primary Price Source)
+**Purpose**: Real-time and historical price data
 
-### Local Generators
-- **Market Metrics Generator**: Local fallback for simulated market metrics (when API unavailable)
-- **Technical Indicators**: All chart indicators calculated client-side (EMA, RSI, ATR)
+**Endpoints Used**:
+- `GET /0/public/Ticker` - Current prices for all pairs
+- `GET /0/public/OHLC` - Historical candle data (1m, 5m, 15m, 1h, 4h, 1d)
+- `GET /0/public/AssetPairs` - Available trading pairs for discovery
+- `WebSocket wss://ws.kraken.com` - Real-time price stream
 
-### Removed APIs
-- ❌ CoinMarketCap (not needed with CoinGlass integration)
-- ❌ API Ninjas (replaced with CoinMarketCap + local calculations)
+**Key Features**:
+- No authentication required
+- Rate limits: Public endpoints allow high throughput
+- Symbol translation required (BTCUSDT → XBTUSD)
+- Provides up to 720 candles per request
+
+**Storage**:
+- Candles stored in `market_candles` table
+- Updated hourly via `fetch-kraken-candles` edge function
+- WebSocket updates cached in client state
+
+### 2. CoinGlass API v4 (Derivatives Data)
+**Purpose**: Funding rates, open interest, liquidations
+
+**Endpoints Used**:
+- Funding rate history and current rates
+- Exchange coverage and pair discovery
+- Liquidation data and sentiment indexes
+
+**Key Features**:
+- Requires API key
+- Handles multiple exchanges (Binance, OKX, Bybit, etc.)
+- Provides derivatives-specific metrics
+
+**Storage**:
+- Funding rates stored in `market_funding_rates` table
+- Populated via `populate-coinglass-data` edge function
+
+### 3. Local Generators (Fallback & Enhancement)
+**Purpose**: Calculate indicators when external data unavailable
+
+**Capabilities**:
+- Technical indicators (RSI, MACD, Bollinger Bands)
+- Market metrics (momentum, volatility, trend strength)
+- Mock data generation for development/testing
+
+---
 
 ## Technical Stack
 
 ### Frontend
-- **TradingView Lightweight Charts**: Chart rendering
-- **Local Indicators**: All calculations done in browser
-  - EMA (9, 21, 50)
-  - RSI-14
-  - ATR
-  - Volume analysis
-  - Trend detection
+- **React 18** + TypeScript
+- **TradingView Lightweight Charts** for visualization
+- **Tailwind CSS** for styling
+- **Zustand** for state management
+- **React Query** for data fetching
 
 ### Backend (Minimal)
-- **cmc-price-logger**: Logs prices at intervals (1m, 5m, 10m, 15m, 1h)
-- **websocket-price-stream**: Real-time price WebSocket relay
+- **Supabase Edge Functions**:
+  - `fetch-kraken-candles` - Hourly candle updates
+  - `populate-coinglass-data` - Funding rate updates
+  - `websocket-price-stream` - Real-time price relay
+  - `ai-chat` - AI analysis integration
+  - `system-health-ai` - System monitoring
 
-### Database
-Essential tables only:
-- `profiles`: User data
-- `user_watchlists`: User preferences
-- `cmc_price_cache`: CoinMarketCap API caching
-- `cmc_price_logs`: Price history
+### Database (Supabase Postgres)
+- `market_candles` - OHLC data from Kraken
+- `market_funding_rates` - Funding data from CoinGlass
+- `user_watchlists` - User-saved symbols
+- `dashboard_versions` - Version tracking
+
+---
 
 ## Key Components
 
 ### Trading Dashboard (`src/pages/TradingDashboard.tsx`)
-Main interface with:
-- TradingView chart
-- Local indicators panel
-- Session statistics
-- Alert system
+Main interface displaying:
+- Professional charts with TradingView Lightweight Charts
+- Real-time price ticker ribbon
+- KPI cards (24h volume, funding rate, volatility)
+- AI analysis panel
+- Alert strips for market conditions
 
-### Local Indicators Panel (`src/components/trading/LocalIndicatorsPanel.tsx`)
-Client-side technical analysis:
-- Trend Score (0-3)
-- RSI-14
-- ATR %
-- Volume Pressure
-- Momentum
-- Price sparkline
+### Chart Components
+- `ProfessionalTradingChart.tsx` - Main chart with indicators
+- `DayTraderChart.tsx` - Specialized day trading view
+- `FundingRateChart.tsx` - CoinGlass funding visualization
 
-### Chart Data Hook (`src/hooks/useProfessionalChartData.ts`)
-Manages candle data:
-- 1m, 5m, 15m, 1h timeframes
-- Aggregates from WebSocket stream
-- Generates sample data on init
-- No external API calls
+### Data Hooks
+- `useProfessionalChartData.ts` - Aggregates candles from `market_candles`
+- `useRealtimePriceStream.ts` - WebSocket connection to Kraken stream
+- `useFundingRate.ts` - Fetches CoinGlass funding data
+- `useAIAnalysis.ts` - AI-powered market analysis
+
+### Local Indicators (`src/components/trading/LocalIndicatorsPanel.tsx`)
+Client-side calculations:
+- RSI (Relative Strength Index)
+- MACD (Moving Average Convergence Divergence)
+- Bollinger Bands
+- Volume analysis
+- Momentum indicators
+
+---
+
+## Data Flow
+
+### Price Data Pipeline
+```
+Kraken API → fetch-kraken-candles → market_candles → useProfessionalChartData → Chart
+                                                    ↓
+                                            Local Indicators Panel
+```
+
+### Real-Time Updates
+```
+Kraken WebSocket → websocket-price-stream → useRealtimePriceStream → Live Price Header
+```
+
+### Funding Rates
+```
+CoinGlass API → populate-coinglass-data → market_funding_rates → useFundingRate → Funding Chart
+```
+
+---
+
+## Symbol Translation
+
+Kraken uses non-standard symbol formatting:
+- `BTCUSDT` → `XBTUSD`
+- `ETHUSDT` → `ETHUSD`
+- `SOLUSDT` → `SOLUSD`
+
+Translation handled in:
+- `supabase/functions/_shared/krakenSymbols.ts`
+- `supabase/functions/_shared/symbolFormatter.ts`
+
+---
 
 ## Development Guidelines
 
-1. **Minimal External APIs**: Only CoinMarketCap (price history), WebSocket (real-time), and CoinGlass (market derivatives)
-2. **Local Calculations Priority**: All chart indicators computed client-side
-3. **CoinGlass Integration**: Market data via edge functions (see [COINGLASS_API.md](COINGLASS_API.md))
-4. **Simple Architecture**: Avoid complex state management and over-engineering
-5. **Fast & Responsive**: Optimize for performance and user experience
-3. **WebSocket Priority**: Use WebSocket for real-time data, never polling
-4. **Deterministic Generators**: Market metrics use symbol-based hashing for consistency
-5. **Simple & Fast**: Keep architecture minimal and performant
+### When Adding Features
+1. **Check if external API needed** - Prefer local calculations
+2. **Use existing data sources** - Kraken or CoinGlass only
+3. **Cache aggressively** - Minimize API calls
+4. **Calculate client-side** - Keep backend minimal
 
-## File Structure
+### When Debugging
+1. Check `market_candles` table for data freshness
+2. Verify Kraken symbol translation
+3. Confirm WebSocket connection status
+4. Review edge function logs in Supabase
 
-```
-src/
-├── pages/
-│   └── TradingDashboard.tsx         # Main dashboard
-├── components/
-│   └── trading/
-│       ├── LocalIndicatorsPanel.tsx  # Client-side indicators
-│       ├── TradingCommandCenter.tsx  # Symbol search & controls
-│       └── TradingViewChart.tsx      # Chart wrapper
-├── hooks/
-│   ├── useProfessionalChartData.ts  # Candle data management
-│   └── useRealtimePriceStream.ts    # WebSocket connection
-└── lib/
-    └── indicators.ts                 # Technical indicator calculations
+### Performance Optimization
+- Batch candle requests (720 at a time)
+- Use WebSocket for live updates only
+- Cache funding rates (5-minute intervals)
+- Lazy load non-critical components
 
-supabase/functions/
-├── cmc-price-logger/                # Price logging
-├── websocket-price-stream/          # WebSocket relay
-├── fetch-coinglass-coins/           # CoinGlass: Supported coins
-├── fetch-exchange-pairs/            # CoinGlass: Exchange pairs
-├── fetch-funding-history/           # CoinGlass: Funding rate history
-├── fetch-current-funding/           # CoinGlass: Current funding rate
-└── _shared/                         # Shared utilities
-```
+---
 
-## Security Notes
+## API Rate Limits
 
-- All database tables use Row Level Security (RLS)
-- User data isolated by `user_id`
-- Public read access for price data
-- CoinGlass API key stored securely in Supabase secrets
-- Edge functions handle all external API authentication
+### Kraken
+- Public endpoints: High throughput, no strict limits
+- WebSocket: Single connection per symbol recommended
 
-## Performance Optimizations
+### CoinGlass
+- Standard tier: 1000 requests/day
+- Cache funding rates to minimize calls
 
-1. **Local Indicators**: No API latency for technical analysis
-2. **WebSocket**: Single connection for real-time updates
-3. **No Polling**: Zero redundant API calls
-4. **Memoization**: Cached calculations in React
-5. **Edge Functions**: Server-side caching for CoinGlass data
-6. **Minimal Backend**: Only essential services running
+---
+
+## Security
+
+### API Keys
+- CoinGlass API key stored in Supabase secrets
+- Never expose keys in client code
+- All external calls made through edge functions
+
+### Database Access
+- Row Level Security (RLS) enabled on all tables
+- User-specific data isolated via `user_id`
+- Public read for market data, authenticated write
+
+---
 
 ## Future Considerations
 
-If adding features:
-- Maintain local-first approach
-- Avoid external API dependencies
-- Keep calculations client-side
-- Preserve simple architecture
+### Scalability
+- Current architecture handles 100+ concurrent users
+- Kraken can scale to thousands of pairs
+- CoinGlass data refreshes hourly
+
+### Monitoring
+- Edge function logs for API failures
+- Client-side error boundaries
+- WebSocket reconnection logic
+
+### Extensibility
+- Add new indicators in `lib/indicators.ts`
+- Extend chart types in `components/charts/`
+- New data sources should follow Kraken/CoinGlass pattern
+
+---
+
+## Quick Reference
+
+**Main Entry**: `src/pages/TradingDashboard.tsx`  
+**Chart Logic**: `src/hooks/useProfessionalChartData.ts`  
+**Indicators**: `src/lib/indicators.ts`  
+**Edge Functions**: `supabase/functions/`  
+**Symbol Utils**: `supabase/functions/_shared/krakenSymbols.ts`
+
+**Active APIs**:
+- Kraken: https://api.kraken.com/0/public/
+- CoinGlass: API v4 (via edge functions)
+
+**Removed/Deprecated**:
+- CoinMarketCap (replaced by Kraken)
+- Tatum (quota exhausted, replaced by Kraken)
+- API Ninjas (not used)
+
