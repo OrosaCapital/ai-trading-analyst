@@ -52,9 +52,11 @@ export default function TradingDashboard() {
 
   console.log("TradingDashboard - chartData:", {
     has1h: !!chartData?.candles1h?.length,
+    count1h: chartData?.candles1h?.length,
     has15m: !!chartData?.candles15m?.length,
+    count15m: chartData?.candles15m?.length,
     hasIndicators: !!chartData?.indicators,
-    chartData
+    symbol: normalizedSymbol
   });
 
   const { analysis, isAnalyzing } = useAIAnalysis(
@@ -63,20 +65,27 @@ export default function TradingDashboard() {
     chartData?.candles15m || [],
     chartData?.indicators || {}
   );
+  
+  console.log("TradingDashboard - AI state:", { analysis, isAnalyzing });
 
   const sessionStats = useMemo(() => buildSessionStats(candles), [candles]);
   const alerts = useMemo(() => {
     const baseAlerts = buildAlerts(candles, candles, candles);
     
+    console.log("TradingDashboard - Building alerts:", { 
+      hasAnalysis: !!analysis, 
+      analysisMessage: analysis?.message,
+      baseAlertsCount: baseAlerts.length 
+    });
+    
     if (analysis) {
-      return [
-        {
-          id: "ai-signal",
-          label: `🤖 AI: ${analysis.message}`,
-          severity: "info" as const
-        },
-        ...baseAlerts
-      ];
+      const aiAlert = {
+        id: "ai-signal",
+        label: `🤖 AI: ${analysis.message}`,
+        severity: "info" as const
+      };
+      console.log("TradingDashboard - Adding AI alert:", aiAlert);
+      return [aiAlert, ...baseAlerts];
     }
     
     return baseAlerts;
