@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.tatum-price-logger]
 verify_jwt = false
+
+[functions.fetch-coinglass-coins]
+verify_jwt = false
