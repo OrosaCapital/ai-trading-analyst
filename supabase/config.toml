@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.fetch-funding-history]
 verify_jwt = false
+
+[functions.fetch-current-funding]
+verify_jwt = false
