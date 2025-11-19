@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { createChart, IChartApi, ISeriesApi, LineData } from "lightweight-charts";
+import { createChart, IChartApi, LineData, ISeriesApi, AreaSeries } from "lightweight-charts";
 
 interface FundingCandle {
   time: number;
@@ -37,7 +37,7 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<any>(null);
+  const seriesRef = useRef<ISeriesApi<"Area"> | null>(null);
 
   useEffect(() => {
     const fetchFundingHistory = async () => {
@@ -102,12 +102,11 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
       },
     });
 
-    const lineSeries = chart.addSeries('Line' as any, {
-      color: "#8b5cf6",
+    const lineSeries = chart.addSeries(AreaSeries, {
+      topColor: "rgba(139, 92, 246, 0.4)",
+      bottomColor: "rgba(139, 92, 246, 0.0)",
+      lineColor: "#8b5cf6",
       lineWidth: 2,
-      crosshairMarkerVisible: true,
-      lastValueVisible: true,
-      priceLineVisible: true,
     });
 
     const chartData: LineData[] = data.candles.map((candle) => ({
