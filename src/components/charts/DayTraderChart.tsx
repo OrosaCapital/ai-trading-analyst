@@ -17,6 +17,7 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
   const rsiChartRef = useRef<IChartApi | null>(null);
 
   useEffect(() => {
+    console.log('DayTraderChart received:', candles?.length, 'candles for', symbol);
     if (!containerRef.current || !candles || candles.length === 0) return;
 
     if (priceChartRef.current) priceChartRef.current.remove();
