@@ -5,3 +5,15 @@ verify_jwt = false
 
 [functions.tatum-price-logger]
 verify_jwt = false
+
+[functions.fetch-funding-rate]
+verify_jwt = false
+
+[functions.fetch-open-interest]
+verify_jwt = false
+
+[functions.fetch-long-short-ratio]
+verify_jwt = false
+
+[functions.fetch-liquidations]
+verify_jwt = false
