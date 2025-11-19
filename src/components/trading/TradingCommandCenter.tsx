@@ -17,6 +17,7 @@ export function TradingCommandCenter({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const popularSymbols = [
     { symbol: "BTCUSDT", name: "Bitcoin", trending: true },
@@ -73,13 +74,13 @@ export function TradingCommandCenter({
   }, [symbol]);
 
   return (
-    <div className="relative glass-panel border-b border-border/50 p-3 shadow-elevated">
+    <div className="relative glass-panel border-b border-border/50 p-3 shadow-elevated z-[100]">
       <div className="flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Left - Symbol Search and Price */}
         <div className="flex items-center gap-2 flex-1">
-          <div className="relative max-w-md w-full group">
+          <div ref={containerRef} className="relative max-w-md w-full group z-[100]">
             <div className={`relative transition-all duration-300 ${isFocused ? 'scale-[1.02]' : ''}`}>
-              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
+              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-all duration-300 pointer-events-none ${
                 isFocused ? 'text-primary scale-110' : 'text-muted-foreground'
               }`} />
               <input
@@ -101,10 +102,10 @@ export function TradingCommandCenter({
                   setTimeout(() => setShowSuggestions(false), 200);
                 }}
                 placeholder="Search crypto pairs..."
-                className={`w-full pl-12 pr-12 py-3.5 bg-gradient-to-r from-background/95 to-background/80 border-2 rounded-xl text-base font-medium text-foreground placeholder-muted-foreground/60 focus:outline-none backdrop-blur-md transition-all duration-300 ${
-                  isFocused 
-                    ? 'border-primary shadow-[0_0_30px_hsl(var(--primary)/0.4),0_0_60px_hsl(var(--primary)/0.2)] bg-background/100' 
-                    : 'border-border/50 hover:border-border shadow-lg'
+                className={`w-full h-14 pl-12 pr-12 rounded-xl font-mono font-bold text-base tracking-wider transition-all duration-300 border-2 ${
+                    isFocused 
+                    ? 'border-primary shadow-[0_0_30px_hsl(var(--primary)/0.4),0_0_60px_hsl(var(--primary)/0.2)] bg-background' 
+                    : 'border-border/50 hover:border-border shadow-lg bg-background'
                 }`}
               />
               {searchValue && (
@@ -117,10 +118,15 @@ export function TradingCommandCenter({
               )}
             </div>
             
-            {/* Suggestions Dropdown */}
+            {/* Suggestions Dropdown - Fixed positioning with high z-index */}
             {showSuggestions && filteredSymbols.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-background/95 backdrop-blur-xl border-2 border-primary/30 rounded-xl shadow-[0_8px_32px_hsl(var(--primary)/0.2)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="p-2 space-y-1">
+              <div className="fixed mt-2 w-[380px] bg-background border-2 border-primary/30 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_40px_hsl(var(--primary)/0.3)] overflow-hidden z-[9999] backdrop-blur-xl"
+                style={{
+                  top: containerRef.current ? containerRef.current.getBoundingClientRect().bottom + 8 : 0,
+                  left: containerRef.current ? containerRef.current.getBoundingClientRect().left : 0,
+                }}
+              >
+                <div className="p-2 space-y-1 max-h-[400px] overflow-y-auto">
                   {filteredSymbols.map((item, idx) => (
                     <button
                       key={item.symbol}
@@ -132,13 +138,13 @@ export function TradingCommandCenter({
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center font-bold text-sm ${
+                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm ${
                           selectedIndex === idx ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                         }`}>
                           {item.symbol.substring(0, 2)}
                         </div>
                         <div className="text-left">
-                          <div className="font-bold text-sm text-foreground">{item.symbol}</div>
+                          <div className="font-bold text-base text-foreground">{item.symbol}</div>
                           <div className="text-xs text-muted-foreground">{item.name}</div>
                         </div>
                       </div>
@@ -174,4 +180,3 @@ export function TradingCommandCenter({
     </div>
   );
 }
-
