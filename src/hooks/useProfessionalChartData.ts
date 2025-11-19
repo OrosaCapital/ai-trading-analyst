@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRealtimePriceStream } from "./useRealtimePriceStream";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Candle,
   calculateEMA,
@@ -109,15 +110,50 @@ export function useProfessionalChartData(symbol: string | null) {
   useEffect(() => {
     if (!symbol) return;
 
-    setIsLoading(true);
+    const loadHistoricalData = async () => {
+      setIsLoading(true);
+      try {
+        const { data: dbCandles, error } = await supabase
+          .from('market_candles')
+          .select('*')
+          .eq('symbol', symbol)
+          .eq('timeframe', '1m')
+          .order('timestamp', { ascending: true })
+          .limit(2000);
 
-    const samplePrice = 50000;
-    candles1mRef.current = generateSampleCandles(samplePrice, 2000);
-    hasInitializedRef.current = true;
+        if (error) throw error;
 
-    updateChartData();
-    setIsLoading(false);
-  }, [symbol]);
+        if (dbCandles && dbCandles.length > 0) {
+          candles1mRef.current = dbCandles.map(c => ({
+            time: c.timestamp,
+            timestamp: c.timestamp,
+            open: Number(c.open),
+            high: Number(c.high),
+            low: Number(c.low),
+            close: Number(c.close),
+            volume: Number(c.volume || 0)
+          }));
+          hasInitializedRef.current = true;
+          updateChartData();
+        } else {
+          const samplePrice = 50000;
+          candles1mRef.current = generateSampleCandles(samplePrice, 2000);
+          hasInitializedRef.current = true;
+          updateChartData();
+        }
+      } catch (err) {
+        console.error("Failed to load candles from DB:", err);
+        const samplePrice = 50000;
+        candles1mRef.current = generateSampleCandles(samplePrice, 2000);
+        hasInitializedRef.current = true;
+        updateChartData();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadHistoricalData();
+  }, [symbol, updateChartData]);
 
   useEffect(() => {
     if (!symbol) return;
