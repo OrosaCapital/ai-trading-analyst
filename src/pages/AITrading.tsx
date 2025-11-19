@@ -5,7 +5,6 @@ import { AISignalCard } from '@/components/AISignalCard';
 import { PriceLogsSidebar } from '@/components/PriceLogsSidebar';
 import { DataAccumulationProgress } from '@/components/DataAccumulationProgress';
 import { SimplifiedChart } from '@/components/SimplifiedChart';
-import { PremiumMarketMetrics } from '@/components/PremiumMarketMetrics';
 import { useAITradingData } from '@/hooks/useAITradingData';
 import { normalizeSymbol } from '@/lib/symbolUtils';
 import { Zap } from 'lucide-react';
@@ -79,8 +78,6 @@ export default function AITrading() {
               priceData={data.priceData} 
               emas={data.emas}
             />
-
-            <PremiumMarketMetrics symbol={symbol} />
           </>
         )}
       </div>
