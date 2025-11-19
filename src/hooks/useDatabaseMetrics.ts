@@ -17,86 +17,154 @@ interface DatabaseMetrics {
   tables: TableMetrics[];
 }
 
-async function fetchTableMetrics(tableName: string): Promise<TableMetrics> {
+function formatTimeDiff(timestampValue: string): string {
+  const date = new Date(timestampValue);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+  return `${Math.floor(diffMins / 1440)}d ago`;
+}
+
+async function fetchMarketSnapshotsMetrics(): Promise<TableMetrics> {
   try {
-    // Count total records
-    const { count, error: countError } = await supabase
-      .from(tableName)
+    const { count } = await supabase
+      .from("market_snapshots")
       .select("*", { count: "exact", head: true });
 
-    if (countError) throw countError;
+    const { data } = await supabase
+      .from("market_snapshots")
+      .select("last_updated")
+      .order("last_updated", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    // Get most recent record to determine last update
-    let lastUpdate = "Never";
-    let timestampValue: string | null = null;
-
-    // Fetch latest timestamp based on table structure
-    if (tableName === "market_candles") {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select("updated_at")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!error && data) timestampValue = data.updated_at;
-    } else if (tableName === "market_snapshots") {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select("last_updated")
-        .order("last_updated", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!error && data) timestampValue = data.last_updated;
-    } else if (tableName === "tatum_price_logs") {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select("timestamp")
-        .order("timestamp", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!error && data) timestampValue = data.timestamp;
-    } else if (tableName === "market_funding_rates") {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select("created_at")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!error && data) timestampValue = data.created_at;
-    }
-
-    if (timestampValue) {
-      const date = new Date(timestampValue);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      
-      if (diffMins < 1) {
-        lastUpdate = "Just now";
-      } else if (diffMins < 60) {
-        lastUpdate = `${diffMins}m ago`;
-      } else if (diffMins < 1440) {
-        lastUpdate = `${Math.floor(diffMins / 60)}h ago`;
-      } else {
-        lastUpdate = `${Math.floor(diffMins / 1440)}d ago`;
-      }
-    }
-
-    // Determine status and health
     const recordCount = count || 0;
+    const lastUpdate = data?.last_updated ? formatTimeDiff(data.last_updated) : "Never";
     const isRecent = lastUpdate !== "Never" && !lastUpdate.includes("d ago");
-    
+
     return {
-      name: tableName,
+      name: "market_snapshots",
       status: recordCount > 0 && isRecent ? "Active" : "Idle",
       records: recordCount,
       lastUpdate,
       health: recordCount > 0 && isRecent ? "success" : "neutral",
     };
   } catch (error) {
-    console.error(`Error fetching metrics for ${tableName}:`, error);
+    console.error("Error fetching market_snapshots metrics:", error);
     return {
-      name: tableName,
+      name: "market_snapshots",
+      status: "Error",
+      records: 0,
+      lastUpdate: "Error",
+      health: "error",
+    };
+  }
+}
+
+async function fetchMarketCandlesMetrics(): Promise<TableMetrics> {
+  try {
+    const { count } = await supabase
+      .from("market_candles")
+      .select("*", { count: "exact", head: true });
+
+    const { data } = await supabase
+      .from("market_candles")
+      .select("updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const recordCount = count || 0;
+    const lastUpdate = data?.updated_at ? formatTimeDiff(data.updated_at) : "Never";
+    const isRecent = lastUpdate !== "Never" && !lastUpdate.includes("d ago");
+
+    return {
+      name: "market_candles",
+      status: recordCount > 0 && isRecent ? "Active" : "Idle",
+      records: recordCount,
+      lastUpdate,
+      health: recordCount > 0 && isRecent ? "success" : "neutral",
+    };
+  } catch (error) {
+    console.error("Error fetching market_candles metrics:", error);
+    return {
+      name: "market_candles",
+      status: "Error",
+      records: 0,
+      lastUpdate: "Error",
+      health: "error",
+    };
+  }
+}
+
+async function fetchMarketFundingRatesMetrics(): Promise<TableMetrics> {
+  try {
+    const { count } = await supabase
+      .from("market_funding_rates")
+      .select("*", { count: "exact", head: true });
+
+    const { data } = await supabase
+      .from("market_funding_rates")
+      .select("created_at")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const recordCount = count || 0;
+    const lastUpdate = data?.created_at ? formatTimeDiff(data.created_at) : "Never";
+    const isRecent = lastUpdate !== "Never" && !lastUpdate.includes("d ago");
+
+    return {
+      name: "market_funding_rates",
+      status: recordCount > 0 && isRecent ? "Active" : "Idle",
+      records: recordCount,
+      lastUpdate,
+      health: recordCount > 0 && isRecent ? "success" : "neutral",
+    };
+  } catch (error) {
+    console.error("Error fetching market_funding_rates metrics:", error);
+    return {
+      name: "market_funding_rates",
+      status: "Error",
+      records: 0,
+      lastUpdate: "Error",
+      health: "error",
+    };
+  }
+}
+
+async function fetchTatumPriceLogsMetrics(): Promise<TableMetrics> {
+  try {
+    const { count } = await supabase
+      .from("tatum_price_logs")
+      .select("*", { count: "exact", head: true });
+
+    const { data } = await supabase
+      .from("tatum_price_logs")
+      .select("timestamp")
+      .order("timestamp", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const recordCount = count || 0;
+    const lastUpdate = data?.timestamp ? formatTimeDiff(data.timestamp) : "Never";
+    const isRecent = lastUpdate !== "Never" && !lastUpdate.includes("d ago");
+
+    return {
+      name: "tatum_price_logs",
+      status: recordCount > 0 && isRecent ? "Active" : "Idle",
+      records: recordCount,
+      lastUpdate,
+      health: recordCount > 0 && isRecent ? "success" : "neutral",
+    };
+  } catch (error) {
+    console.error("Error fetching tatum_price_logs metrics:", error);
+    return {
+      name: "tatum_price_logs",
       status: "Error",
       records: 0,
       lastUpdate: "Error",
@@ -106,16 +174,12 @@ async function fetchTableMetrics(tableName: string): Promise<TableMetrics> {
 }
 
 async function fetchDatabaseMetrics(): Promise<DatabaseMetrics> {
-  const tables = [
-    "market_snapshots",
-    "market_candles",
-    "market_funding_rates",
-    "tatum_price_logs",
-  ];
-
-  const tableMetrics = await Promise.all(
-    tables.map((table) => fetchTableMetrics(table))
-  );
+  const tableMetrics = await Promise.all([
+    fetchMarketSnapshotsMetrics(),
+    fetchMarketCandlesMetrics(),
+    fetchMarketFundingRatesMetrics(),
+    fetchTatumPriceLogsMetrics(),
+  ]);
 
   const totalRecords = tableMetrics.reduce((sum, table) => sum + table.records, 0);
   const activeTables = tableMetrics.filter((t) => t.status === "Active").length;
@@ -123,30 +187,26 @@ async function fetchDatabaseMetrics(): Promise<DatabaseMetrics> {
   // Get the most recent update across all tables
   const recentUpdates = tableMetrics
     .filter((t) => t.lastUpdate !== "Never" && t.lastUpdate !== "Error")
-    .map((t) => t.lastUpdate);
+    .sort((a, b) => {
+      // Simple sorting by extracting numeric value
+      const getMinutes = (str: string) => {
+        if (str === "Just now") return 0;
+        const match = str.match(/(\d+)([mhd])/);
+        if (!match) return Infinity;
+        const value = parseInt(match[1]);
+        if (str.includes("m")) return value;
+        if (str.includes("h")) return value * 60;
+        if (str.includes("d")) return value * 1440;
+        return Infinity;
+      };
+      return getMinutes(a.lastUpdate) - getMinutes(b.lastUpdate);
+    });
 
-  const lastSync =
-    recentUpdates.length > 0
-      ? recentUpdates.sort((a, b) => {
-          // Sort by most recent (smallest time value)
-          const getMinutes = (str: string) => {
-            if (str === "Just now") return 0;
-            const match = str.match(/(\d+)([mhd])/);
-            if (!match) return Infinity;
-            const value = parseInt(match[1]);
-            const unit = match[2];
-            if (unit === "m") return value;
-            if (unit === "h") return value * 60;
-            if (unit === "d") return value * 1440;
-            return Infinity;
-          };
-          return getMinutes(a) - getMinutes(b);
-        })[0]
-      : "Never";
+  const lastSync = recentUpdates.length > 0 ? recentUpdates[0].lastUpdate : "Never";
 
   return {
-    activeDatabases: tables.length,
-    priceTables: tables.length,
+    activeDatabases: activeTables,
+    priceTables: tableMetrics.length,
     lastSync,
     totalRecords,
     tables: tableMetrics,
@@ -155,9 +215,9 @@ async function fetchDatabaseMetrics(): Promise<DatabaseMetrics> {
 
 export function useDatabaseMetrics() {
   return useQuery({
-    queryKey: ["database-metrics"],
+    queryKey: ["databaseMetrics"],
     queryFn: fetchDatabaseMetrics,
     refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 20000, // Consider data stale after 20 seconds
+    staleTime: 20000,
   });
 }
