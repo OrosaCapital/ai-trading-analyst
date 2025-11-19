@@ -6,6 +6,7 @@ import "./index.css";
 import { setupGlobalErrorHandlers } from "./lib/globalErrorHandler";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
+import { DataLayerProvider } from "./providers/DataLayerProvider";
 
 // Set up global error handlers before app renders
 setupGlobalErrorHandlers();
@@ -24,7 +25,9 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <ErrorBoundary>
       <AuthProvider>
         <QueryClientProvider client={queryClient}>
-          <App />
+          <DataLayerProvider>
+            <App />
+          </DataLayerProvider>
         </QueryClientProvider>
       </AuthProvider>
     </ErrorBoundary>
