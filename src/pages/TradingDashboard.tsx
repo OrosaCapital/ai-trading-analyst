@@ -9,6 +9,7 @@ import { AlertStrip, type AlertBadge } from "@/components/trading/AlertStrip";
 import { MicroTimeframePanel } from "@/components/trading/MicroTimeframePanel";
 import { SessionStatsPanel, type SessionStats } from "@/components/trading/SessionStatsPanel";
 import { useChartData } from "@/hooks/useChartData";
+import { useFreshSymbolData } from "@/hooks/useFreshSymbolData";
 import { Card } from "@/components/ui/card";
 
 export default function TradingDashboard() {
@@ -23,6 +24,10 @@ export default function TradingDashboard() {
   };
 
   const normalizedSymbol = normalizeSymbol(symbol);
+  
+  // Automatically fetch fresh data when symbol changes
+  const { isFetching: isFetchingFresh } = useFreshSymbolData(normalizedSymbol);
+  
   const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000);
 
   const currentPrice =
