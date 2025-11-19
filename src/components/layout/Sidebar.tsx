@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { TrendingUp, TrendingDown, DollarSign, Activity, BarChart3, Zap } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { useMarketStore } from "@/store/useMarketStore";
+import { useFundingRate } from "@/hooks/useFundingRate";
 
 interface SidebarProps {
   symbol: string;
@@ -11,6 +12,7 @@ interface SidebarProps {
 
 export function Sidebar({ symbol }: SidebarProps) {
   const { metrics, loading, fetchMetrics, initialize, cleanup } = useMarketStore();
+  const { data: fundingData, isLoading: fundingLoading } = useFundingRate(symbol);
   
   useEffect(() => {
     initialize();
@@ -35,11 +37,11 @@ export function Sidebar({ symbol }: SidebarProps) {
   };
 
   const fundingRateColor = useMemo(() => {
-    if (!currentMetrics) return 'text-muted-foreground';
-    if (currentMetrics.fundingRate > 0.01) return 'text-chart-green';
-    if (currentMetrics.fundingRate < -0.01) return 'text-chart-red';
+    if (!fundingData) return 'text-muted-foreground';
+    if (fundingData.rate > 0.01) return 'text-chart-green';
+    if (fundingData.rate < -0.01) return 'text-chart-red';
     return 'text-muted-foreground';
-  }, [currentMetrics]);
+  }, [fundingData]);
 
   const longShortColor = useMemo(() => {
     if (!currentMetrics) return 'text-muted-foreground';
@@ -78,21 +80,23 @@ export function Sidebar({ symbol }: SidebarProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {fundingLoading ? (
               <Skeleton className="h-8 w-24 rounded-md" />
-            ) : (
+            ) : fundingData ? (
               <div className="flex items-center justify-between">
                 <p className={`text-xl font-bold transition-colors ${fundingRateColor}`}>
-                  {(currentMetrics.fundingRate * 100).toFixed(4)}%
+                  {fundingData.rate.toFixed(4)}%
                 </p>
-                {currentMetrics.fundingRate > 0 ? (
+                {fundingData.rate > 0 ? (
                   <TrendingUp className="w-5 h-5 text-chart-green animate-pulse" />
-                ) : currentMetrics.fundingRate < 0 ? (
+                ) : fundingData.rate < 0 ? (
                   <TrendingDown className="w-5 h-5 text-chart-red animate-pulse" />
                 ) : (
                   <Activity className="w-5 h-5 text-muted-foreground" />
                 )}
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No data</p>
             )}
           </CardContent>
         </Card>
