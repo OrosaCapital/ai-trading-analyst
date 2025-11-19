@@ -34,6 +34,7 @@ This document serves as the **authoritative reference** for library versions and
 
 ### Backend Integration
 15. [Supabase JS v2.81.1](#-supabase-js-v2811)
+16. [CoinGlass API](#-coinglass-api-integration)
 
 ---
 
@@ -50,6 +51,7 @@ This document serves as the **authoritative reference** for library versions and
 | Radix UI | ^1.x | Compound component pattern | UI components |
 | Tailwind | ^3.4.17 | Use HSL semantic tokens | `index.css` |
 | Supabase | ^2.81.1 | Client from `@/integrations/supabase/client` | Throughout |
+| CoinGlass API | v4 | See COINGLASS_API.md | Edge Functions |
 
 ---
 
@@ -71,11 +73,13 @@ All chart visualizations are developed internally using the lightweight-charts l
 
 ### External Data Integration
 
-The dashboard integrates real-time external data from multiple sources:
+The dashboard integrates real-time external data:
 
-- **Coinglass API**: Funding rates, liquidations, long/short ratios, open interest
-- **Tatum API**: Real-time price data and market metrics
-- **Custom Edge Functions**: Data processing, caching, and AI analysis
+- **CoinGlass API**: Funding rates, exchange pairs, market coverage, and derivatives data
+- **WebSocket Price Stream**: Real-time price updates via Tatum WebSocket
+- **Custom Edge Functions**: Data processing, caching, and formatting
+
+**API Documentation:** See [COINGLASS_API.md](COINGLASS_API.md) for complete CoinGlass integration reference.
 
 ### Smart Decision-Making Features
 
@@ -1849,6 +1853,56 @@ See `src/path/to/file.tsx` for correct usage.
 
 ---
 
+## 🌐 CoinGlass API Integration
+
+**Package:** CoinGlass API v4  
+**Documentation:** [COINGLASS_API.md](COINGLASS_API.md)  
+**Base URL:** `https://open-api-v4.coinglass.com`
+
+### Overview
+
+CoinGlass is the primary external API for fetching cryptocurrency futures market data including funding rates, exchange pairs, and market coverage statistics.
+
+### Implemented Edge Functions
+
+1. **fetch-coinglass-coins** - Get supported trading symbols
+2. **fetch-exchange-pairs** - Get all trading pairs across exchanges
+3. **fetch-funding-history** - Historical funding rate data (OHLC)
+4. **fetch-current-funding** - Real-time funding rates
+
+### Usage Pattern
+
+All CoinGlass data is accessed through Supabase Edge Functions:
+
+```typescript
+import { supabase } from "@/integrations/supabase/client";
+
+// Fetch current funding rate
+const { data } = await supabase.functions.invoke('fetch-current-funding', {
+  body: { 
+    symbol: 'BTC',
+    exchange: 'Binance'
+  }
+});
+```
+
+### UI Components Using CoinGlass
+
+- **Sidebar.tsx** - Live funding rate display
+- **FundingRateChart.tsx** - Historical funding rate chart
+- **ExchangeCoverage.tsx** - Exchange pairs coverage stats
+
+### Important Notes
+
+- **Symbol Format**: Use base symbols without quote currency (e.g., "BTC" not "BTCUSDT")
+- **Rate Limiting**: Implement caching and avoid excessive requests
+- **Authentication**: API key stored in Supabase secrets as `COINGLASS_API_KEY`
+- **Auto-refresh**: Funding rates refresh every 8 hours
+
+**Complete Reference:** See [COINGLASS_API.md](COINGLASS_API.md) for detailed endpoint documentation, response formats, error handling, and implementation examples.
+
+---
+
 ## 🔄 Version Update Protocol
 
 When upgrading a library version:
@@ -1861,7 +1915,9 @@ When upgrading a library version:
 
 ---
 
-**Last Updated:** 2025-11-17  
+**Last Updated:** 2025-11-19  
 **Maintained By:** Development Team
 
 **Note:** This is a living document. Always keep it updated when library versions change or new libraries are added.
+
+**API Reference:** For external API integration details, see [COINGLASS_API.md](COINGLASS_API.md).

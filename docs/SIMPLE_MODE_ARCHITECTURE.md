@@ -14,17 +14,18 @@ This trading dashboard operates in **Simple Mode** - a streamlined architecture 
 ## Data Sources
 
 ### Active APIs
-- **Tatum API**: Historical price data only
+- **Tatum API**: Historical price data (via `tatum-price-logger`)
 - **WebSocket Stream**: Real-time price updates via `websocket-price-stream` edge function
+- **CoinGlass API v4**: Market derivatives data (funding rates, exchange pairs, market coverage)
+  - See [COINGLASS_API.md](COINGLASS_API.md) for complete integration details
 
 ### Local Generators
-- **Market Metrics Generator**: Produces realistic funding rates, open interest, long/short ratios, liquidations, and volume locally
+- **Market Metrics Generator**: Local fallback for simulated market metrics (when API unavailable)
+- **Technical Indicators**: All chart indicators calculated client-side (EMA, RSI, ATR)
 
 ### Removed APIs
-- ❌ CoinGlass (unreliable, replaced with local generator)
-- ❌ CoinMarketCap (market data)
-- ❌ API Ninjas (historical data)
-- ❌ All other external APIs
+- ❌ CoinMarketCap (not needed with CoinGlass integration)
+- ❌ API Ninjas (replaced with Tatum + local calculations)
 
 ## Technical Stack
 
@@ -75,8 +76,11 @@ Manages candle data:
 
 ## Development Guidelines
 
-1. **Zero External Market APIs**: Only Tatum (price) and WebSocket (real-time)
-2. **Local Calculations Always**: All indicators and market metrics computed locally
+1. **Minimal External APIs**: Only Tatum (price history), WebSocket (real-time), and CoinGlass (market derivatives)
+2. **Local Calculations Priority**: All chart indicators computed client-side
+3. **CoinGlass Integration**: Market data via edge functions (see [COINGLASS_API.md](COINGLASS_API.md))
+4. **Simple Architecture**: Avoid complex state management and over-engineering
+5. **Fast & Responsive**: Optimize for performance and user experience
 3. **WebSocket Priority**: Use WebSocket for real-time data, never polling
 4. **Deterministic Generators**: Market metrics use symbol-based hashing for consistency
 5. **Simple & Fast**: Keep architecture minimal and performant
@@ -101,6 +105,10 @@ src/
 supabase/functions/
 ├── tatum-price-logger/              # Price logging
 ├── websocket-price-stream/          # WebSocket relay
+├── fetch-coinglass-coins/           # CoinGlass: Supported coins
+├── fetch-exchange-pairs/            # CoinGlass: Exchange pairs
+├── fetch-funding-history/           # CoinGlass: Funding rate history
+├── fetch-current-funding/           # CoinGlass: Current funding rate
 └── _shared/                         # Shared utilities
 ```
 
@@ -109,15 +117,17 @@ supabase/functions/
 - All database tables use Row Level Security (RLS)
 - User data isolated by `user_id`
 - Public read access for price data
-- Minimal external API exposure
+- CoinGlass API key stored securely in Supabase secrets
+- Edge functions handle all external API authentication
 
 ## Performance Optimizations
 
-1. **Local Indicators**: No API latency
+1. **Local Indicators**: No API latency for technical analysis
 2. **WebSocket**: Single connection for real-time updates
 3. **No Polling**: Zero redundant API calls
 4. **Memoization**: Cached calculations in React
-5. **Minimal Backend**: Only essential edge functions
+5. **Edge Functions**: Server-side caching for CoinGlass data
+6. **Minimal Backend**: Only essential services running
 
 ## Future Considerations
 
