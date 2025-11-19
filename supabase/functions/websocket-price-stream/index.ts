@@ -29,45 +29,40 @@ Deno.serve(async (req) => {
   const MAX_RECONNECT_ATTEMPTS = 5;
   let pingInterval: number | null = null;
 
-  const connectToCoinGlass = async (symbol: string) => {
+  const connectToKraken = async (symbol: string) => {
     if (coinglassWS && coinglassWS.readyState === WebSocket.OPEN) {
       coinglassWS.close();
     }
 
-    console.log(`Connecting to CoinGlass WebSocket for ${symbol}...`);
+    console.log(`📡 Connecting to Kraken WebSocket for ${symbol}...`);
     
-    // Import symbol formatter
-    const { formatForCoinglass } = await import('../_shared/symbolFormatter.ts');
+    const { translateToKraken } = await import('../_shared/krakenSymbols.ts');
+    const krakenSymbol = translateToKraken(symbol);
     
-    // Format symbol to base only (e.g., XRP not XRPUSD)
-    const cleanSymbol = formatForCoinglass(symbol);
-    console.log(`📡 Subscribing to CoinGlass: ${cleanSymbol} (original: ${symbol})`);
+    console.log(`🔗 Kraken pair: ${krakenSymbol} (original: ${symbol})`);
     
-    // CoinGlass WebSocket endpoint with API key
-    const apiKey = Deno.env.get('COINGLASS_API_KEY') || '';
-    coinglassWS = new WebSocket(`wss://open-ws.coinglass.com/ws-api?cg-api-key=${apiKey}`);
+    coinglassWS = new WebSocket('wss://ws.kraken.com/v2');
     
     coinglassWS.onopen = () => {
-      console.log(`CoinGlass WebSocket connected for ${cleanSymbol}`);
+      console.log(`✅ Kraken WebSocket connected for ${krakenSymbol}`);
       reconnectAttempts = 0;
       
-      // Subscribe to ticker updates using base symbol
       const subscribeMsg = {
-        type: "subscribe",
-        channel: "ticker",
-        symbol: cleanSymbol,
-        interval: "1m"
+        method: 'subscribe',
+        params: {
+          channel: 'ticker',
+          symbol: [krakenSymbol]
+        }
       };
       
       coinglassWS?.send(JSON.stringify(subscribeMsg));
       
-      // Set up ping interval to keep connection alive (every 20 seconds)
       if (pingInterval) clearInterval(pingInterval);
       pingInterval = setInterval(() => {
         if (coinglassWS?.readyState === WebSocket.OPEN) {
-          coinglassWS.send('ping');
+          coinglassWS.send(JSON.stringify({ method: 'ping' }));
         }
-      }, 20000);
+      }, 30000);
       
       // Send connection success to client
       socket.send(JSON.stringify({
@@ -79,34 +74,22 @@ Deno.serve(async (req) => {
 
     coinglassWS.onmessage = (event) => {
       try {
-        // Ignore pong responses (keepalive messages)
-        if (event.data === 'pong') {
-          return;
-        }
-        
         const data = JSON.parse(event.data);
-        console.log('CoinGlass message:', data);
         
-        // Transform CoinGlass data format to our format
-        if (data.type === 'ticker' || data.channel === 'ticker') {
-          const transformed = {
+        if (data.method === 'pong') return;
+        
+        if (data.channel === 'ticker' && data.data && data.data[0]) {
+          const ticker = data.data[0];
+          socket.send(JSON.stringify({
             type: "price_update",
             symbol: symbol,
-            price: parseFloat(data.price || data.close || data.last),
-            volume: parseFloat(data.volume || data.vol24h || 0),
-            change24h: parseFloat(data.change24h || data.priceChangePercent || 0),
-            high24h: parseFloat(data.high24h || data.high || 0),
-            low24h: parseFloat(data.low24h || data.low || 0),
+            price: parseFloat(ticker.last || 0),
+            volume: parseFloat(ticker.volume || 0),
             timestamp: Date.now()
-          };
-          
-          socket.send(JSON.stringify(transformed));
-        } else {
-          // Forward raw data if format is different
-          socket.send(event.data);
+          }));
         }
       } catch (error) {
-        console.error('Error processing CoinGlass message:', error);
+        console.error('❌ Error processing Kraken message:', error);
       }
     };
 
@@ -133,7 +116,7 @@ Deno.serve(async (req) => {
         console.log(`Reconnect attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
         setTimeout(() => {
           if (currentSymbol) {
-            connectToCoinGlass(currentSymbol);
+            connectToKraken(currentSymbol);
           }
         }, 2000 * reconnectAttempts);
       } else {
