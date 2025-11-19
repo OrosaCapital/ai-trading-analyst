@@ -35,6 +35,102 @@ export type Database = {
         }
         Relationships: []
       }
+      market_candles: {
+        Row: {
+          close: number
+          created_at: string | null
+          high: number
+          id: string
+          low: number
+          open: number
+          symbol: string
+          timeframe: string
+          timestamp: number
+          updated_at: string | null
+          volume: number | null
+        }
+        Insert: {
+          close: number
+          created_at?: string | null
+          high: number
+          id?: string
+          low: number
+          open: number
+          symbol: string
+          timeframe: string
+          timestamp: number
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Update: {
+          close?: number
+          created_at?: string | null
+          high?: number
+          id?: string
+          low?: number
+          open?: number
+          symbol?: string
+          timeframe?: string
+          timestamp?: number
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Relationships: []
+      }
+      market_funding_rates: {
+        Row: {
+          created_at: string | null
+          exchange: string
+          id: string
+          rate: number
+          symbol: string
+          timestamp: number
+        }
+        Insert: {
+          created_at?: string | null
+          exchange: string
+          id?: string
+          rate: number
+          symbol: string
+          timestamp: number
+        }
+        Update: {
+          created_at?: string | null
+          exchange?: string
+          id?: string
+          rate?: number
+          symbol?: string
+          timestamp?: number
+        }
+        Relationships: []
+      }
+      market_snapshots: {
+        Row: {
+          change_24h: number | null
+          last_updated: string | null
+          price: number
+          source: string | null
+          symbol: string
+          volume_24h: number | null
+        }
+        Insert: {
+          change_24h?: number | null
+          last_updated?: string | null
+          price: number
+          source?: string | null
+          symbol: string
+          volume_24h?: number | null
+        }
+        Update: {
+          change_24h?: number | null
+          last_updated?: string | null
+          price?: number
+          source?: string | null
+          symbol?: string
+          volume_24h?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
