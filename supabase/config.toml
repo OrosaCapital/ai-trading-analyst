@@ -24,5 +24,8 @@ verify_jwt = false
 [functions.populate-market-data]
 verify_jwt = false
 
+[functions.populate-coinglass-data]
+verify_jwt = false
+
 [functions.system-health-ai]
 verify_jwt = false
