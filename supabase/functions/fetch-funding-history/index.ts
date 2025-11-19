@@ -170,6 +170,33 @@ Deno.serve(async (req) => {
 
     console.log(`Successfully fetched ${numericCandles.length} funding rate candles. Avg: ${avgFunding.toFixed(4)}%`);
 
+    // 🔥 CRITICAL: Store in database per LOVABLE_ROLE.md architecture
+    // External APIs → Database Tables → React Components
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Insert all funding rate candles into database
+    const fundingRecords = numericCandles.map(candle => ({
+      symbol: formattedSymbol,
+      exchange: exchange,
+      rate: candle.close,
+      timestamp: candle.time
+    }));
+
+    const { error: insertError } = await supabase
+      .from('market_funding_rates')
+      .upsert(fundingRecords, {
+        onConflict: 'symbol,exchange,timestamp',
+        ignoreDuplicates: true
+      });
+
+    if (insertError) {
+      console.error('Failed to store funding history in database:', insertError);
+    } else {
+      console.log(`✅ Stored ${fundingRecords.length} funding rate records for ${formattedSymbol}`);
+    }
+
     const payload = {
       success: true,
       symbol,

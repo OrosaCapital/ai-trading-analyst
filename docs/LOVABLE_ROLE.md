@@ -500,6 +500,51 @@ if (candles.length === 0) {
 - ✅ No error dialogs or blank screens
 - ✅ Indicators show "Loading..." state until real data arrives
 
+**🔥 CRITICAL: Always Store Data in Database**
+
+**Problem**: Edge functions that return data in response but don't store in database violate LOVABLE_ROLE.md architecture.
+
+**Example Violation**: `fetch-funding-history` was returning funding candles in JSON response but never inserting into `market_funding_rates` table.
+
+**Correct Pattern (Database-First Architecture)**:
+```typescript
+// After fetching from CoinGlass API
+console.log(`Successfully fetched ${numericCandles.length} funding rate candles`);
+
+// 🔥 Store in database (NOT just in memory or response)
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+);
+
+const fundingRecords = numericCandles.map(candle => ({
+  symbol: formattedSymbol,
+  exchange: exchange,
+  rate: candle.close,
+  timestamp: candle.time
+}));
+
+await supabase
+  .from('market_funding_rates')
+  .upsert(fundingRecords, {
+    onConflict: 'symbol,exchange,timestamp',
+    ignoreDuplicates: true
+  });
+```
+
+**Architecture Rule**:
+```
+❌ WRONG: CoinGlass API → Edge Function → Return JSON → Frontend
+✅ CORRECT: CoinGlass API → Edge Function → Database → Frontend queries DB
+```
+
+**Why Database-First**:
+- ✅ Data persists across sessions
+- ✅ 4-hour cache works correctly
+- ✅ Multiple components access same data
+- ✅ No duplicate API calls
+- ✅ Frontend reads from database (not edge function response)
+
 **UI Handling**:
 - `MarketInsightsPanel` checks `isUsingFallback` flag
 - Shows "Loading..." with orange borders for missing data
