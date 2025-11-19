@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.fetch-current-funding]
 verify_jwt = false
+
+[functions.system-health-ai]
+verify_jwt = false
