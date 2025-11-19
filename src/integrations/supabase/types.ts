@@ -212,6 +212,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tracked_symbols: {
+        Row: {
+          active: boolean | null
+          added_at: string | null
+          added_by: string | null
+          id: string
+          symbol: string
+        }
+        Insert: {
+          active?: boolean | null
+          added_at?: string | null
+          added_by?: string | null
+          id?: string
+          symbol: string
+        }
+        Update: {
+          active?: boolean | null
+          added_at?: string | null
+          added_by?: string | null
+          id?: string
+          symbol?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
