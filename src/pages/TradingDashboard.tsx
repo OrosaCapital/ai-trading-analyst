@@ -107,7 +107,7 @@ export default function TradingDashboard() {
             {/* Secondary Metrics Grid - Max 5-6 widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <FundingRateChart symbol={normalizedSymbol} />
-              <MicroTimeframePanel candles1m={candles} candles15m={candles} symbol={normalizedSymbol} />
+              <MicroTimeframePanel candles1m={candles} candles15m={candles} />
               
               {/* Session Summary Card */}
               {sessionStats && (
