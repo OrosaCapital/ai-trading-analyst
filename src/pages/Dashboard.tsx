@@ -4,7 +4,6 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminNavigation } from "../components/admin/AdminNavigation";
 import { AdminFilterBar } from "../components/admin/AdminFilterBar";
 import { AdminKPICard } from "../components/admin/AdminKPICard";
-import { AIAgentPanel } from "../components/admin/AIAgentPanel";
 import { SystemAlerts } from "../components/admin/SystemAlerts";
 import { BackendStatus } from "../components/admin/BackendStatus";
 import { EdgeFunctionsList } from "../components/admin/EdgeFunctionsList";
@@ -84,9 +83,6 @@ export function Dashboard() {
                 subtitle="System alerts"
               />
             </div>
-
-            {/* AI Agent Monitor - Always Present */}
-            <AIAgentPanel />
 
             {/* Primary Widget - System Alerts */}
             <SystemAlerts />
