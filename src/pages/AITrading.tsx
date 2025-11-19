@@ -14,6 +14,7 @@ interface Message {
 export default function AITrading() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [symbol, setSymbol] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -32,7 +33,10 @@ export default function AITrading() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: [...messages, userMessage] }),
+        body: JSON.stringify({ 
+          messages: [...messages, userMessage],
+          symbol: symbol || undefined
+        }),
       });
 
       if (!resp.ok) {
@@ -127,14 +131,38 @@ export default function AITrading() {
 
   return (
     <div className="flex-1 container mx-auto px-6 py-8 flex flex-col max-w-5xl">
-        <div className="glass rounded-2xl p-6 mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-8 h-8 text-accent" />
-            <div>
-              <h1 className="text-2xl font-bold text-gradient">AI Trading Assistant</h1>
-              <p className="text-sm text-muted-foreground">Your elite crypto trading advisor</p>
+        <div className="glass rounded-2xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-8 h-8 text-accent" />
+              <div>
+                <h1 className="text-2xl font-bold text-gradient">AI Trading Assistant</h1>
+                <p className="text-sm text-muted-foreground">Your elite crypto trading advisor with live market data</p>
+              </div>
             </div>
           </div>
+          <div className="flex gap-2">
+            <Input
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+              placeholder="Optional: Enter symbol for analysis (e.g., BTC, ETH)"
+              className="flex-1 glass-strong"
+            />
+            {symbol && (
+              <Button
+                variant="outline"
+                onClick={() => setSymbol('')}
+                className="glass-strong"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+          {symbol && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Analyzing: <span className="text-accent font-semibold">{symbol}</span>
+            </p>
+          )}
         </div>
 
         <Card className="flex-1 glass-strong border-primary/20 flex flex-col overflow-hidden">
@@ -148,17 +176,18 @@ export default function AITrading() {
                     <p className="text-muted-foreground mt-2">Ask me anything about crypto trading, market analysis, or strategies</p>
                   </div>
                   <div className="flex flex-wrap gap-2 justify-center mt-6">
-                    {['Analyze BTC trend', 'Best indicators for day trading?', 'Explain support levels'].map((q) => (
+                    {['BTC', 'ETH', 'SOL'].map((sym) => (
                       <Button
-                        key={q}
+                        key={sym}
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setInput(q);
+                          setSymbol(sym);
+                          setInput(`Analyze ${sym} and give me a trading setup`);
                         }}
                         className="glass-strong"
                       >
-                        {q}
+                        Analyze {sym}
                       </Button>
                     ))}
                   </div>
