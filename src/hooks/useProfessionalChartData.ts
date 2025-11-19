@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useRealtimePriceStream } from "./useRealtimePriceStream";
 import {
   Candle,
@@ -28,15 +27,6 @@ export interface ChartData {
   indicators: {
     "1h": TimeframeIndicators;
     "15m": TimeframeIndicators;
-  };
-  coinglass: {
-    fundingRate: number;
-    fundingSentiment: "bullish" | "bearish" | "neutral";
-    openInterest: number;
-    oiChange: number;
-    liquidations: { longs: number; shorts: number };
-    longShortRatio: number;
-    overallSentiment: "bullish" | "bearish" | "neutral";
   };
   levels: {
     support: number[];
@@ -146,15 +136,6 @@ export function useProfessionalChartData(symbol: string | null) {
           rsi: rsi15m,
           volumeSMA: volumeSMA15m,
         },
-      },
-      coinglass: {
-        fundingRate: 0,
-        fundingSentiment: "neutral" as const,
-        openInterest: 0,
-        oiChange: 0,
-        liquidations: { longs: 0, shorts: 0 },
-        longShortRatio: 1,
-        overallSentiment: "neutral" as const,
       },
       levels,
       liquiditySweeps,
