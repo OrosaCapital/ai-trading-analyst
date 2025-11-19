@@ -58,7 +58,7 @@ export function useProfessionalChartData(symbol: string | null) {
     setIsLoading(true);
 
     const samplePrice = 50000;
-    candles1mRef.current = generateSampleCandles(samplePrice, 100);
+    candles1mRef.current = generateSampleCandles(samplePrice, 500);
     hasInitializedRef.current = true;
 
     updateChartData();

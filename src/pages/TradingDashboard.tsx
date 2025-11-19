@@ -104,7 +104,7 @@ export default function TradingDashboard() {
             {/* Main Chart - Priority Widget */}
             <DayTraderChartContainer 
               symbol={normalizedSymbol}
-              candles={candles1h}
+              candles={candles1m}
               isLoading={isLoading}
             />
 
