@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { SentimentGauge } from "../SentimentGauge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { TrendingUp, TrendingDown, DollarSign, Activity, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Activity, BarChart3, Zap } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { useMarketStore } from "@/store/useMarketStore";
 
@@ -12,13 +12,11 @@ interface SidebarProps {
 export function Sidebar({ symbol }: SidebarProps) {
   const { metrics, loading, fetchMetrics, initialize, cleanup } = useMarketStore();
   
-  // Initialize store and fetch metrics
   useEffect(() => {
     initialize();
     return () => cleanup();
   }, [initialize, cleanup]);
 
-  // Fetch metrics when symbol changes
   useEffect(() => {
     if (symbol) {
       fetchMetrics(symbol);
@@ -32,22 +30,38 @@ export function Sidebar({ symbol }: SidebarProps) {
     if (!num || num === 0) return '$0';
     if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
     if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
-    if (num >= 1e3) return `$${(num / 1e3).toFixed(0)}K`;
+    if (num >= 1e3) return `$${(num / 1e3).toFixed(1)}K`;
     return `$${num.toFixed(0)}`;
   };
 
+  const fundingRateColor = useMemo(() => {
+    if (!currentMetrics) return 'text-muted-foreground';
+    if (currentMetrics.fundingRate > 0.01) return 'text-chart-green';
+    if (currentMetrics.fundingRate < -0.01) return 'text-chart-red';
+    return 'text-muted-foreground';
+  }, [currentMetrics]);
+
+  const longShortColor = useMemo(() => {
+    if (!currentMetrics) return 'text-muted-foreground';
+    if (currentMetrics.longShortRatio > 1.2) return 'text-chart-green';
+    if (currentMetrics.longShortRatio < 0.8) return 'text-chart-red';
+    return 'text-muted-foreground';
+  }, [currentMetrics]);
+
   return (
-    <aside className="flex w-64 flex-col border-r border-border bg-gradient-to-b from-background to-background/95 overflow-y-auto">
-      <div className="px-6 py-6 border-b border-border/50">
-        <h2 className="text-lg font-bold tracking-tight text-foreground">OCAPX AI</h2>
-        <p className="text-xs text-muted-foreground mt-1">Market Intelligence</p>
+    <aside className="flex w-64 flex-col border-r border-border/50 bg-gradient-to-b from-background via-background/98 to-background/95 overflow-y-auto backdrop-blur-sm">
+      <div className="px-6 py-6 border-b border-border/30 bg-gradient-to-r from-primary/5 to-transparent">
+        <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+          <Zap className="w-4 h-4 text-primary" />
+          OCAPX AI
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1 font-medium">Market Intelligence</p>
       </div>
       
       <div className="flex-1 px-4 py-4 space-y-3">
-        {/* Market Sentiment */}
-        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors">
+        <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase">
+            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Market Sentiment
             </CardTitle>
           </CardHeader>
@@ -56,83 +70,78 @@ export function Sidebar({ symbol }: SidebarProps) {
           </CardContent>
         </Card>
 
-        {/* Funding Rate */}
-        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors group">
+        <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
-              <TrendingUp className="w-3 h-3" />
+            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <TrendingUp className="w-3 h-3 transition-transform group-hover:scale-110" />
               Funding Rate
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-7 w-20" />
+              <Skeleton className="h-8 w-24 rounded-md" />
             ) : (
               <div className="flex items-center justify-between">
-                <p className={`text-lg font-bold ${
-                  currentMetrics.fundingRate > 0 
-                    ? 'text-chart-green' 
-                    : 'text-chart-red'
-                }`}>
-                  {(currentMetrics.fundingRate * 100).toFixed(3)}%
+                <p className={`text-xl font-bold transition-colors ${fundingRateColor}`}>
+                  {(currentMetrics.fundingRate * 100).toFixed(4)}%
                 </p>
                 {currentMetrics.fundingRate > 0 ? (
-                  <TrendingUp className="w-4 h-4 text-chart-green" />
+                  <TrendingUp className="w-5 h-5 text-chart-green animate-pulse" />
+                ) : currentMetrics.fundingRate < 0 ? (
+                  <TrendingDown className="w-5 h-5 text-chart-red animate-pulse" />
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-chart-red" />
+                  <Activity className="w-5 h-5 text-muted-foreground" />
                 )}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Open Interest */}
-        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors group">
+        <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
-              <DollarSign className="w-3 h-3" />
+            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <DollarSign className="w-3 h-3 transition-transform group-hover:scale-110" />
               Open Interest
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-8 w-28 rounded-md" />
             ) : (
-              <p className="text-lg font-bold text-foreground">
+              <p className="text-xl font-bold text-foreground">
                 {formatLargeNumber(currentMetrics.openInterest)}
               </p>
             )}
           </CardContent>
         </Card>
 
-        {/* Long/Short Ratio */}
-        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors">
+        <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Activity className="w-3 h-3" />
               Long/Short Ratio
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-7 w-16" />
+              <Skeleton className="h-8 w-20 rounded-md" />
             ) : (
               <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-chart-green font-semibold">Long</span>
-                  <span className="text-chart-red font-semibold">Short</span>
+                <div className="flex justify-between items-center text-xs font-medium">
+                  <span className="text-chart-green">Long</span>
+                  <span className="text-chart-red">Short</span>
                 </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden flex">
+                <div className="h-2.5 bg-muted/30 rounded-full overflow-hidden flex shadow-inner">
                   <div 
-                    className="bg-chart-green transition-all" 
+                    className="bg-gradient-to-r from-chart-green to-chart-green/80 transition-all duration-500 ease-out" 
                     style={{ width: `${(currentMetrics.longShortRatio / (currentMetrics.longShortRatio + 1)) * 100}%` }}
                   />
                   <div 
-                    className="bg-chart-red transition-all" 
+                    className="bg-gradient-to-l from-chart-red to-chart-red/80 transition-all duration-500 ease-out" 
                     style={{ width: `${(1 / (currentMetrics.longShortRatio + 1)) * 100}%` }}
                   />
                 </div>
-                <p className="text-sm font-bold text-center text-foreground">
+                <p className={`text-base font-bold text-center transition-colors ${longShortColor}`}>
                   {currentMetrics.longShortRatio.toFixed(2)}
                 </p>
               </div>
@@ -140,44 +149,42 @@ export function Sidebar({ symbol }: SidebarProps) {
           </CardContent>
         </Card>
 
-        {/* Liquidations 24h */}
-        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors group">
+        <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
-              <Activity className="w-3 h-3" />
+            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Activity className="w-3 h-3 transition-transform group-hover:scale-110" />
               Liquidations 24h
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-8 w-24 rounded-md" />
             ) : (
               <div>
                 {currentMetrics.liquidations24h > 0 ? (
-                  <p className="text-lg font-bold text-destructive">
+                  <p className="text-xl font-bold text-destructive">
                     {formatLargeNumber(currentMetrics.liquidations24h)}
                   </p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">N/A</p>
+                  <p className="text-sm text-muted-foreground font-medium">No Data</p>
                 )}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Volume 24h */}
-        <Card className="glass-panel border border-border/50 hover:border-primary/30 transition-colors group">
+        <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
-              <BarChart3 className="w-3 h-3" />
+            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <BarChart3 className="w-3 h-3 transition-transform group-hover:scale-110" />
               Volume 24h
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-8 w-28 rounded-md" />
             ) : (
-              <p className="text-lg font-bold text-foreground">
+              <p className="text-xl font-bold text-foreground">
                 {formatLargeNumber(currentMetrics.volume24h)}
               </p>
             )}
