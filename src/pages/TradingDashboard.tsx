@@ -4,7 +4,7 @@ import { TradingCommandCenter } from "@/components/trading/TradingCommandCenter"
 import { TradingViewChart } from "@/components/TradingViewChart";
 import { AIDecisionPanel } from "@/components/trading/AIDecisionPanel";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
-import { calculateLocalTradeSignal } from "@/lib/signalEngine";
+import { calculateTradeSignal } from "@/lib/signalEngine";
 
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
@@ -27,7 +27,7 @@ export default function TradingDashboard() {
   let aiSignal = null;
 
   if (chartData && chartData.candles1h.length > 10 && chartData.indicators) {
-    aiSignal = calculateLocalTradeSignal({
+    aiSignal = calculateTradeSignal({
       price1h: chartData.candles1h[chartData.candles1h.length - 1]?.close ?? 0,
       ema501h: chartData.indicators["1h"].ema50,
       rsi1h: chartData.indicators["1h"].rsi,
@@ -36,7 +36,6 @@ export default function TradingDashboard() {
       rsi15m: chartData.indicators["15m"].rsi,
       currentVolume: chartData.candles1h[chartData.candles1h.length - 1]?.volume ?? 0,
       volumeSMA: chartData.indicators["1h"].volumeSMA,
-      coinglassSentiment: "neutral",
     });
   }
 
