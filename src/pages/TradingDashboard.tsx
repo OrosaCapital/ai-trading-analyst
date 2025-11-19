@@ -12,6 +12,8 @@ import { useChartData } from "@/hooks/useChartData";
 import { useFreshSymbolData } from "@/hooks/useFreshSymbolData";
 import { formatPrice, formatVolume } from "@/lib/priceFormatter";
 import { Card } from "@/components/ui/card";
+import { useAIAnalysis } from "@/hooks/useAIAnalysis";
+import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
@@ -30,14 +32,37 @@ export default function TradingDashboard() {
   const { isFetching: isFetchingFresh } = useFreshSymbolData(normalizedSymbol);
   
   const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000);
+  const { chartData } = useProfessionalChartData(normalizedSymbol);
 
   const currentPrice =
     candles.length > 0
       ? candles[candles.length - 1].close
       : null;
 
+  const { analysis, isAnalyzing } = useAIAnalysis(
+    normalizedSymbol,
+    chartData?.candles1h || [],
+    chartData?.candles15m || [],
+    chartData?.indicators || {}
+  );
+
   const sessionStats = useMemo(() => buildSessionStats(candles), [candles]);
-  const alerts = useMemo(() => buildAlerts(candles, candles, candles), [candles]);
+  const alerts = useMemo(() => {
+    const baseAlerts = buildAlerts(candles, candles, candles);
+    
+    if (analysis) {
+      return [
+        {
+          id: "ai-signal",
+          label: `🤖 AI: ${analysis.message}`,
+          severity: "info" as const
+        },
+        ...baseAlerts
+      ];
+    }
+    
+    return baseAlerts;
+  }, [candles, analysis]);
 
   // Calculate KPIs for top display
   const kpis = useMemo(() => {
@@ -71,7 +96,7 @@ export default function TradingDashboard() {
           {/* Main content */}
           <main className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Alert Strip */}
-            <AlertStrip alerts={alerts} isLoading={isLoading} />
+            <AlertStrip alerts={alerts} isLoading={isLoading || isAnalyzing} />
 
             {/* Top KPIs - 5 Second Rule: Most Important Info */}
             {kpis && (
