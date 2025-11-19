@@ -46,11 +46,7 @@ export function TickerRibbon() {
   
   // Skip if unavailable
   if (currentTicker?.unavailable) {
-    return (
-      <div className="flex items-center gap-3 text-sm font-semibold text-muted-foreground">
-        <div>{currentSymbol.replace("USDT", "")} - Unavailable</div>
-      </div>
-    );
+    return null;
   }
 
   if (!currentTicker || loading.tickers) {
