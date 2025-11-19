@@ -1,21 +1,14 @@
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useMarketStore } from "@/store/useMarketStore";
-import { useCoinglassCoins } from "@/hooks/useCoinglassCoins";
 
-const FALLBACK_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "ADAUSDT", "XRPUSDT"];
+const TICKER_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "ADAUSDT", "XRPUSDT"];
 
 export function TickerRibbon() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   
   const { tickers, loading, initialize, cleanup } = useMarketStore();
-  const { data: coinglassCoins } = useCoinglassCoins();
-  
-  // Use CoinGlass coins if available, otherwise fallback - limit to first 12 for performance
-  const TICKER_SYMBOLS = coinglassCoins 
-    ? coinglassCoins.slice(0, 12).map(coin => `${coin}USDT`)
-    : FALLBACK_SYMBOLS;
 
   // Initialize store on mount
   useEffect(() => {
