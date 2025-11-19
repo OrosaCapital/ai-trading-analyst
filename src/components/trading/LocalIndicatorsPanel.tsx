@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 type Candle = {
   open: number;
@@ -8,15 +8,15 @@ type Candle = {
   volume: number;
 };
 
-interface LocalIndicatorsPanelProps {
+interface Props {
   candles: Candle[];
 }
 
-export function LocalIndicatorsPanel({ candles }: LocalIndicatorsPanelProps) {
+export function LocalIndicatorsPanel({ candles }: Props) {
   if (!candles || candles.length < 2) {
     return (
-      <div className="flex flex-col gap-3 p-4 bg-[#11131a] rounded-xl text-white text-sm">
-        <div className="text-xs text-gray-400">Waiting for price data…</div>
+      <div className="p-4 bg-[#11131a] rounded-xl text-white text-sm">
+        <div className="text-xs text-gray-400">Collecting chart data...</div>
       </div>
     );
   }
@@ -24,87 +24,144 @@ export function LocalIndicatorsPanel({ candles }: LocalIndicatorsPanelProps) {
   const len = candles.length;
   const closes = candles.map((c) => c.close);
   const volumes = candles.map((c) => c.volume);
-  const lastCandle = candles[len - 1];
-  const lastClose = lastCandle.close;
+  const last = candles[len - 1];
+  const prev = candles[len - 2];
 
-  const ema = (period: number): number | null => {
-    if (len < period) {
-      const avg = closes.reduce((a, b) => a + b, 0) / len;
-      return avg;
-    }
-
+  const ema = (period: number) => {
     const k = 2 / (period + 1);
-    let emaPrev = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
-
-    for (let i = period; i < len; i++) {
-      emaPrev = closes[i] * k + emaPrev * (1 - k);
-    }
-    return emaPrev;
+    let e = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
+    for (let i = period; i < len; i++) e = closes[i] * k + e * (1 - k);
+    return e;
   };
 
-  const ema9 = ema(9);
-  const ema21 = ema(21);
-  const ema50 = ema(50);
+  const e9 = ema(9);
+  const e21 = ema(21);
+  const e50 = ema(50);
 
-  const trendScore =
-    (ema9 && lastClose > ema9 ? 1 : 0) +
-    (ema21 && ema9 && ema9 > ema21 ? 1 : 0) +
-    (ema50 && ema21 && ema21 > ema50 ? 1 : 0);
+  const trendScore = (last.close > e9 ? 1 : 0) + (e9 > e21 ? 1 : 0) + (e21 > e50 ? 1 : 0);
 
-  const priceChange = ((lastClose - closes[0]) / closes[0]) * 100;
+  const trendColor = trendScore === 3 ? "text-green-400" : trendScore === 2 ? "text-yellow-400" : "text-red-400";
 
-  const volWindow = Math.min(20, len);
-  const recentVol = volumes.slice(-volWindow);
-  const avgVol = recentVol.reduce((a, b) => a + b, 0) / (recentVol.length || 1);
-  const volPressure = avgVol > 0 ? volumes[len - 1] / avgVol : 0;
+  const priceChange = ((last.close - closes[0]) / closes[0]) * 100;
 
-  const rsiPeriod = Math.min(14, len - 1);
-  let gain = 0;
-  let loss = 0;
+  const rsi = (() => {
+    let gain = 0,
+      loss = 0;
+    for (let i = len - 14; i < len; i++) {
+      const d = closes[i] - closes[i - 1];
+      if (d > 0) gain += d;
+      else loss -= d;
+    }
+    const rs = gain / (loss || 1);
+    return 100 - 100 / (1 + rs);
+  })();
 
-  for (let i = len - rsiPeriod; i < len; i++) {
-    const diff = closes[i] - closes[i - 1];
-    if (diff > 0) gain += diff;
-    else loss -= diff;
-  }
+  const rsiColor = rsi > 70 ? "text-red-400" : rsi < 30 ? "text-green-400" : "text-white";
 
-  const rs = gain / (loss || 1);
-  const rsi = 100 - 100 / (1 + rs);
+  const volWindow = Math.min(len, 20);
+  const avgVol = volumes.slice(-volWindow).reduce((a, b) => a + b, 0) / (volWindow || 1);
+  const volPressure = avgVol ? volumes[len - 1] / avgVol : 0;
 
-  const atrPeriod = Math.min(14, len - 1);
-  let atrSum = 0;
+  const atr = (() => {
+    let sum = 0;
+    for (let i = len - 14; i < len; i++) {
+      const c = candles[i];
+      const p = candles[i - 1] || c;
+      const tr = Math.max(c.high - c.low, Math.abs(c.high - p.close), Math.abs(c.low - p.close));
+      sum += tr;
+    }
+    return sum / 14;
+  })();
 
-  for (let i = len - atrPeriod; i < len; i++) {
-    const c = candles[i];
-    const p = candles[i - 1] ?? candles[i];
-    const tr = Math.max(c.high - c.low, Math.abs(c.high - p.close), Math.abs(c.low - p.close));
-    atrSum += tr;
-  }
+  const atrPct = (atr / last.close) * 100;
 
-  const atr = atrSum / (atrPeriod || 1);
-  const atrPct = (atr / lastClose) * 100;
+  const momentum = last.close - prev.close;
+  const momentumColor = momentum > 0 ? "text-green-400" : momentum < 0 ? "text-red-400" : "text-gray-300";
+
+  const sparkline = closes.slice(-20);
 
   return (
-    <div className="flex flex-col gap-3 p-4 bg-[#11131a] rounded-xl text-white text-sm">
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-xs uppercase tracking-wide text-gray-400">Day Trader Snapshot</span>
-        <span className="text-[10px] text-gray-500">Local • From chart candles</span>
+    <div className="flex flex-col gap-4 p-4 bg-[#11131a] rounded-xl text-white text-sm border border-white/5">
+      <div className="flex justify-between">
+        <span className="text-xs text-gray-400 uppercase tracking-wide">Day Trader Pro Panel</span>
+        <span className="text-[10px] text-gray-500">Local Data Only</span>
       </div>
 
-      <Item label="Trend Score (0–3)" value={trendScore} />
-      <Item label="Price Change %" value={priceChange.toFixed(2)} />
-      <Item label="RSI" value={rsi.toFixed(1)} />
-      <Item label="ATR %" value={atrPct.toFixed(2)} />
-      <Item label="Volume Pressure" value={volPressure.toFixed(2)} />
+      <Section title="Trend">
+        <Value label="Trend Score" value={trendScore} valueClass={trendColor} />
+        <Bar percent={(trendScore / 3) * 100} color="bg-green-500" />
+      </Section>
+
+      <Section title="Momentum">
+        <Value label="1-Candle Momentum" value={momentum.toFixed(2)} valueClass={momentumColor} />
+      </Section>
+
+      <Section title="RSI">
+        <Value label="RSI-14" value={rsi.toFixed(1)} valueClass={rsiColor} />
+        <Gauge percent={rsi} />
+      </Section>
+
+      <Section title="Volatility">
+        <Value label="ATR %" value={atrPct.toFixed(2)} />
+        <Bar percent={Math.min(atrPct, 10) * 10} color="bg-purple-500" />
+      </Section>
+
+      <Section title="Volume">
+        <Value label="Volume Pressure" value={volPressure.toFixed(2)} />
+        <Bar percent={(Math.min(volPressure, 3) / 3) * 100} color="bg-blue-500" />
+      </Section>
+
+      <Section title="Sparkline (20 closes)">
+        <div className="h-10 flex items-end gap-1">
+          {sparkline.map((v, i) => {
+            const max = Math.max(...sparkline);
+            const min = Math.min(...sparkline);
+            const pct = ((v - min) / (max - min + 0.0001)) * 100;
+
+            return (
+              <div
+                key={i}
+                className="w-1 bg-green-400 rounded-sm"
+                style={{ height: `${pct}%`, opacity: 0.4 + pct / 150 }}
+              />
+            );
+          })}
+        </div>
+      </Section>
     </div>
   );
 }
 
-function Item({ label, value }: { label: string; value: string | number }) {
+function Section({ title, children }: any) {
   return (
-    <div className="flex justify-between border-b border-white/10 pb-1.5">
-      <span className="text-gray-400 text-xs">{label}</span>
-      <span className="font-semibold text-xs">{value}</span>
+    <div className="flex flex-col gap-1">
+      <span className="text-xs text-gray-400">{title}</span>
+      {children}
+    </div>
+  );
+}
+
+function Value({ label, value, valueClass = "text-white" }: any) {
+  return (
+    <div className="flex justify-between text-xs">
+      <span className="text-gray-400">{label}</span>
+      <span className={`font-semibold ${valueClass}`}>{value}</span>
+    </div>
+  );
+}
+
+function Bar({ percent, color }: any) {
+  return (
+    <div className="w-full h-1 bg-white/10 rounded">
+      <div className={`h-1 rounded ${color}`} style={{ width: `${percent}%` }} />
+    </div>
+  );
+}
+
+function Gauge({ percent }: { percent: number }) {
+  return (
+    <div className="w-full h-1 bg-white/10 rounded relative">
+      <div className="absolute top-0 h-1 w-1 bg-yellow-400 rounded-full" style={{ left: `${percent}%` }} />
     </div>
   );
 }
