@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSystemAlertsStore } from "@/store/useSystemAlertsStore";
 
 interface SystemMetrics {
   edgeFunctions: {
@@ -32,6 +33,7 @@ export const useSystemHealth = () => {
   const [data, setData] = useState<SystemHealthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const alerts = useSystemAlertsStore((state) => state.alerts);
 
   useEffect(() => {
     const fetchSystemHealth = async () => {
@@ -39,8 +41,20 @@ export const useSystemHealth = () => {
       setError(null);
       
       try {
+        // Get recent alerts (last 50)
+        const recentAlerts = alerts.slice(0, 50).map(alert => ({
+          type: alert.type,
+          title: alert.title,
+          message: alert.message,
+          source: alert.source,
+          timestamp: alert.timestamp,
+        }));
+
         const { data: result, error: invocationError } = await supabase.functions.invoke<SystemHealthResponse>(
-          "system-health-ai"
+          "system-health-ai",
+          {
+            body: { alerts: recentAlerts }
+          }
         );
 
         if (invocationError) throw invocationError;
@@ -64,7 +78,7 @@ export const useSystemHealth = () => {
     const interval = setInterval(fetchSystemHealth, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [alerts]);
 
   return { data, isLoading, error };
 };

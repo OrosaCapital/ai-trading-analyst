@@ -35,8 +35,11 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Get alerts from request body
+    const { alerts = [] } = await req.json();
+
     // Gather system metrics
-    const metrics: SystemMetrics = await gatherSystemMetrics(supabase);
+    const metrics: SystemMetrics = await gatherSystemMetrics(supabase, alerts);
 
     // Use Lovable AI to analyze system health
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -44,21 +47,28 @@ Deno.serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const systemPrompt = `You are an AI system administrator monitoring the OCAPX trading platform. Analyze the provided system metrics and provide:
-1. Overall system health score (0-100)
-2. Critical issues requiring immediate attention
-3. Performance insights
-4. Recommendations for optimization
+    const systemPrompt = `You are an AI system administrator monitoring the OCAPX trading platform. Analyze the provided system metrics and real-time alerts to provide:
+1. Overall system health assessment
+2. Critical issues requiring immediate attention (from console errors and alerts)
+3. Root cause analysis of recurring errors
+4. Actionable recommendations for fixes
 
-Be concise and actionable. Focus on what matters most to system reliability.`;
+Be concise, technical, and prioritize the most severe issues. Focus on patterns in the errors and alerts.`;
+
+    // Build alerts summary
+    const alertsSummary = alerts.length > 0 
+      ? `\n\nRECENT ALERTS (${alerts.length} total):\n${alerts.map((a: any) => 
+          `- [${a.type.toUpperCase()}] ${a.title}: ${a.message}${a.source ? ` (${a.source})` : ''}`
+        ).slice(0, 20).join('\n')}`
+      : '\n\nNo recent alerts detected.';
 
     const metricsDescription = `
-System Status:
+SYSTEM STATUS:
 - Edge Functions: ${metrics.edgeFunctions.healthy}/${metrics.edgeFunctions.total} healthy (${metrics.edgeFunctions.errors} errors)
 - Database: ${metrics.database.status} (${metrics.database.connections} connections)
 - CoinGlass API: ${metrics.apis.coinglassStatus}
 - Tatum API: ${metrics.apis.tatumStatus}
-- Errors (24h): ${metrics.errors.last24h} total, ${metrics.errors.criticalCount} critical
+- Errors (24h): ${metrics.errors.last24h} total, ${metrics.errors.criticalCount} critical${alertsSummary}
 `;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -114,36 +124,47 @@ System Status:
   }
 });
 
-async function gatherSystemMetrics(supabase: any): Promise<SystemMetrics> {
-  // Get edge function statistics from logs
-  const { data: functionLogs } = await supabase
-    .from('_analytics')
-    .select('*')
-    .order('timestamp', { ascending: false })
-    .limit(1000);
+async function gatherSystemMetrics(supabase: any, alerts: any[]): Promise<SystemMetrics> {
+  // Count errors from alerts
+  const errorAlerts = alerts.filter(a => a.type === 'error');
+  const warningAlerts = alerts.filter(a => a.type === 'warning');
+  
+  // Analyze error patterns
+  const coinglassErrors = errorAlerts.filter(a => 
+    a.message?.includes('CoinGlass') || a.source?.includes('coinglass')
+  ).length;
+  
+  const tatumErrors = errorAlerts.filter(a => 
+    a.message?.includes('TATUM') || a.message?.includes('Tatum')
+  ).length;
 
-  // Simulate metrics gathering (in production, you'd query actual logs)
-  const edgeFunctionErrors = functionLogs?.filter((log: any) => 
-    log.level === 'error' && log.timestamp > Date.now() - 24 * 60 * 60 * 1000
-  ).length || 0;
+  const edgeFunctionErrors = errorAlerts.filter(a =>
+    a.source?.includes('function') || a.message?.includes('Edge Function')
+  ).length;
+
+  // Calculate API health based on recent errors
+  const coinglassStatus = coinglassErrors > 5 ? 'down' : coinglassErrors > 2 ? 'degraded' : 'operational';
+  const tatumStatus = tatumErrors > 5 ? 'down' : tatumErrors > 2 ? 'degraded' : 'operational';
 
   return {
     edgeFunctions: {
-      total: 8,
-      healthy: 8 - Math.min(edgeFunctionErrors, 8),
+      total: 9,
+      healthy: Math.max(0, 9 - edgeFunctionErrors),
       errors: edgeFunctionErrors,
     },
     database: {
-      status: 'healthy',
+      status: errorAlerts.some(a => a.message?.includes('database')) ? 'degraded' : 'healthy',
       connections: 12,
     },
     apis: {
-      coinglassStatus: edgeFunctionErrors > 5 ? 'degraded' : 'operational',
-      tatumStatus: 'operational',
+      coinglassStatus,
+      tatumStatus,
     },
     errors: {
-      last24h: edgeFunctionErrors,
-      criticalCount: Math.floor(edgeFunctionErrors * 0.2),
+      last24h: errorAlerts.length,
+      criticalCount: errorAlerts.filter(a => 
+        a.message?.includes('critical') || a.message?.includes('failed')
+      ).length,
     },
   };
 }
