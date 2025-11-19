@@ -36,23 +36,72 @@ This project is **"Simple Mode Only"**.
 
 - CoinMarketCap
 - API Ninjas
-- All Supabase Functions (except price logging, WebSocket, and CoinGlass endpoints)
-- All REST fetches to removed APIs
+- Direct API calls from frontend
+- All REST fetches to external APIs from client
 - Any external data sources beyond price/volume/CoinGlass
 - All unnecessary analytics
+
+### DATA ARCHITECTURE (CRITICAL)
+
+This project follows a **Database-Centric Architecture**:
+
+```
+External APIs → Database Tables → React Components
+     ↓                ↓                  ↓
+CoinGlass API   market_candles      Chart Hook
+Tatum API       market_funding      Price Display
+               market_snapshots    Live Updates
+```
+
+#### Core Principle: "Database is the source of truth"
+
+1. **Edge Functions populate the database**
+   - `populate-market-data` - Scheduled function that fetches from APIs and stores in DB
+   - `tatum-price-logger` - Logs real-time prices to database
+   - `fetch-current-funding` - Stores funding rates
+   - `fetch-funding-history` - Stores historical funding data
+
+2. **Database Tables store market data**
+   - `market_candles` - OHLCV candle data (symbol, timeframe, timestamp, OHLC, volume)
+   - `market_funding_rates` - Funding rate history (symbol, exchange, rate, timestamp)
+   - `market_snapshots` - Latest price snapshots (symbol, price, volume, change)
+
+3. **React Hooks read from database**
+   - `useChartData` - Queries `market_candles` table
+   - `useFundingRate` - Queries `market_funding_rates` table
+   - `useFundingHistory` - Queries `market_funding_rates` table
+   - NO direct API calls from frontend
+
+#### Benefits of This Architecture:
+
+- **Reliability**: Charts always have data, even if APIs are down
+- **Performance**: Database queries are faster than API calls
+- **Caching**: Natural caching through database
+- **Consistency**: Single source of truth for all components
+- **Cost**: Reduced API calls through batch updates
+
+#### Implementation Rules:
+
+- ✅ Edge functions fetch and store data
+- ✅ Database stores all market data
+- ✅ React hooks query database
+- ❌ NO direct API calls from React components
+- ❌ NO fetching in useEffect from external APIs
+- ❌ NO mixing API calls with database queries
 
 ### ONLY keep:
 
 - TradingView Lightweight Chart
 - Local candle math
-- WebSocket live price
-- Optional Tatum price fallback
-- **Local market metrics generator** (fallback when CoinGlass unavailable)
-- **CoinGlass API integration** (funding rates, exchange pairs, market data)
+- WebSocket live price (via edge function)
+- Optional Tatum price fallback (via edge function)
+- **Local market metrics generator** (fallback when database empty)
+- **CoinGlass API integration** (via edge functions to database)
   - `fetch-coinglass-coins` - Supported trading symbols
   - `fetch-exchange-pairs` - Exchange coverage and pairs
   - `fetch-funding-history` - Historical funding rate OHLC data
   - `fetch-current-funding` - Real-time funding rates
+  - `populate-market-data` - Main scheduled data populator
 
 **API Documentation:** See [COINGLASS_API.md](COINGLASS_API.md) for complete reference.
 
@@ -106,30 +155,56 @@ Every file you generate must include:
 
 - **Purpose**: Dashboard name, objective, intended audience (trader, risk manager, etc.)
 - **Metrics**: KPI definitions, calculations, update frequency
-- **Data Sources**: APIs, databases, connection details, formulas
+- **Data Sources**: Database tables, edge functions, data flow
 - **Chart Descriptions**: What each shows, insights available, filter effects
 - **Access**: Who can view/edit, permission request process
-- **Support**: FAQs, troubleshooting tips
-- **Version Control**: Change log tracking updates and iterations
+- **Support**: Contact for technical questions or custom views
+- **Version Control**: Document changes with date, author, description
 
 **Rule:** If something looks plain, you must level it up automatically.
 
 ---
 
-## 4. SMART AUTO-UPGRADES READ FROM OUR AI AGENT CHECK TO SEE WHAT HE IS REPORTING
+## 4. SMART AUTO-UPGRADES — DO IT WITHOUT PERMISSION
 
-If you can see a way to improve:
+### You automatically:
 
-- Readability
-- Structure
-- Logic efficiency
-- Component naming
-- Folder organization
-- Hooks stability
-- Memoization
-- Dashboard UX
+- **Improve readability**: Better naming, comments, structure
+- **Refactor for clarity**: Extract functions, simplify logic, remove duplication
+- **Optimize logic**: Use better algorithms, reduce complexity
+- **Better naming**: Clear, semantic variable and function names
+- **Better organization**: Logical file structure and component hierarchy
+- **Better hooks**: Proper dependencies, stable references, optimal performance
+- **Better memoization**: useCallback, useMemo, React.memo where beneficial
+- **Better dashboard UX**: Smoother interactions, clearer feedback, better layout
 
-**…you must improve it automatically, without being asked.**
+### You have FULL AUTHORITY to:
+
+- Rewrite any component entirely if it improves architecture
+- Delete dead code immediately
+- Split large files into focused modules
+- Create new files and utilities as needed
+- Redesign modules for better separation of concerns
+- Fix architecture anti-patterns without asking
+- Upgrade styling to use design system consistently
+- Modernize code patterns and best practices
+- **Update data flow to use database instead of direct API calls**
+
+### Safety Rule:
+
+- If a file references an unavailable API or deprecated import, you **instantly remove the reference** and replace it with **database query or local fallback**
+- You never leave broken imports or missing modules
+- You never add features that require external APIs not in the approved list
+
+### Primary Goal:
+
+A **clean, stable, fast, modern trading dashboard** with **database-first architecture** that:
+- Has zero crashes
+- Self-heals forever
+- Reads from database, not APIs
+- Uses edge functions for data population
+- Provides instant feedback
+- Handles all edge cases gracefully
 
 ---
 

@@ -22,8 +22,20 @@ interface FundingHistoryState {
   error: string | null;
 }
 
-const CACHE: Record<string, { data: FundingHistoryState; timestamp: number }> = {};
+const CACHE: Record<string, { candles: FundingCandle[]; stats: any; timestamp: number }> = {};
 const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
+
+function getCachedHistory(key: string) {
+  const cached = CACHE[key];
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return { candles: cached.candles, stats: cached.stats };
+  }
+  return null;
+}
+
+function setCachedHistory(key: string, data: { candles: FundingCandle[]; stats: any }) {
+  CACHE[key] = { ...data, timestamp: Date.now() };
+}
 
 async function fetchWithRetry<T>(
   fn: () => Promise<T>,
@@ -57,74 +69,75 @@ export function useFundingHistory(symbol: string, exchange: string = 'Binance') 
   });
 
   const fetchFundingHistory = useCallback(async () => {
-    if (!symbol || symbol.trim() === '') {
-      setState({
-        candles: [],
-        stats: null,
-        isLoading: false,
-        error: 'Invalid symbol',
-      });
-      return;
-    }
-
-    const cacheKey = `${symbol}:${exchange}:4h`;
-    const cached = CACHE[cacheKey];
-    
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log(`Using cached funding history for ${symbol}`);
-      setState(cached.data);
-      return;
-    }
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const result = await fetchWithRetry(async () => {
-        const { data, error } = await supabase.functions.invoke('fetch-funding-history', {
-          body: { 
-            symbol, 
-            exchange,
-            interval: '4h',
-            limit: 100 
-          },
+      // Check cache first
+      const cacheKey = `${symbol}:${exchange}:4h`;
+      const cached = getCachedHistory(cacheKey);
+      if (cached) {
+        console.log(`Using cached funding history for ${symbol} on ${exchange}`);
+        setState({
+          candles: cached.candles,
+          stats: cached.stats,
+          isLoading: false,
+          error: null,
         });
+        return;
+      }
 
-        if (error) {
-          if (error instanceof FunctionsHttpError) {
-            const errorData = await error.context.json().catch(() => ({}));
-            throw new Error(errorData.message || error.message);
-          } else if (error instanceof FunctionsRelayError) {
-            throw new Error(`Connection Error: ${error.message}`);
-          } else if (error instanceof FunctionsFetchError) {
-            throw new Error(`Network Error: ${error.message}`);
-          }
-          throw error;
-        }
+      // Fetch from database
+      const { data: dbHistory, error: dbError } = await supabase
+        .from('market_funding_rates')
+        .select('*')
+        .eq('symbol', symbol)
+        .eq('exchange', exchange)
+        .order('timestamp', { ascending: true })
+        .limit(200);
 
-        if (!data?.success || !data.candles) {
-          throw new Error(data?.error || 'No funding data received');
-        }
+      if (dbError) {
+        console.error("Database fetch error:", dbError);
+        throw new Error(dbError.message);
+      }
 
-        return data;
-      }, 3, 2000);
+      if (!dbHistory || dbHistory.length === 0) {
+        setState({
+          candles: [],
+          stats: null,
+          isLoading: false,
+          error: "No funding history available",
+        });
+        return;
+      }
 
-      const newState: FundingHistoryState = {
-        candles: result.candles,
-        stats: result.stats,
-        isLoading: false,
-        error: null,
+      // Transform to candle format
+      const candles: FundingCandle[] = dbHistory.map((entry: any) => ({
+        time: entry.timestamp,
+        open: parseFloat(entry.rate),
+        high: parseFloat(entry.rate),
+        low: parseFloat(entry.rate),
+        close: parseFloat(entry.rate),
+      }));
+
+      const rates = candles.map((c) => c.close);
+      const stats = {
+        count: candles.length,
+        average: rates.reduce((a, b) => a + b, 0) / rates.length,
+        min: Math.min(...rates),
+        max: Math.max(...rates),
       };
 
-      CACHE[cacheKey] = { data: newState, timestamp: Date.now() };
-      setState(newState);
-    } catch (error) {
-      console.error('Funding history fetch failed:', error);
-      
+      // Store in cache
+      setCachedHistory(cacheKey, { candles, stats });
+
+      setState({ candles, stats, isLoading: false, error: null });
+    } catch (err: any) {
+      console.error("Error fetching funding history:", err);
       setState({
         candles: [],
         stats: null,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch funding history',
+        error: err.message || "Failed to fetch funding history",
       });
     }
   }, [symbol, exchange]);

@@ -6,7 +6,7 @@ interface FundingRateResponse {
   symbol: string;
   exchange: string;
   rate: number;
-  timestamp: number;
+  timestamp: number | string;
   updatedAt?: number;
   error?: string;
   message?: string;
@@ -30,31 +30,36 @@ export const useFundingRate = (symbol: string) => {
       try {
         const cleanSymbol = symbol.replace("USDT", "").replace("USD", "").trim();
         
-        // Double check after cleaning
         if (!cleanSymbol) {
           setIsLoading(false);
           return;
         }
         
-        const { data: result, error } = await supabase.functions.invoke<FundingRateResponse>(
-          "fetch-current-funding",
-          {
-            body: { 
-              symbol: cleanSymbol, 
-              exchange: "Binance"
-            },
-          }
-        );
+        // Fetch from database
+        const { data: dbRate, error: dbError } = await supabase
+          .from('market_funding_rates')
+          .select('*')
+          .eq('symbol', symbol)
+          .eq('exchange', 'Binance')
+          .order('timestamp', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (error) {
-          console.error("Failed to fetch funding rate:", error);
+        if (dbError) {
+          console.error("Database fetch error:", dbError);
+          setIsLoading(false);
           return;
         }
-        
-        if (result?.success) {
-          setData(result);
-        } else if (result?.error) {
-          console.error("Funding rate error:", result.error, result.message);
+
+        if (dbRate) {
+          setData({
+            success: true,
+            symbol: dbRate.symbol,
+            exchange: dbRate.exchange,
+            rate: parseFloat(String(dbRate.rate)),
+            timestamp: Number(dbRate.timestamp),
+            updatedAt: new Date(dbRate.created_at).getTime()
+          });
         }
       } catch (err) {
         console.error("Failed to fetch funding rate:", err);
