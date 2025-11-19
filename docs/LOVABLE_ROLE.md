@@ -376,6 +376,52 @@ A clean, stable, fast, modern trading dashboard with zero crashes — **self-hea
 
 ---
 
+## 9. COMMON FIXES AND KNOWN ISSUES
+
+### React Query Configuration Error
+
+**Error**: `"No QueryClient set, use QueryClientProvider to set one"`
+
+**Cause**: Components using `useQuery`, `useMutation`, or other React Query hooks require a `QueryClientProvider` at the app root.
+
+**When This Occurs**:
+- Creating components that fetch from `market_funding_rates` table
+- Creating components that fetch from `market_candles` table
+- Creating components that fetch from `market_snapshots` table
+- Any component using React Query hooks (`useQuery`, `useMutation`, `useQueryClient`)
+
+**Fix**: Ensure `src/main.tsx` has QueryClientProvider configured:
+
+```typescript
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60000, // 1 minute
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Wrap App with provider
+<QueryClientProvider client={queryClient}>
+  <App />
+</QueryClientProvider>
+```
+
+**Prevention**: 
+- Always verify QueryClientProvider exists in `main.tsx` before using `useQuery` in components
+- Check this first when encountering blank pages or "No QueryClient" errors
+- This is a ONE-TIME setup that enables all database queries throughout the app
+
+**Example Components That Need This**:
+- `MarketInsightsPanel` (fetches funding rates)
+- `FundingRateChart` (fetches historical funding data)
+- Any component with `supabase.from('table_name').select()`
+
+---
+
 ## Documentation Reference
 
 This directive should be read alongside:
