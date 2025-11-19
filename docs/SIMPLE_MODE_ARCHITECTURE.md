@@ -37,6 +37,7 @@ This trading dashboard operates in **Simple Mode** - a streamlined architecture 
 ### Backend (Minimal)
 - **tatum-price-logger**: Logs prices at intervals (1m, 5m, 10m, 15m, 1h)
 - **websocket-price-stream**: Real-time price WebSocket relay
+- **Market Metrics API** (Trading Dashboard only): CoinGlass API for funding rate, open interest, long/short ratio, and liquidations
 
 ### Database
 Essential tables only:
