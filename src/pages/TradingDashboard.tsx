@@ -2,9 +2,8 @@ import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { TradingCommandCenter } from "@/components/trading/TradingCommandCenter";
 import { TradingViewChart } from "@/components/TradingViewChart";
-import { AIDecisionPanel } from "@/components/trading/AIDecisionPanel";
+import { LocalIndicatorsPanel } from "@/components/trading/LocalIndicatorsPanel";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
-import { calculateTradeSignal } from "@/lib/signalEngine";
 
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
@@ -19,24 +18,9 @@ export default function TradingDashboard() {
 
   const normalizedSymbol = normalizeSymbol(symbol);
 
-  const { chartData, isLoading: chartLoading } = useProfessionalChartData(normalizedSymbol);
+  const { chartData } = useProfessionalChartData(normalizedSymbol);
 
   const currentPrice = chartData?.candles1h?.[chartData.candles1h.length - 1]?.close ?? null;
-
-  let aiSignal = null;
-
-  if (chartData && chartData.candles1h.length > 10 && chartData.indicators) {
-    aiSignal = calculateTradeSignal({
-      price1h: chartData.candles1h[chartData.candles1h.length - 1]?.close ?? 0,
-      ema501h: chartData.indicators["1h"].ema50,
-      rsi1h: chartData.indicators["1h"].rsi,
-      price15m: chartData.candles15m[chartData.candles15m.length - 1]?.close ?? 0,
-      ema5015m: chartData.indicators["15m"].ema50,
-      rsi15m: chartData.indicators["15m"].rsi,
-      currentVolume: chartData.candles1h[chartData.candles1h.length - 1]?.volume ?? 0,
-      volumeSMA: chartData.indicators["1h"].volumeSMA,
-    });
-  }
 
   return (
     <AppShell showProgress={false} minutesCollected={0} minutesRequired={0} symbol={normalizedSymbol}>
@@ -54,7 +38,7 @@ export default function TradingDashboard() {
         </div>
 
         <div className="lg:col-span-4 flex flex-col gap-2 overflow-y-auto">
-          <AIDecisionPanel aiData={aiSignal} isLoading={chartLoading} error={null} currentPrice={currentPrice} />
+          <LocalIndicatorsPanel candles={chartData?.candles1h || []} />
         </div>
       </div>
 
