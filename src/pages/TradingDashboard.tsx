@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TradingNavigation } from "@/components/trading/TradingNavigation";
 import { FilterBar } from "@/components/trading/FilterBar";
@@ -14,6 +14,7 @@ import { formatPrice, formatVolume } from "@/lib/priceFormatter";
 import { Card } from "@/components/ui/card";
 import { useAIAnalysis } from "@/hooks/useAIAnalysis";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
+import { toast } from "@/hooks/use-toast";
 
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
@@ -33,6 +34,16 @@ export default function TradingDashboard() {
   
   const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000);
   const { chartData } = useProfessionalChartData(normalizedSymbol);
+
+  // DEBUG: Show what data we have
+  useEffect(() => {
+    if (chartData) {
+      toast({
+        title: "📊 Chart Data Loaded",
+        description: `1h: ${chartData.candles1h?.length || 0} candles, 15m: ${chartData.candles15m?.length || 0} candles`,
+      });
+    }
+  }, [chartData]);
 
   const currentPrice =
     candles.length > 0
