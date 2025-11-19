@@ -7,7 +7,10 @@ interface FundingRateResponse {
   exchange: string;
   rate: number;
   timestamp: number;
+  updatedAt?: number;
   error?: string;
+  message?: string;
+  detail?: any;
 }
 
 export const useFundingRate = (symbol: string) => {
@@ -43,9 +46,15 @@ export const useFundingRate = (symbol: string) => {
           }
         );
 
-        if (error) throw error;
+        if (error) {
+          console.error("Failed to fetch funding rate:", error);
+          return;
+        }
+        
         if (result?.success) {
           setData(result);
+        } else if (result?.error) {
+          console.error("Funding rate error:", result.error, result.message);
         }
       } catch (err) {
         console.error("Failed to fetch funding rate:", err);
@@ -56,8 +65,8 @@ export const useFundingRate = (symbol: string) => {
 
     fetchFundingRate();
     
-    // Refresh every 8 hours (funding rate interval)
-    const interval = setInterval(fetchFundingRate, 8 * 60 * 60 * 1000);
+    // Refresh every 4 hours (matching cache TTL)
+    const interval = setInterval(fetchFundingRate, 4 * 60 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, [symbol]);

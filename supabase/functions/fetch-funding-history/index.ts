@@ -20,33 +20,93 @@ interface CoinglassResponse {
   data: FundingRateCandle[];
 }
 
+// In-memory cache with TTL
+const CACHE: Record<string, { time: number; data: any }> = {};
+const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+
+// Safe fetch wrapper that never throws
+async function safeFetch(url: string, options: RequestInit) {
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      return { ok: false, status: res.status, text };
+    }
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      return { ok: false, status: res.status, text: "Failed to parse JSON" };
+    }
+    return { ok: true, status: res.status, data };
+  } catch (e: any) {
+    return { ok: false, status: 0, error: e.message || "Network Failure" };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { symbol, exchange = 'Binance', interval = '8h', limit = 100 } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { symbol, exchange = 'Binance', interval = '4h', limit = 100 } = body;
     
     // Validate symbol using shared validation function
     const validation = validateSymbol(symbol);
     if (!validation.valid) {
-      throw new Error(`Invalid symbol: ${validation.error}`);
+      return new Response(
+        JSON.stringify({
+          error: 'INVALID_SYMBOL',
+          message: `Invalid symbol: ${validation.error}`,
+          detail: null
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Enforce 4h interval for Hobbyist plan
+    if (interval !== '4h') {
+      return new Response(
+        JSON.stringify({
+          error: 'INVALID_INTERVAL',
+          message: 'Hobbyist plan requires 4h interval',
+          detail: 'Please upgrade your plan for more granular intervals'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Normalize symbol for CoinGlass API
     const cleanedSymbol = symbol.toUpperCase().trim();
-    
-    // Remove any trailing USDT, USD
     let baseSymbol = cleanedSymbol
       .replace(/USDT$/i, '')
       .replace(/USD$/i, '');
-    
     const formattedSymbol = `${baseSymbol}USDT`;
+
+    // Check cache first
+    const cacheKey = `${formattedSymbol}:${exchange}:funding:4h`;
+    const now = Date.now();
+    
+    if (CACHE[cacheKey] && (now - CACHE[cacheKey].time < CACHE_TTL)) {
+      console.log(`Cache hit for ${formattedSymbol} funding rate history`);
+      return new Response(
+        JSON.stringify(CACHE[cacheKey].data),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const apiKey = Deno.env.get('COINGLASS_API_KEY');
     if (!apiKey) {
-      throw new Error('COINGLASS_API_KEY not configured');
+      return new Response(
+        JSON.stringify({
+          error: 'CONFIG_ERROR',
+          message: 'COINGLASS_API_KEY not configured',
+          detail: null
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log(`Fetching funding rate history for ${formattedSymbol} on ${exchange} with interval ${interval}...`);
@@ -57,21 +117,36 @@ Deno.serve(async (req) => {
     url.searchParams.append('interval', interval);
     url.searchParams.append('limit', limit.toString());
 
-    const response = await fetch(url.toString(), {
+    const cgResponse = await safeFetch(url.toString(), {
       headers: {
         'CG-API-KEY': apiKey,
         'accept': 'application/json',
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`CoinGlass API returned ${response.status}: ${response.statusText}`);
+    if (!cgResponse.ok) {
+      return new Response(
+        JSON.stringify({
+          error: 'COINGLASS_ERROR',
+          message: 'Failed to fetch from CoinGlass API',
+          detail: cgResponse.text || cgResponse.error || null,
+          status: cgResponse.status
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const data: CoinglassResponse = await response.json();
+    const data: CoinglassResponse = cgResponse.data;
 
     if (data.code !== '0' || !data.data) {
-      throw new Error(`CoinGlass API error: ${data.msg}`);
+      return new Response(
+        JSON.stringify({
+          error: 'COINGLASS_API_ERROR',
+          message: `CoinGlass API error: ${data.msg}`,
+          detail: data
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Convert string values to numbers and calculate stats
@@ -95,37 +170,38 @@ Deno.serve(async (req) => {
 
     console.log(`Successfully fetched ${numericCandles.length} funding rate candles. Avg: ${avgFunding.toFixed(4)}%`);
 
+    const payload = {
+      success: true,
+      symbol,
+      exchange,
+      interval,
+      candles: numericCandles,
+      stats: {
+        count: numericCandles.length,
+        average: avgFunding,
+        min: minRate,
+        max: maxRate,
+      },
+      updatedAt: now
+    };
+
+    // Store in cache
+    CACHE[cacheKey] = { time: now, data: payload };
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        symbol,
-        exchange,
-        interval,
-        candles: numericCandles,
-        stats: {
-          count: numericCandles.length,
-          average: avgFunding,
-          min: minRate,
-          max: maxRate,
-        },
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify(payload),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error fetching funding rate history:', error);
+    console.error('Unexpected error in fetch-funding-history:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({
-        success: false,
-        error: errorMessage,
-        candles: [],
+        error: 'UNEXPECTED_ERROR',
+        message: errorMessage,
+        detail: null
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
