@@ -1,19 +1,35 @@
 import React from "react";
 
-export function LocalIndicatorsPanel({ candles }: { candles: Array<{ close: number; high: number; low: number; volume: number; open: number }> }) {
+type Candle = {
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
+
+export function LocalIndicatorsPanel({ candles }: { candles: Candle[] }) {
   if (!candles || candles.length < 200) return null;
 
-  const closes = candles.map(c => c.close);
-  const volumes = candles.map(c => c.volume);
+  const closes = candles.map((c) => c.close);
+  const volumes = candles.map((c) => c.volume);
+  const len = closes.length;
+
+  const lastClose = closes[len - 1];
+  const lastCandle = candles[len - 1];
 
   // --- EMA ---
-  const ema = (period: number) => {
-    let k = 2 / (period + 1);
-    let emaArr: number[] = [];
-    let sma = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  const ema = (period: number): number[] => {
+    if (len < period) return [];
+    const k = 2 / (period + 1);
+    const emaArr: number[] = [];
+
+    const sma = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
     emaArr[period - 1] = sma;
-    for (let i = period; i < closes.length; i++)
+
+    for (let i = period; i < closes.length; i++) {
       emaArr[i] = closes[i] * k + emaArr[i - 1] * (1 - k);
+    }
     return emaArr;
   };
 
@@ -21,43 +37,50 @@ export function LocalIndicatorsPanel({ candles }: { candles: Array<{ close: numb
   const ema50 = ema(50);
   const ema200 = ema(200);
 
-  // Trend Score
-  const trendScore =
-    (closes.at(-1)! > ema20.at(-1)! ? 1 : 0) +
-    (ema20.at(-1)! > ema50.at(-1)! ? 1 : 0) +
-    (ema50.at(-1)! > ema200.at(-1)! ? 1 : 0);
+  const lastE20 = ema20[len - 1] ?? null;
+  const lastE50 = ema50[len - 1] ?? null;
+  const lastE200 = ema200[len - 1] ?? null;
 
-  // RSI
-  let gains = 0, losses = 0;
-  const len = closes.length;
+  const trendScore =
+    (lastClose > (lastE20 ?? Infinity) ? 1 : 0) +
+    ((lastE20 ?? Infinity) > (lastE50 ?? Infinity) ? 1 : 0) +
+    ((lastE50 ?? Infinity) > (lastE200 ?? Infinity) ? 1 : 0);
+
+  // --- RSI 14 ---
+  let gain = 0;
+  let loss = 0;
+
   for (let i = len - 14; i < len; i++) {
     const diff = closes[i] - closes[i - 1];
-    if (diff > 0) gains += diff;
-    else losses -= diff;
+    if (diff > 0) gain += diff;
+    else loss -= diff;
   }
-  const rs = gains / (losses || 1);
+
+  const rs = gain / (loss || 1);
   const rsi = 100 - 100 / (1 + rs);
 
-  // Candle Strength
-  const last = candles.at(-1)!;
-  const strength = ((last.close - last.open) / (last.high - last.low)) || 0;
+  // --- Candle Strength ---
+  const strength =
+    lastCandle && lastCandle.high !== lastCandle.low
+      ? (lastCandle.close - lastCandle.open) / (lastCandle.high - lastCandle.low)
+      : 0;
 
-  // ATR
-  let atr = 0;
+  // --- ATR 14 ---
+  let atrSum = 0;
   for (let i = len - 14; i < len; i++) {
-    const c = candles[i], p = candles[i - 1];
-    const tr = Math.max(
-      c.high - c.low,
-      Math.abs(c.high - p.close),
-      Math.abs(c.low - p.close)
-    );
-    atr += tr;
-  }
-  atr = atr / 14;
+    const c = candles[i];
+    const p = candles[i - 1] ?? candles[i]; // safe fallback for first element
 
-  // Volume Pressure
+    const tr = Math.max(c.high - c.low, Math.abs(c.high - p.close), Math.abs(c.low - p.close));
+
+    atrSum += tr;
+  }
+  const atr = atrSum / 14;
+
+  // --- Volume Pressure ---
   const vol20 = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
-  const volPressure = volumes.at(-1)! / vol20;
+
+  const volPressure = vol20 ? volumes[len - 1] / vol20 : 0;
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-[#11131a] rounded-xl text-white text-sm">
