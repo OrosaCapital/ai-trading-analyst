@@ -82,27 +82,66 @@ const { data } = await supabase.functions.invoke('fetch-exchange-pairs');
 
 ---
 
-### 3. Funding Rate History
+### 3. Funding Rate History (OHLC)
 
 **Function:** `fetch-funding-history`
 
 **Endpoint:** `GET /api/futures/funding-rate/history`
 
-**Description:** Retrieves historical funding rate data in OHLC (Open, High, Low, Close) candlestick format for a specific trading pair and exchange.
+**Operation ID:** `fr-ohlc-histroy`
 
-**Request:**
+**Description:** Retrieves historical funding rate data in OHLC (Open, High, Low, Close) candlestick format for specified futures trading pairs.
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|----------|------|----------|-------------|
+| `exchange` | string | Yes | Name of futures exchange (e.g., "Binance", "OKX"). |
+| `symbol` | string | Yes | Trading pair symbol (e.g., "BTCUSDT"). Supported pairs come from `supported-exchange-pair`. |
+| `interval` | string | Yes | OHLC interval. Supported: `1m`, `3m`, `5m`, `15m`, `30m`, `1h`, `4h`, `6h`, `8h`, `12h`, `1d`, `1w`. |
+| `limit` | integer | No | Number of results. Default 1000, max 1000. |
+| `start_time` | integer | No | Start timestamp in milliseconds. |
+| `end_time` | integer | No | End timestamp in milliseconds. |
+
+**Request Example:**
 ```typescript
 const { data } = await supabase.functions.invoke('fetch-funding-history', {
   body: {
     symbol: "BTC",           // Required: Trading pair symbol
-    exchange: "Binance",     // Optional: Defaults to "Binance"
-    interval: "8h",          // Optional: "1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "8h", "12h", "1d", "1w"
-    limit: 100               // Optional: Max 1000, defaults to 100
+    exchange: "Binance",     // Required: Exchange name
+    interval: "8h",          // Required: OHLC interval
+    limit: 100,              // Optional: Max 1000, defaults to 1000
+    start_time: 1658880000000, // Optional: Start timestamp
+    end_time: 1658966400000    // Optional: End timestamp
   }
 });
 ```
 
-**Response:**
+**Response Example:**
+```json
+{
+  "code": "0",
+  "msg": "success",
+  "data": [
+    {
+      "time": 1658880000000,
+      "open": "0.004603",
+      "high": "0.009388",
+      "low": "-0.005063",
+      "close": "0.009229"
+    },
+    {
+      "time": 1658966400000,
+      "open": "0.009229",
+      "high": "0.01",
+      "low": "0.007794",
+      "close": "0.01"
+    }
+  ]
+}
+```
+
+**Internal Response Format:**
 ```typescript
 {
   success: true,
@@ -128,11 +167,17 @@ const { data } = await supabase.functions.invoke('fetch-funding-history', {
 }
 ```
 
-**Supported Intervals:**
-- `1m`, `3m`, `5m`, `15m`, `30m` - Minute intervals
-- `1h`, `4h`, `6h`, `8h`, `12h` - Hour intervals
-- `1d` - Daily
-- `1w` - Weekly
+**Plan Limitations:**
+- Available in all plans.
+- **Hobbyist:** interval must be **≥ 4h**
+- **Startup:** interval must be **≥ 30m**
+- **Standard / Professional / Enterprise:** no interval limitation
+
+**Important Notes:**
+- Ideal for funding-rate candlestick visualization.
+- Ensure the pair is supported via `supported-exchange-pair` endpoint.
+- Funding rate values may be positive or negative.
+- You may omit `start_time`/`end_time` and rely on `limit` for recent data.
 
 **Use Case:** Charting funding rate trends, analyzing market sentiment, identifying leverage imbalances.
 
