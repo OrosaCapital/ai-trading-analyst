@@ -103,26 +103,7 @@ export function useProfessionalChartData(symbol: string | null) {
     updateChartData();
   }, [priceData, isConnected, symbol]);
 
-  useEffect(() => {
-    if (!symbol) return;
-
-    const load = async () => {
-      try {
-        const { data } = await supabase.functions.invoke("fetch-market-overview", {
-          body: { symbol: symbol.replace("/", "").toUpperCase() },
-        });
-
-        if (data && chartData) {
-          setChartData({
-            ...chartData,
-            coinglass: parseCoinglassData(data),
-          });
-        }
-      } catch (_) {}
-    };
-
-    load();
-  }, [symbol]);
+  // SIMPLE DATA MODE: No external API calls
 
   const updateChartData = () => {
     if (candles1mRef.current.length === 0) return;
@@ -168,12 +149,12 @@ export function useProfessionalChartData(symbol: string | null) {
       },
       coinglass: {
         fundingRate: 0,
-        fundingSentiment: "neutral",
+        fundingSentiment: "neutral" as const,
         openInterest: 0,
         oiChange: 0,
         liquidations: { longs: 0, shorts: 0 },
         longShortRatio: 1,
-        overallSentiment: "neutral",
+        overallSentiment: "neutral" as const,
       },
       levels,
       liquiditySweeps,
@@ -195,24 +176,5 @@ export function useProfessionalChartData(symbol: string | null) {
   return { chartData, isLoading, error };
 }
 
-function parseCoinglassData(data: any) {
-  const fundingRate = Number(data.fundingRate || 0);
-  const openInterest = Number(data.openInterest || 0);
-  const oiChange = Number(data.oiChange || 0);
-  const longRatio = Number(data.longAccountRatio || 50);
-  const shortRatio = 100 - longRatio;
+// SIMPLE DATA MODE: Removed parseCoinglassData - all market data is now local placeholders
 
-  return {
-    fundingRate,
-    fundingSentiment: fundingRate > 0 ? "bullish" : fundingRate < 0 ? "bearish" : "neutral",
-    openInterest: openInterest,
-    oiChange,
-    liquidations: {
-      longs: Number(data.liquidations?.longs || 0),
-      shorts: Number(data.liquidations?.shorts || 0),
-    },
-    longShortRatio: longRatio / (shortRatio || 1),
-    overallSentiment:
-      fundingRate > 0.01 && oiChange > 0 ? "bullish" : fundingRate < -0.01 && oiChange < 0 ? "bearish" : "neutral",
-  };
-}

@@ -24,8 +24,8 @@ export interface SignalConditions {
   // Volume
   volumeIncreasing: boolean;
   
-  // Coinglass sentiment
-  coinglassBullish: boolean;
+  // Local sentiment (based on price action)
+  localSentimentBullish: boolean;
 }
 
 export interface ChartDataForSignal {
@@ -39,8 +39,6 @@ export interface ChartDataForSignal {
   
   currentVolume: number;
   volumeSMA: number[];
-  
-  coinglassSentiment: 'bullish' | 'bearish' | 'neutral';
 }
 
 export function calculateTradeSignal(data: ChartDataForSignal): TradeSignal {
@@ -52,7 +50,7 @@ export function calculateTradeSignal(data: ChartDataForSignal): TradeSignal {
     ema15mSlopePositive: false,
     rsi15mBullish: false,
     volumeIncreasing: false,
-    coinglassBullish: false,
+    localSentimentBullish: false,
   };
   
   const reasons: string[] = [];
@@ -79,7 +77,11 @@ export function calculateTradeSignal(data: ChartDataForSignal): TradeSignal {
   conditions.rsi15mBullish = currentRSI15m > 50;
   
   conditions.volumeIncreasing = data.currentVolume > currentVolumeSMA;
-  conditions.coinglassBullish = data.coinglassSentiment === 'bullish';
+  
+  // SIMPLE DATA MODE: Local sentiment based on price action
+  const localSentiment = (ema1hSlope > 0 && ema15mSlope > 0) ? 'bullish' : 
+                         (ema1hSlope < 0 && ema15mSlope < 0) ? 'bearish' : 'neutral';
+  conditions.localSentimentBullish = localSentiment === 'bullish';
   
   // Evaluate BUY signal
   const buyConditionsMet = [
@@ -90,7 +92,7 @@ export function calculateTradeSignal(data: ChartDataForSignal): TradeSignal {
     conditions.ema15mSlopePositive,
     conditions.rsi15mBullish,
     conditions.volumeIncreasing,
-    conditions.coinglassBullish,
+    conditions.localSentimentBullish,
   ];
   
   if (buyConditionsMet.every(c => c)) {
@@ -102,7 +104,7 @@ export function calculateTradeSignal(data: ChartDataForSignal): TradeSignal {
         '15M confirms bullish momentum',
         `RSI favorable (1H: ${currentRSI1h.toFixed(0)}, 15M: ${currentRSI15m.toFixed(0)})`,
         'Volume increasing above average',
-        'Coinglass 4H sentiment supports bullish conditions',
+        'Local sentiment analysis supports bullish conditions',
       ],
       failedConditions: [],
       timestamp: Date.now(),
@@ -118,7 +120,7 @@ export function calculateTradeSignal(data: ChartDataForSignal): TradeSignal {
     ema15mSlopeNegative: ema15mSlope < 0,
     rsi15mBearish: currentRSI15m < 50,
     volumeIncreasing: data.currentVolume > currentVolumeSMA,
-    coinglassBearish: data.coinglassSentiment === 'bearish',
+    localSentimentBearish: localSentiment === 'bearish',
   };
   
   const sellConditionsMet = [
@@ -129,7 +131,7 @@ export function calculateTradeSignal(data: ChartDataForSignal): TradeSignal {
     sellConditions.ema15mSlopeNegative,
     sellConditions.rsi15mBearish,
     sellConditions.volumeIncreasing,
-    sellConditions.coinglassBearish,
+    sellConditions.localSentimentBearish,
   ];
   
   if (sellConditionsMet.every(c => c)) {
@@ -164,8 +166,8 @@ export function calculateTradeSignal(data: ChartDataForSignal): TradeSignal {
   if (!conditions.volumeIncreasing) {
     failedConditions.push('Volume below average');
   }
-  if (data.coinglassSentiment === 'neutral') {
-    failedConditions.push('Coinglass sentiment neutral');
+  if (localSentiment === 'neutral') {
+    failedConditions.push('Local sentiment neutral');
   }
   
   return {

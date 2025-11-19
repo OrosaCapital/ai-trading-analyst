@@ -322,7 +322,6 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
           rsi15m: indicators.rsi?.slice(0, i + 1) || [],
           currentVolume: currentCandle.volume || 0,
           volumeSMA: indicators.volumeSMA?.slice(0, i + 1) || [],
-          coinglassSentiment: chartData.coinglass?.overallSentiment || 'neutral',
         };
 
         const signal = calculateTradeSignal(signalData);
