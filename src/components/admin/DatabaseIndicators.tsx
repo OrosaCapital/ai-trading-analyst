@@ -1,21 +1,10 @@
 import { Database, Table, Clock, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
-
-const mockDatabaseMetrics = {
-  activeDatabases: 4,
-  priceTables: 4,
-  lastSync: "—",
-  totalRecords: "~29,000"
-};
-
-const mockTables = [
-  { name: "market_snapshots", status: "Active", records: "—", lastUpdate: "—", health: "success" },
-  { name: "market_candles", status: "Active", records: "—", lastUpdate: "—", health: "success" },
-  { name: "market_funding_rates", status: "Active", records: "—", lastUpdate: "—", health: "success" },
-  { name: "tatum_price_logs", status: "Idle", records: "—", lastUpdate: "—", health: "neutral" }
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDatabaseMetrics } from "@/hooks/useDatabaseMetrics";
 
 export function DatabaseIndicators() {
+  const { data: metrics, isLoading, error } = useDatabaseMetrics();
   const getHealthColor = (health: string) => {
     switch (health) {
       case "success":
@@ -34,6 +23,33 @@ export function DatabaseIndicators() {
     return "bg-muted/20 text-muted-foreground border-muted/30";
   };
 
+  if (isLoading) {
+    return (
+      <Card className="p-6 bg-gradient-to-br from-card via-card to-card/95 border border-border/40">
+        <div className="flex items-center gap-2 mb-6">
+          <Database className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Database Indicators</h3>
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (error || !metrics) {
+    return (
+      <Card className="p-6 bg-gradient-to-br from-card via-card to-card/95 border border-border/40">
+        <div className="flex items-center gap-2 mb-6">
+          <Database className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Database Indicators</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">Error loading database metrics</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6 bg-gradient-to-br from-card via-card to-card/95 border border-border/40 hover:border-primary/40 transition-all duration-300">
       <div className="flex items-center gap-2 mb-6">
@@ -48,7 +64,7 @@ export function DatabaseIndicators() {
             <Database className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Active</span>
           </div>
-          <div className="text-2xl font-bold">{mockDatabaseMetrics.activeDatabases}</div>
+          <div className="text-2xl font-bold">{metrics.activeDatabases}</div>
         </div>
 
         <div className="bg-background/50 rounded-lg p-3 border border-border/30">
@@ -56,7 +72,7 @@ export function DatabaseIndicators() {
             <Table className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Tables</span>
           </div>
-          <div className="text-2xl font-bold">{mockDatabaseMetrics.priceTables}</div>
+          <div className="text-2xl font-bold">{metrics.priceTables}</div>
         </div>
 
         <div className="bg-background/50 rounded-lg p-3 border border-border/30">
@@ -64,7 +80,7 @@ export function DatabaseIndicators() {
             <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Last Sync</span>
           </div>
-          <div className="text-2xl font-bold">{mockDatabaseMetrics.lastSync}</div>
+          <div className="text-2xl font-bold">{metrics.lastSync}</div>
         </div>
 
         <div className="bg-background/50 rounded-lg p-3 border border-border/30">
@@ -72,7 +88,7 @@ export function DatabaseIndicators() {
             <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Records</span>
           </div>
-          <div className="text-2xl font-bold">{mockDatabaseMetrics.totalRecords}</div>
+          <div className="text-2xl font-bold">{metrics.totalRecords.toLocaleString()}</div>
         </div>
       </div>
 
@@ -80,7 +96,7 @@ export function DatabaseIndicators() {
       <div>
         <h4 className="text-sm font-semibold text-muted-foreground mb-3">Database Tables</h4>
         <div className="space-y-2">
-          {mockTables.map((table) => (
+          {metrics.tables.map((table) => (
             <div
               key={table.name}
               className="flex items-center justify-between p-3 bg-background/30 rounded-lg border border-border/20 hover:border-border/40 transition-colors"
@@ -95,7 +111,7 @@ export function DatabaseIndicators() {
                 <span className={`text-xs px-2 py-1 rounded-md border ${getStatusBadgeColor(table.status)}`}>
                   {table.status}
                 </span>
-                <span className="text-xs text-muted-foreground w-16 text-right">{table.records}</span>
+                <span className="text-xs text-muted-foreground w-16 text-right">{table.records.toLocaleString()}</span>
                 <span className="text-xs text-muted-foreground w-20 text-right">{table.lastUpdate}</span>
               </div>
             </div>
