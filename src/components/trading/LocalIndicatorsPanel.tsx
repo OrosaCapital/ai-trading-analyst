@@ -9,90 +9,63 @@ type Candle = {
 };
 
 export function LocalIndicatorsPanel({ candles }: { candles: Candle[] }) {
-  // Always show panel — fallback to placeholders if not enough data
-  const safeCandles = candles || [];
-  const len = safeCandles.length;
+  if (!candles || candles.length < 50) return null;
 
-  const closes = safeCandles.map((c) => c.close);
-  const volumes = safeCandles.map((c) => c.volume);
+  const closes = candles.map((c) => c.close);
+  const volumes = candles.map((c) => c.volume);
+  const len = closes.length;
 
-  const lastCandle = safeCandles[len - 1] || {
-    open: 0,
-    high: 0,
-    low: 0,
-    close: 0,
-    volume: 0,
-  };
+  const lastClose = closes[len - 1];
+  const lastCandle = candles[len - 1];
 
-  const lastClose = lastCandle.close;
-
-  // --- EMA ---
-  const ema = (period: number): number[] => {
-    if (len < period) return [];
+  const ema = (period: number): number | null => {
+    if (len < period) return null;
     const k = 2 / (period + 1);
-    const emaArr: number[] = [];
+    let emaPrev = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
 
-    const sma = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
-    emaArr[period - 1] = sma;
-
-    for (let i = period; i < closes.length; i++) {
-      emaArr[i] = closes[i] * k + emaArr[i - 1] * (1 - k);
+    for (let i = period; i < len; i++) {
+      emaPrev = closes[i] * k + emaPrev * (1 - k);
     }
-
-    return emaArr;
+    return emaPrev;
   };
 
   const ema20 = ema(20);
   const ema50 = ema(50);
-  const ema200 = ema(200);
 
-  const lastE20 = ema20[len - 1] ?? lastClose;
-  const lastE50 = ema50[len - 1] ?? lastClose;
-  const lastE200 = ema200[len - 1] ?? lastClose;
+  const trendScore = (lastClose > (ema20 ?? Infinity) ? 1 : 0) + ((ema20 ?? Infinity) > (ema50 ?? Infinity) ? 1 : 0);
 
-  const trendScore = (lastClose > lastE20 ? 1 : 0) + (lastE20 > lastE50 ? 1 : 0) + (lastE50 > lastE200 ? 1 : 0);
-
-  // --- RSI 14 ---
-  let gain = 0;
-  let loss = 0;
-
-  if (len > 15) {
-    for (let i = len - 14; i < len; i++) {
-      const diff = closes[i] - closes[i - 1];
-      if (diff > 0) gain += diff;
-      else loss -= diff;
-    }
+  let gain = 0,
+    loss = 0;
+  for (let i = len - 14; i < len; i++) {
+    const diff = closes[i] - closes[i - 1];
+    if (diff > 0) gain += diff;
+    else loss -= diff;
   }
-
   const rs = gain / (loss || 1);
-  const rsi = len > 15 ? 100 - 100 / (1 + rs) : 50;
+  const rsi = 100 - 100 / (1 + rs);
 
-  // --- Candle Strength ---
   const strength =
-    lastCandle.high !== lastCandle.low ? (lastCandle.close - lastCandle.open) / (lastCandle.high - lastCandle.low) : 0;
+    lastCandle && lastCandle.high !== lastCandle.low
+      ? (lastCandle.close - lastCandle.open) / (lastCandle.high - lastCandle.low)
+      : 0;
 
-  // --- ATR 14 ---
-  let atr = 0;
-  if (len > 15) {
-    for (let i = len - 14; i < len; i++) {
-      const c = safeCandles[i];
-      const p = safeCandles[i - 1] ?? c;
-
-      const tr = Math.max(c.high - c.low, Math.abs(c.high - p.close), Math.abs(c.low - p.close));
-
-      atr += tr;
-    }
-    atr = atr / 14;
+  let atrSum = 0;
+  for (let i = len - 14; i < len; i++) {
+    const c = candles[i];
+    const p = candles[i - 1] ?? candles[i];
+    const tr = Math.max(c.high - c.low, Math.abs(c.high - p.close), Math.abs(c.low - p.close));
+    atrSum += tr;
   }
+  const atr = atrSum / 14;
 
-  // --- Volume Pressure ---
-  const vol20 = volumes.slice(-20).reduce((a, b) => a + b, 0) / (volumes.slice(-20).length || 1);
-
-  const volPressure = vol20 ? volumes[len - 1] / vol20 : 1;
+  const vol20 = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+  const volPressure = vol20 ? volumes[len - 1] / vol20 : 0;
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-[#11131a] rounded-xl text-white text-sm">
-      <Item label="Trend Score (0-3)" value={trendScore} />
+      <Item label="Trend Score (0-2)" value={trendScore} />
+      <Item label="EMA20" value={ema20?.toFixed(2) ?? "—"} />
+      <Item label="EMA50" value={ema50?.toFixed(2) ?? "—"} />
       <Item label="RSI-14" value={rsi.toFixed(2)} />
       <Item label="Candle Strength" value={strength.toFixed(2)} />
       <Item label="ATR-14" value={atr.toFixed(5)} />
