@@ -1,4 +1,3 @@
-import { MarketMetricsPanel } from "@/components/dashboard/MarketMetricsPanel";
 import { ChartPanel } from "@/components/dashboard/ChartPanel";
 import { AIAnalysisPanel } from "@/components/dashboard/AIAnalysisPanel";
 
@@ -15,19 +14,14 @@ export const DashboardPreview = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Panel - Market Metrics */}
-          <div className="lg:col-span-3">
-            <MarketMetricsPanel symbol="BTC" />
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Center Panel - Chart */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-1">
             <ChartPanel />
           </div>
 
           {/* Right Panel - AI Analysis */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-1">
             <AIAnalysisPanel symbol="BTC" />
           </div>
         </div>

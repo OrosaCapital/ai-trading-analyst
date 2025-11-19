@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSymbolData } from "@/hooks/useSymbolData";
 import { TechMetricCard } from "@/components/symbol/TechMetricCard";
-import { SymbolAIChat } from "@/components/symbol/SymbolAIChat";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
@@ -154,14 +153,6 @@ export default function SymbolDetails() {
                 </p>
               </div>
             </div>
-          </div>
-        </Card>
-
-        {/* AI Market Analyst Chat */}
-        <Card className="relative overflow-hidden bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border-primary/20">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
-          <div className="relative p-6">
-            <SymbolAIChat symbolData={{ symbol: normalizedSymbol, ...data }} />
           </div>
         </Card>
 

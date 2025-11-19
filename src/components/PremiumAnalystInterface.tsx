@@ -5,8 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Send, TrendingUp, Zap, Activity, Sparkles, Radio } from "lucide-react";
 import { SentimentGauge } from "./SentimentGauge";
 import { ProfessionalTradingChart } from "./ProfessionalTradingChart";
-import { PremiumMarketMetrics } from "./PremiumMarketMetrics";
-import { EnhancedMarketMetrics } from "./EnhancedMarketMetrics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useRealtimePriceStream } from "@/hooks/useRealtimePriceStream";
@@ -464,23 +462,6 @@ export const PremiumAnalystInterface = () => {
                 existingChartData={chartData}
               />
             </div>
-          </div>
-        )}
-
-        {/* Market Metrics */}
-        {symbol && (
-          <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <PremiumMarketMetrics symbol={symbol} />
-          </div>
-        )}
-
-        {/* Enhanced Market Metrics */}
-        {symbol && (
-          <div className="animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
-            <EnhancedMarketMetrics 
-              symbol={symbol} 
-              assetType={chartData?.metadata?.assetType as 'crypto' | 'stock' | undefined}
-            />
           </div>
         )}
 

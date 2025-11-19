@@ -258,9 +258,9 @@ function buildSessionStats(candles: { close: number; high: number; low: number }
 }
 
 function buildAlerts(
-  candles1m: { close: number }[],
-  candles15m: { close: number }[],
-  candles1h: { close: number }[],
+  candles1m: { close: number; open: number }[],
+  candles15m: { close: number; open: number }[],
+  candles1h: { close: number; open: number }[],
 ): AlertBadge[] {
   const alerts: AlertBadge[] = [];
 
