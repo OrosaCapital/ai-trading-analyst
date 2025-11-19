@@ -29,13 +29,12 @@ For ALL code you touch:
 
 ## 2. FOLLOW SIMPLE MODE (MANDATORY)
 
-This project is **"Simple Mode Only"**.
+This project is **"Simple Mode with CoinGlass"**.
 
 ### REMOVE any reference to:
-- CoinGlass
 - CoinMarketCap
-- All Supabase Functions (except price logging + WebSocket)
-- All REST fetches
+- All Supabase Functions (except price logging, WebSocket, and CoinGlass)
+- All REST fetches (except CoinGlass API)
 - Any 4h, 1h, 15m, etc data from external sources
 - All unnecessary analytics
 
@@ -44,6 +43,13 @@ This project is **"Simple Mode Only"**.
 - Local candle math
 - WebSocket live price
 - Optional Tatum price fallback
+- **CoinGlass API** (follow API limitations and rate limits)
+
+### CoinGlass API Rules:
+- Respect rate limits (10 requests per second max)
+- Use proper error handling and fallbacks
+- Cache responses appropriately
+- Only use for Trading Dashboard sidebar metrics
 
 **Nothing else.**
 

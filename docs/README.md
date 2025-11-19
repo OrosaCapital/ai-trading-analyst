@@ -17,9 +17,9 @@ This is a **Simple Mode Trading Dashboard** built with:
 - React + TypeScript
 - TradingView Lightweight Charts
 - Local technical indicators
-- Minimal external APIs (Tatum + WebSocket only)
+- Minimal external APIs (Tatum + WebSocket + CoinGlass only)
 
-All external derivative APIs (CoinGlass, CoinMarketCap, etc.) have been removed in favor of local chart-based analysis.
+CoinGlass API is used exclusively for Trading Dashboard sidebar market metrics (funding rate, open interest, liquidations, long/short ratio).
 
 ## Quick Start
 
@@ -30,7 +30,7 @@ All external derivative APIs (CoinGlass, CoinMarketCap, etc.) have been removed 
 
 ## Key Principles
 
-- **Local-first**: All indicators calculated from chart data
-- **No derivatives**: No external derivative data integrations
-- **WebSocket-only**: Real-time updates via WebSocket
+- **Local-first**: All technical indicators calculated from chart data
+- **CoinGlass metrics**: Market data for Trading Dashboard sidebar only
+- **WebSocket-only**: Real-time price updates via WebSocket
 - **Simple & fast**: Minimal architecture, maximum performance
