@@ -64,84 +64,72 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
   });
 
   const fetchCandles = useCallback(async () => {
-    if (!symbol || symbol.trim() === '') {
-      setState({
-        candles: [],
-        isLoading: false,
-        error: 'Invalid symbol',
-        isUsingFallback: false,
-      });
-      return;
-    }
-
-    // Check cache first
-    const cached = getCachedCandles(symbol);
-    if (cached) {
-      setState({
-        candles: cached,
-        isLoading: false,
-        error: null,
-        isUsingFallback: false,
-      });
-      return;
-    }
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const result = await fetchWithRetry(async () => {
-        const { data, error } = await supabase.functions.invoke('fetch-historical-candles', {
-          body: { symbol, limit: 100 },
+      // Check cache first
+      const cached = getCachedCandles(symbol);
+      if (cached) {
+        console.log(`Using cached candles for ${symbol}`);
+        setState({
+          candles: cached,
+          isLoading: false,
+          error: null,
+          isUsingFallback: false,
         });
-
-        if (error) {
-          if (error instanceof FunctionsHttpError) {
-            const errorData = await error.context.json().catch(() => ({}));
-            throw new Error(`API Error: ${errorData.message || error.message}`);
-          } else if (error instanceof FunctionsRelayError) {
-            throw new Error(`Connection Error: ${error.message}`);
-          } else if (error instanceof FunctionsFetchError) {
-            throw new Error(`Network Error: ${error.message}`);
-          }
-          throw error;
-        }
-
-        if (!data?.success || !data?.candles || !Array.isArray(data.candles) || data.candles.length === 0) {
-          throw new Error(data?.message || 'No candle data received');
-        }
-
-        return data.candles;
-      }, 3, 1000);
-
-      const validCandles = result.filter((c: Candle) => 
-        c && typeof c.time === 'number' && 
-        typeof c.open === 'number' && 
-        typeof c.high === 'number' &&
-        typeof c.low === 'number' && 
-        typeof c.close === 'number'
-      );
-
-      if (validCandles.length === 0) {
-        throw new Error('No valid candles after filtering');
+        return;
       }
 
-      setCachedCandles(symbol, validCandles);
-      
-      setState({
-        candles: validCandles,
-        isLoading: false,
-        error: null,
-        isUsingFallback: false,
-      });
-    } catch (error) {
-      console.error('Chart data fetch failed, using fallback:', error);
-      
+      // Fetch from database
+      const { data: dbCandles, error: dbError } = await supabase
+        .from('market_candles')
+        .select('*')
+        .eq('symbol', symbol)
+        .eq('timeframe', '1h')
+        .order('timestamp', { ascending: true })
+        .limit(200);
+
+      if (dbError) {
+        console.error("Database fetch error:", dbError);
+        throw new Error(dbError.message);
+      }
+
+      if (dbCandles && dbCandles.length > 0) {
+        const formattedCandles = dbCandles.map((c: any) => ({
+          time: c.timestamp,
+          open: parseFloat(c.open),
+          high: parseFloat(c.high),
+          low: parseFloat(c.low),
+          close: parseFloat(c.close),
+          volume: parseFloat(c.volume || 0)
+        }));
+
+        setCachedCandles(symbol, formattedCandles);
+        setState({
+          candles: formattedCandles,
+          isLoading: false,
+          error: null,
+          isUsingFallback: false,
+        });
+        return;
+      }
+
+      // If no data in database, use fallback
+      console.warn("No candles in database, using fallback data");
       const fallbackCandles = generateFallbackCandles(symbol, basePrice);
-      
       setState({
         candles: fallbackCandles,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: null,
+        isUsingFallback: true,
+      });
+    } catch (err: any) {
+      console.error("Error in fetchCandles:", err);
+      const fallbackCandles = generateFallbackCandles(symbol, basePrice);
+      setState({
+        candles: fallbackCandles,
+        isLoading: false,
+        error: err.message,
         isUsingFallback: true,
       });
     }
