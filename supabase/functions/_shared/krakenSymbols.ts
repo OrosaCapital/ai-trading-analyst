@@ -19,6 +19,7 @@ export const KRAKEN_SYMBOL_MAP: Record<string, string> = {
   'ATOMUSDT': 'ATOMUSD',
   'LTCUSDT': 'XLTCZUSD',
   'ETCUSDT': 'XETCZUSD',
+  'XLMUSDT': 'XXLMZUSD',
 };
 
 // Reverse map for Kraken -> Standard format
