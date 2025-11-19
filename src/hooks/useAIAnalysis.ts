@@ -39,6 +39,7 @@ export function useAIAnalysis(
     // Check cache
     const cached = cache.get(symbol);
     if (cached && cached.expiresAt > Date.now()) {
+      console.log("AI Analysis: Using cached result");
       setAnalysis(cached.result);
       return;
     }
@@ -113,7 +114,7 @@ Recent 1H Low: ${Math.min(...latest1h.map(c => c.low))}`;
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [symbol, candles1h, candles15m, indicators]);
+  }, [symbol, candles1h.length, candles15m.length, indicators]);
 
   return { analysis, isAnalyzing };
 }
