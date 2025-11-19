@@ -13,7 +13,6 @@ interface Props {
 }
 
 export function LocalIndicatorsPanel({ candles }: Props) {
-  // Generate mock candles if insufficient data
   const effectiveCandles = candles && candles.length > 0 ? candles : generateMockCandles();
   
   const len = effectiveCandles.length;
@@ -37,8 +36,6 @@ export function LocalIndicatorsPanel({ candles }: Props) {
 
   const trendColor = trendScore === 3 ? "text-green-400" : trendScore === 2 ? "text-yellow-400" : "text-red-400";
 
-  const priceChange = ((last.close - closes[0]) / closes[0]) * 100;
-
   const rsi = (() => {
     let gain = 0,
       loss = 0;
@@ -51,7 +48,7 @@ export function LocalIndicatorsPanel({ candles }: Props) {
     return 100 - 100 / (1 + rs);
   })();
 
-  const rsiColor = rsi > 70 ? "text-red-400" : rsi < 30 ? "text-green-400" : "text-white";
+  const rsiColor = rsi > 70 ? "text-red-400" : rsi < 30 ? "text-green-400" : "text-foreground";
 
   const volWindow = Math.min(len, 20);
   const avgVol = volumes.slice(-volWindow).reduce((a, b) => a + b, 0) / (volWindow || 1);
@@ -71,15 +68,15 @@ export function LocalIndicatorsPanel({ candles }: Props) {
   const atrPct = (atr / last.close) * 100;
 
   const momentum = last.close - prev.close;
-  const momentumColor = momentum > 0 ? "text-green-400" : momentum < 0 ? "text-red-400" : "text-gray-300";
+  const momentumColor = momentum > 0 ? "text-green-400" : momentum < 0 ? "text-red-400" : "text-muted-foreground";
 
   const sparkline = closes.slice(-20);
 
   return (
-    <div className="flex flex-col gap-4 p-4 bg-[#11131a] rounded-xl text-white text-sm border border-white/5">
-      <div className="flex justify-between">
-        <span className="text-xs text-gray-400 uppercase tracking-wide">Day Trader Pro Panel</span>
-        <span className="text-[10px] text-gray-500">Local Data Only</span>
+    <div className="flex flex-col gap-4 p-4 bg-card rounded-xl text-sm border border-border/50 shadow-sm">
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Day Trader Pro Panel</span>
+        <span className="text-[10px] text-muted-foreground">Local Data Only</span>
       </div>
 
       <Section title="Trend">
@@ -129,17 +126,17 @@ export function LocalIndicatorsPanel({ candles }: Props) {
 
 function Section({ title, children }: any) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-gray-400">{title}</span>
+    <div className="flex flex-col gap-2">
+      <span className="text-xs text-muted-foreground font-medium">{title}</span>
       {children}
     </div>
   );
 }
 
-function Value({ label, value, valueClass = "text-white" }: any) {
+function Value({ label, value, valueClass = "text-foreground" }: any) {
   return (
-    <div className="flex justify-between text-xs">
-      <span className="text-gray-400">{label}</span>
+    <div className="flex justify-between text-xs items-center">
+      <span className="text-muted-foreground">{label}</span>
       <span className={`font-semibold ${valueClass}`}>{value}</span>
     </div>
   );
@@ -147,16 +144,16 @@ function Value({ label, value, valueClass = "text-white" }: any) {
 
 function Bar({ percent, color }: any) {
   return (
-    <div className="w-full h-1 bg-white/10 rounded">
-      <div className={`h-1 rounded ${color}`} style={{ width: `${percent}%` }} />
+    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+      <div className={`h-1.5 rounded-full ${color} transition-all duration-300`} style={{ width: `${percent}%` }} />
     </div>
   );
 }
 
 function Gauge({ percent }: { percent: number }) {
   return (
-    <div className="w-full h-1 bg-white/10 rounded relative">
-      <div className="absolute top-0 h-1 w-1 bg-yellow-400 rounded-full" style={{ left: `${percent}%` }} />
+    <div className="w-full h-1.5 bg-muted rounded-full relative overflow-hidden">
+      <div className="absolute top-0 h-1.5 w-1.5 bg-yellow-400 rounded-full transition-all duration-300" style={{ left: `${percent}%` }} />
     </div>
   );
 }

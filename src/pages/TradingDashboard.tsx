@@ -43,34 +43,30 @@ export default function TradingDashboard() {
 
   return (
     <AppShell showProgress={false} minutesCollected={0} minutesRequired={0} symbol={normalizedSymbol}>
-      {/* Top Command Bar */}
       <TradingCommandCenter symbol={symbol} onSymbolChange={setSymbol} currentPrice={currentPrice} />
 
-      {/* Alert Strip */}
       <AlertStrip alerts={alerts} isLoading={isLoading} />
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 mb-2">
-        {/* Left: TradingView Chart */}
-        <div className="lg:col-span-8 flex flex-col gap-2">
-          <div className="h-[450px] rounded-xl overflow-hidden border border-white/5 bg-[#080910]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-3">
+        <div className="lg:col-span-8 flex flex-col gap-3">
+          <div className="h-[500px] rounded-xl overflow-hidden border border-border/50 bg-card shadow-lg">
             <TradingViewChart symbol={normalizedSymbol} />
           </div>
 
-          {/* Session Stats under chart */}
           <SessionStatsPanel stats={sessionStats} symbol={normalizedSymbol} />
         </div>
 
-        {/* Right: Local Indicator + Micro-info */}
-        <div className="lg:col-span-4 flex flex-col gap-2 overflow-y-auto">
+        <div className="lg:col-span-4 flex flex-col gap-3 max-h-[700px] overflow-y-auto">
           <LocalIndicatorsPanel candles={candles1m} />
           <MicroTimeframePanel candles1m={candles1m} candles15m={candles15m} />
         </div>
       </div>
 
-      {/* Bottom strip */}
-      <div className="h-[260px] flex items-center justify-center text-gray-400 text-xs border-t border-white/5 mt-2">
-        Simple Data Mode — All analytics are local from your chart stream. No external APIs.
+      <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm border-t border-border/50 mt-3 bg-card/30 rounded-lg">
+        <div className="text-center">
+          <p className="font-medium">Simple Data Mode</p>
+          <p className="text-xs mt-1">All analytics are local from your chart stream • No external APIs</p>
+        </div>
       </div>
     </AppShell>
   );
@@ -80,26 +76,26 @@ export default function TradingDashboard() {
 
 function AlertStrip({ alerts, isLoading }: { alerts: AlertBadge[]; isLoading: boolean }) {
   return (
-    <div className="mb-2 flex flex-wrap gap-2 items-center text-xs">
+    <div className="mb-3 flex flex-wrap gap-2 items-center text-xs">
       {isLoading && (
-        <span className="px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/40">
+        <span className="px-3 py-1.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-medium">
           Syncing candles…
         </span>
       )}
       {alerts.length === 0 && !isLoading && (
-        <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/40">
+        <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-medium">
           No active alerts • Market neutral
         </span>
       )}
       {alerts.map((a) => (
         <span
           key={a.id}
-          className={`px-2 py-1 rounded-full border ${
+          className={`px-3 py-1.5 rounded-full border font-medium ${
             a.severity === "danger"
-              ? "bg-red-500/10 text-red-400 border-red-500/40"
+              ? "bg-red-500/10 text-red-400 border-red-500/30"
               : a.severity === "warn"
-                ? "bg-amber-500/10 text-amber-300 border-amber-500/40"
-                : "bg-sky-500/10 text-sky-300 border-sky-500/40"
+                ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                : "bg-sky-500/10 text-sky-300 border-sky-500/30"
           }`}
         >
           {a.label}
@@ -121,8 +117,8 @@ interface SessionStats {
 
 function SessionStatsPanel({ stats, symbol }: { stats: SessionStats; symbol: string }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs bg-[#090b12] border border-white/5 rounded-xl p-3">
-      <StatItem label="Symbol" value={symbol} accent="text-sky-300" />
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-card border border-border/50 rounded-xl p-4 shadow-sm">
+      <StatItem label="Symbol" value={symbol} accent="text-sky-400" />
       <StatItem
         label="Session Change"
         value={stats.sessionChangePct !== null ? `${stats.sessionChangePct.toFixed(2)}%` : "--"}
@@ -131,7 +127,7 @@ function SessionStatsPanel({ stats, symbol }: { stats: SessionStats; symbol: str
             ? "text-emerald-400"
             : stats.sessionChangePct !== null && stats.sessionChangePct < 0
               ? "text-red-400"
-              : "text-gray-300"
+              : "text-muted-foreground"
         }
       />
       <StatItem label="Session High" value={stats.high !== null ? stats.high.toFixed(2) : "--"} />
@@ -142,9 +138,9 @@ function SessionStatsPanel({ stats, symbol }: { stats: SessionStats; symbol: str
 
 function StatItem({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
-    <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-wide text-gray-500">{label}</span>
-      <span className={`text-xs font-semibold ${accent ?? "text-gray-100"}`}>{value}</span>
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
+      <span className={`text-sm font-semibold ${accent ?? "text-foreground"}`}>{value}</span>
     </div>
   );
 }
@@ -159,7 +155,7 @@ function MicroTimeframePanel({
   candles15m: { open: number; high: number; low: number; close: number; volume: number }[];
 }) {
   if (!candles1m.length) {
-    return <div className="p-4 rounded-xl bg-[#11131a] text-xs text-gray-400">Waiting for intraday price stream…</div>;
+    return <div className="p-4 rounded-xl bg-card border border-border/50 text-sm text-muted-foreground">Waiting for intraday price stream…</div>;
   }
 
   const last1m = candles1m[candles1m.length - 1];
@@ -172,10 +168,10 @@ function MicroTimeframePanel({
   const bodyRatio = wick ? Math.abs(body / wick) : 0;
 
   return (
-    <div className="flex flex-col gap-2 p-4 rounded-xl bg-[#11131a] text-xs text-gray-100">
+    <div className="flex flex-col gap-3 p-4 rounded-xl bg-card border border-border/50 text-xs shadow-sm">
       <div className="flex justify-between mb-1">
-        <span className="text-[10px] uppercase tracking-wide text-gray-500">Intraday Tape</span>
-        <span className="text-[10px] text-gray-500">1m / 15m micro-view</span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Intraday Tape</span>
+        <span className="text-[10px] text-muted-foreground">1m / 15m micro-view</span>
       </div>
 
       <MiniRow
@@ -209,18 +205,18 @@ function MiniRow({
   negative?: boolean;
 }) {
   return (
-    <div className="flex flex-col border-b border-white/5 pb-1 last:border-b-0 last:pb-0">
-      <div className="flex justify-between">
-        <span className="text-gray-400 text-[11px]">{label}</span>
+    <div className="flex flex-col border-b border-border/50 pb-2 last:border-b-0 last:pb-0">
+      <div className="flex justify-between items-center">
+        <span className="text-muted-foreground text-[11px] font-medium">{label}</span>
         <span
           className={`text-[11px] font-semibold ${
-            positive ? "text-emerald-400" : negative ? "text-red-400" : "text-gray-100"
+            positive ? "text-emerald-400" : negative ? "text-red-400" : "text-foreground"
           }`}
         >
           {value}
         </span>
       </div>
-      {hint && <span className="text-[10px] text-gray-500 mt-0.5">{hint}</span>}
+      {hint && <span className="text-[10px] text-muted-foreground mt-1">{hint}</span>}
     </div>
   );
 }
