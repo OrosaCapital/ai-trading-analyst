@@ -129,37 +129,32 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback to Tatum if CoinGlass didn't work
-    if (candles.length === 0 && tatumApiKey) {
-      console.log(`Trying Tatum API as fallback...`);
+    // Fallback to Binance if CoinGlass didn't work
+    if (candles.length === 0) {
+      console.log(`Trying Binance API for ${formattedSymbol}...`);
       
-      const tatumUrl = `https://api.tatum.io/v4/data/prices`;
-      const tatumResponse = await safeFetch(tatumUrl, {
-        method: 'POST',
-        headers: {
-          'x-api-key': tatumApiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          symbols: [formattedSymbol],
-          timeframe: '4h',
-          limit: limit
-        })
-      });
+      try {
+        // Binance uses different intervals: 1m, 5m, 15m, 30m, 1h, 4h, 1d
+        const binanceUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${formattedSymbol}&interval=1h&limit=${limit}`;
+        const binanceResponse = await safeFetch(binanceUrl, {
+          headers: { 'accept': 'application/json' }
+        });
 
-      if (tatumResponse.ok && tatumResponse.data?.data) {
-        console.log(`Tatum returned data`);
-        const prices = tatumResponse.data.data[formattedSymbol] || [];
-        candles = prices.map((p: any) => ({
-          time: Math.floor(new Date(p.timestamp).getTime() / 1000),
-          open: parseFloat(p.open),
-          high: parseFloat(p.high),
-          low: parseFloat(p.low),
-          close: parseFloat(p.close),
-          volume: parseFloat(p.volume || 0)
-        }));
-      } else {
-        console.log(`Tatum failed: ${tatumResponse.text || tatumResponse.error}`);
+        if (binanceResponse.ok && Array.isArray(binanceResponse.data)) {
+          console.log(`Binance returned ${binanceResponse.data.length} candles`);
+          candles = binanceResponse.data.map((k: any) => ({
+            time: Math.floor(k[0] / 1000), // Convert ms to seconds
+            open: parseFloat(k[1]),
+            high: parseFloat(k[2]),
+            low: parseFloat(k[3]),
+            close: parseFloat(k[4]),
+            volume: parseFloat(k[5])
+          }));
+        } else {
+          console.log(`Binance failed: ${binanceResponse.text || binanceResponse.error}`);
+        }
+      } catch (binanceError: any) {
+        console.error('Binance API error:', binanceError.message);
       }
     }
 
