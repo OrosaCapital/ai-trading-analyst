@@ -43,8 +43,25 @@ Deno.serve(async (req) => {
 
     const data: CoinglassResponse = await response.json();
 
-    if (data.code !== '0' || !data.data) {
+    if (data.code !== '0') {
       throw new Error(`CoinGlass API error: ${data.msg}`);
+    }
+
+    // Ensure data.data is an array
+    if (!Array.isArray(data.data)) {
+      console.warn('CoinGlass returned non-array data:', data.data);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          pairs: [],
+          totalPairs: 0,
+          exchanges: [],
+          exchangeCount: 0,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Group by exchange and count pairs
