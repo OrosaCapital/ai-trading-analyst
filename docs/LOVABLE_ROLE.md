@@ -522,73 +522,88 @@ if (candles.length === 0) {
 
 ### Auto-Fetch Fresh Data on Symbol Change
 
-**Pattern**: Automatically populate fresh data when user selects a new trading symbol
+**Pattern**: Automatically populate fresh data when user selects a new trading symbol using documented APIs.
 
-**Implementation**: Use `useFreshSymbolData` hook in any component that needs auto-populated data
+**CRITICAL**: Follow LOVABLE_ROLE.md architecture:
+- **CoinMarketCap**: Price data via `populate-market-data` (5-min cache)
+- **CoinGlass**: Funding rates only (4-hour cache, limited symbols)
+- **NO**: Direct fetch-historical-candles, Binance, or undocumented sources
+
+**Implementation**: Use `useFreshSymbolData` hook with `populate-market-data` edge function
 
 **How It Works**:
 1. User selects new symbol in FilterBar
 2. `useFreshSymbolData` hook detects symbol change
-3. Hook checks database for data freshness (4-hour TTL)
-4. If data is missing or stale:
-   - Triggers `fetch-historical-candles` edge function
-   - Triggers `fetch-current-funding` edge function
-   - Triggers `fetch-funding-history` edge function
-5. Edge functions populate database tables
+3. Hook checks database for data freshness (4-hour TTL for funding, 5-min for price)
+4. If candle data is missing or stale:
+   - Calls `populate-market-data` edge function with specific symbol
+   - populate-market-data uses CoinMarketCap API for price (documented source)
+   - Generates candles from price snapshots
+   - Stores in `market_candles` table
+5. If funding data is missing or stale:
+   - Calls `fetch-current-funding` (CoinGlass)
+   - Calls `fetch-funding-history` (CoinGlass)
+   - Stores in `market_funding_rates` table
 6. React Query invalidates cache and refetches
 7. UI updates with fresh data
 
 **Hook Code**:
 ```typescript
 // src/hooks/useFreshSymbolData.ts
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
-
 export function useFreshSymbolData(symbol: string) {
-  const queryClient = useQueryClient();
-
   useEffect(() => {
     async function ensureFreshData() {
-      // Check data freshness (4-hour TTL)
-      const fourHoursAgo = Date.now() - (4 * 60 * 60 * 1000);
-      
-      // Check candles and funding rates freshness
-      // If stale or missing, trigger edge functions
-      // Invalidate queries after population
+      // Check data freshness
+      const hasRecentCandles = /* check market_candles */;
+      const hasRecentFunding = /* check market_funding_rates */;
+
+      if (!hasRecentCandles || !hasRecentFunding) {
+        // Use populate-market-data (CoinMarketCap) - per LOVABLE_ROLE.md
+        await supabase.functions.invoke('populate-market-data', {
+          body: { symbol }
+        });
+
+        // Fetch funding from CoinGlass if needed
+        if (!hasRecentFunding) {
+          await supabase.functions.invoke('fetch-current-funding', { body: { symbol } });
+          await supabase.functions.invoke('fetch-funding-history', { body: { symbol } });
+        }
+
+        // Invalidate queries
+        queryClient.invalidateQueries({ queryKey: ['funding-rates', symbol] });
+        queryClient.invalidateQueries({ queryKey: ['chart-data', symbol] });
+      }
     }
     
     ensureFreshData();
   }, [symbol, queryClient]);
-
-  return { isFetching, error, lastFetched };
 }
 ```
 
-**Usage in Components**:
+**populate-market-data Updates**:
 ```typescript
-// src/pages/TradingDashboard.tsx
-import { useFreshSymbolData } from '@/hooks/useFreshSymbolData';
-
-export default function TradingDashboard() {
-  const [symbol, setSymbol] = useState("BTCUSDT");
-  const normalizedSymbol = normalizeSymbol(symbol);
+// supabase/functions/populate-market-data/index.ts
+Deno.serve(async (req) => {
+  const body = await req.json().catch(() => ({}));
+  const requestedSymbol = body.symbol?.toUpperCase().trim();
   
-  // Automatically fetch fresh data when symbol changes
-  useFreshSymbolData(normalizedSymbol);
+  // Support specific symbol or default list
+  const symbols = requestedSymbol 
+    ? [requestedSymbol.endsWith('USDT') ? requestedSymbol : `${requestedSymbol}USDT`]
+    : ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'SOLUSDT', 'BNBUSDT'];
   
-  // Rest of component uses database queries
-  const { candles } = useChartData(normalizedSymbol);
-  // ...
-}
+  // Uses CoinMarketCap for price (5-min cache to conserve credits)
+  // Generates candles from price snapshots
+  // Stores in market_candles table
+});
 ```
 
 **Benefits**:
-- ✅ Always fresh data for newly selected symbols
-- ✅ Respects 4-hour cache TTL (conserves API credits)
-- ✅ Parallel edge function calls for efficiency
+- ✅ Follows documented architecture (CMC for price, CoinGlass for funding)
+- ✅ Respects API credit limits (5-min cache for CMC, 4-hour for CoinGlass)
+- ✅ Works for ANY symbol user queries (not limited to hardcoded list)
 - ✅ Automatic React Query cache invalidation
-- ✅ No manual refresh needed by user
+- ✅ No manual refresh needed
 
 **When to Use**:
 - Trading dashboard symbol selection
@@ -596,10 +611,15 @@ export default function TradingDashboard() {
 - Any UI where users switch between symbols frequently
 
 **API Credit Conservation**:
-- Only fetches when data is >4 hours old
-- Skips fetch if recent data exists
-- Batches multiple edge function calls in parallel
-- Aligns with CoinGlass Hobbyist plan limits
+- CoinMarketCap: 5-minute cache (max ~1 credit per symbol per 5 min)
+- CoinGlass: 4-hour cache (conserves Hobbyist plan limits)
+- Only fetches when data is stale or missing
+
+**Error Handling**:
+- CoinGlass 404 for unsupported symbols → Returns empty gracefully (status 200)
+- CoinMarketCap failures → Falls back to Tatum
+- UI shows "Loading..." indicators until real data arrives
+- No crashes on missing data
 
 ---
 

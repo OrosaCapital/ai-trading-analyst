@@ -66,44 +66,42 @@ export function useFreshSymbolData(symbol: string) {
         const hasRecentFunding = recentFunding && 
           new Date(recentFunding.created_at || 0).getTime() > fourHoursAgo;
 
-        // If data is missing or stale, trigger edge functions to populate
+        // If data is missing or stale, trigger populate-market-data
         if (!hasRecentCandles || !hasRecentFunding) {
-          console.log(`Triggering fresh data fetch for ${symbol}`);
+          console.log(`Triggering fresh data fetch for ${symbol} via populate-market-data`);
           
-          // Trigger parallel data population
-          const promises = [];
+          // Use populate-market-data (CoinMarketCap) for price + candles - per LOVABLE_ROLE.md
+          const marketDataResult = await supabase.functions.invoke('populate-market-data', {
+            body: { symbol }
+          });
 
-          if (!hasRecentCandles) {
-            console.log(`Fetching historical candles for ${symbol}`);
-            promises.push(
-              supabase.functions.invoke('fetch-historical-candles', {
-                body: { symbol, timeframe: '1h', limit: 200 }
-              })
-            );
+          if (marketDataResult.error) {
+            console.error('populate-market-data error:', marketDataResult.error);
+          } else {
+            console.log(`populate-market-data succeeded for ${symbol}`);
           }
 
+          // Still fetch funding data from CoinGlass if needed
           if (!hasRecentFunding) {
             console.log(`Fetching funding data for ${symbol}`);
-            promises.push(
+            const fundingPromises = [
               supabase.functions.invoke('fetch-current-funding', {
                 body: { symbol }
               }),
               supabase.functions.invoke('fetch-funding-history', {
                 body: { symbol, interval: '4h' }
               })
-            );
-          }
+            ];
 
-          const results = await Promise.allSettled(promises);
-          
-          // Log any errors but don't fail the entire operation
-          results.forEach((result, index) => {
-            if (result.status === 'rejected') {
-              console.error(`Edge function ${index} failed:`, result.reason);
-            } else if (result.value.error) {
-              console.error(`Edge function ${index} returned error:`, result.value.error);
-            }
-          });
+            const fundingResults = await Promise.allSettled(fundingPromises);
+            fundingResults.forEach((result, index) => {
+              if (result.status === 'rejected') {
+                console.error(`Funding function ${index} failed:`, result.reason);
+              } else if (result.value.error) {
+                console.log(`Funding function ${index} returned:`, result.value.error);
+              }
+            });
+          }
 
           // Invalidate queries to refetch from database
           queryClient.invalidateQueries({ queryKey: ['funding-rates', symbol] });
