@@ -31,8 +31,17 @@ Deno.serve(async (req) => {
       throw new Error('Symbol is required');
     }
 
-    // Format symbol for CoinGlass (they expect BTCUSDT format, not BTC)
-    const formattedSymbol = symbol.endsWith('USDT') ? symbol : `${symbol}USDT`;
+    // Normalize symbol for CoinGlass API
+    // Remove any trailing USDT, USD, then ensure it ends with USDT
+    let baseSymbol = symbol.toUpperCase().trim();
+    baseSymbol = baseSymbol.replace(/USDT$/i, '').replace(/USD$/i, '');
+    
+    // Ensure valid base currency (minimum 2 characters)
+    if (baseSymbol.length < 2) {
+      throw new Error(`Invalid symbol: ${symbol}. Base currency must be at least 2 characters.`);
+    }
+    
+    const formattedSymbol = `${baseSymbol}USDT`;
 
     const apiKey = Deno.env.get('COINGLASS_API_KEY');
     if (!apiKey) {
