@@ -36,13 +36,20 @@ Deno.serve(async (req) => {
     const COINGLASS_API_KEY = Deno.env.get('COINGLASS_API_KEY');
     const CMC_API_KEY = Deno.env.get('COINMARKETCAP_API_KEY');
 
-    // Symbols to populate
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'SOLUSDT', 'BNBUSDT'];
+    // Accept symbol parameter from request, or use default list
+    const body = await req.json().catch(() => ({}));
+    const requestedSymbol = body.symbol?.toUpperCase().trim();
+    
+    // If specific symbol requested, use it; otherwise use default list
+    const symbols = requestedSymbol 
+      ? [requestedSymbol.endsWith('USDT') ? requestedSymbol : `${requestedSymbol}USDT`]
+      : ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'SOLUSDT', 'BNBUSDT'];
+    
     const timeframe = '1h';
     const limit = 200;
 
     console.log(`⚠️ CMC API Rate Limit: Check cache before calling!`);
-    console.log(`Populating market data for ${symbols.length} symbols...`);
+    console.log(`Populating market data for ${symbols.length} symbol(s): ${symbols.join(', ')}...`);
 
     for (const symbol of symbols) {
       try {
