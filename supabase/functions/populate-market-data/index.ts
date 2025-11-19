@@ -33,14 +33,34 @@ Deno.serve(async (req) => {
     const { translateToKraken } = await import('../_shared/krakenSymbols.ts');
     const { loadKrakenPairs } = await import('../_shared/krakenPairDiscovery.ts');
 
-    // Accept symbol parameter from request, or use default list
+    // Accept symbol parameter from request, or fetch tracked symbols from database
     const body = await req.json().catch(() => ({}));
     const requestedSymbol = body.symbol?.toUpperCase().trim();
     
-    // If specific symbol requested, use it; otherwise use default list
-    const symbols = requestedSymbol 
-      ? [requestedSymbol.endsWith('USDT') ? requestedSymbol : `${requestedSymbol}USDT`]
-      : ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'SOLUSDT', 'BNBUSDT'];
+    let symbols: string[];
+    
+    if (requestedSymbol) {
+      // If specific symbol requested, use it
+      symbols = [requestedSymbol.endsWith('USDT') ? requestedSymbol : `${requestedSymbol}USDT`];
+    } else {
+      // Fetch active tracked symbols from database
+      const { data: trackedSymbols, error: trackedError } = await supabaseClient
+        .from('tracked_symbols')
+        .select('symbol')
+        .eq('active', true);
+      
+      if (trackedError) {
+        console.error('❌ Error fetching tracked symbols:', trackedError);
+        // Fallback to default list if database query fails
+        symbols = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'SOLUSDT', 'BNBUSDT'];
+      } else if (!trackedSymbols || trackedSymbols.length === 0) {
+        console.log('⚠️ No tracked symbols found, using defaults');
+        symbols = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'SOLUSDT', 'BNBUSDT'];
+      } else {
+        symbols = trackedSymbols.map(t => t.symbol);
+        console.log(`✅ Loaded ${symbols.length} tracked symbols from database`);
+      }
+    }
     
     const timeframe = '1h';
     const limit = 200;

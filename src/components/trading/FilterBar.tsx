@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Calendar, SlidersHorizontal, Check, ChevronsUpDown } from "lucide-react";
+import { Search, Calendar, SlidersHorizontal, Check, ChevronsUpDown, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -22,6 +22,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useTradingPairs } from "@/hooks/useTradingPairs";
+import { useTrackedSymbol } from "@/hooks/useTrackedSymbol";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 interface FilterBarProps {
@@ -32,6 +35,7 @@ interface FilterBarProps {
 export function FilterBar({ symbol, onSymbolChange }: FilterBarProps) {
   const [open, setOpen] = useState(false);
   const { pairs, isLoading } = useTradingPairs();
+  const { isTracked, isLoading: isTrackingLoading, toggleTracking } = useTrackedSymbol(symbol);
 
   const displayName = useMemo(() => {
     const pair = pairs.find(p => p.symbol === symbol);
@@ -41,7 +45,7 @@ export function FilterBar({ symbol, onSymbolChange }: FilterBarProps) {
   return (
     <div className="flex items-center gap-3 p-4 bg-card/50 border-b border-border/40 backdrop-blur-sm">
       {/* Symbol Selector with Search */}
-      <div className="flex-1 max-w-md">
+      <div className="flex-1 max-w-md space-y-2">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -95,6 +99,24 @@ export function FilterBar({ symbol, onSymbolChange }: FilterBarProps) {
             </Command>
           </PopoverContent>
         </Popover>
+        
+        {/* Auto-refresh Tracking Checkbox */}
+        <div className="flex items-center space-x-2 pt-1">
+          <Checkbox
+            id="auto-refresh"
+            checked={isTracked}
+            disabled={isTrackingLoading}
+            onCheckedChange={toggleTracking}
+            className="data-[state=checked]:bg-primary"
+          />
+          <Label
+            htmlFor="auto-refresh"
+            className="text-xs text-muted-foreground flex items-center gap-1.5 cursor-pointer"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Auto-refresh this symbol (5min)
+          </Label>
+        </div>
       </div>
 
       {/* Timeframe Selector */}
