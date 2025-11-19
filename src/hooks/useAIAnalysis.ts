@@ -21,9 +21,17 @@ export function useAIAnalysis(
   const debounceRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    console.log("AI Analysis Hook:", { symbol, candlesCount: candles1h.length, hasIndicators: !!indicators["1h"] });
+    console.log("AI Analysis Hook:", { 
+      symbol, 
+      candles1hCount: candles1h.length, 
+      candles15mCount: candles15m.length,
+      indicators,
+      hasIndicators1h: !!indicators?.["1h"],
+      hasIndicators15m: !!indicators?.["15m"]
+    });
+    
     if (!symbol || candles1h.length < 20) {
-      console.log("AI Analysis: Not enough data yet");
+      console.log("AI Analysis: Not enough data yet", { symbol, count: candles1h.length });
       return;
     }
 
