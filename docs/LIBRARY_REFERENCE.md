@@ -76,7 +76,7 @@ All chart visualizations are developed internally using the lightweight-charts l
 The dashboard integrates real-time external data:
 
 - **CoinGlass API**: Funding rates, exchange pairs, market coverage, and derivatives data
-- **WebSocket Price Stream**: Real-time price updates via Tatum WebSocket
+- **WebSocket Price Stream**: Real-time price updates via CoinMarketCap WebSocket
 - **Custom Edge Functions**: Data processing, caching, and formatting
 
 **API Documentation:** See [COINGLASS_API.md](COINGLASS_API.md) for complete CoinGlass integration reference.

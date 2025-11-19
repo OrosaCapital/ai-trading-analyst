@@ -138,7 +138,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
     try {
       const fetchPromises = symbols.map(async (symbol) => {
         const [priceRes, histRes] = await Promise.all([
-          supabase.functions.invoke("fetch-tatum-price", {
+          supabase.functions.invoke("fetch-cmc-price", {
             body: { symbol },
           }),
           supabase.functions.invoke("fetch-historical-prices", {

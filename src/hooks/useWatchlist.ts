@@ -47,7 +47,7 @@ export const useWatchlist = () => {
 
           if (!price) {
             try {
-              const priceRes = await supabase.functions.invoke("fetch-tatum-price", {
+              const priceRes = await supabase.functions.invoke("fetch-cmc-price", {
                 body: { symbol: item.symbol },
               });
 

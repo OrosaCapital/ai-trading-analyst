@@ -30,7 +30,7 @@ export function Sidebar({ symbol }: SidebarProps) {
     const dbHealth = m.database.status === 'healthy' ? 100 : m.database.status === 'degraded' ? 50 : 0;
     const apiHealth = (
       (m.apis.coinglassStatus === 'operational' ? 100 : m.apis.coinglassStatus === 'degraded' ? 50 : 0) +
-      (m.apis.tatumStatus === 'operational' ? 100 : m.apis.tatumStatus === 'degraded' ? 50 : 0)
+      (m.apis.cmcStatus === 'operational' ? 100 : m.apis.cmcStatus === 'degraded' ? 50 : 0)
     ) / 2;
     const errorPenalty = Math.max(0, 100 - (m.errors.criticalCount * 10));
     
@@ -183,12 +183,12 @@ export function Sidebar({ symbol }: SidebarProps) {
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span>Tatum</span>
+                  <span>CoinMarketCap</span>
                   <Badge 
-                    variant={healthData.metrics.apis.tatumStatus === 'operational' ? 'default' : 'destructive'}
+                    variant={healthData.metrics.apis.cmcStatus === 'operational' ? 'default' : 'destructive'}
                     className="text-xs"
                   >
-                    {healthData.metrics.apis.tatumStatus}
+                    {healthData.metrics.apis.cmcStatus}
                   </Badge>
                 </div>
               </div>

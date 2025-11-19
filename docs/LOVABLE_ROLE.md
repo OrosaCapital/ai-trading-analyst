@@ -49,7 +49,7 @@ This project follows a **Database-Centric Architecture**:
 External APIs → Database Tables → React Components
      ↓                ↓                  ↓
 CoinGlass API   market_candles      Chart Hook
-Tatum API       market_funding      Price Display
+CoinMarketCap API  market_funding      Price Display
                market_snapshots    Live Updates
 ```
 
@@ -57,7 +57,7 @@ Tatum API       market_funding      Price Display
 
 1. **Edge Functions populate the database**
    - `populate-market-data` - Scheduled function that fetches from APIs and stores in DB
-   - `tatum-price-logger` - Logs real-time prices to database
+   - `cmc-price-logger` - Logs real-time prices to database
    - `fetch-current-funding` - Stores funding rates
    - `fetch-funding-history` - Stores historical funding data
 
@@ -94,7 +94,7 @@ Tatum API       market_funding      Price Display
 - TradingView Lightweight Chart
 - Local candle math
 - WebSocket live price (via edge function)
-- Optional Tatum price fallback (via edge function)
+- Optional CoinMarketCap price fallback (via edge function)
 - **Local market metrics generator** (fallback when database empty)
 - **CoinGlass API integration** (via edge functions to database)
   - `fetch-coinglass-coins` - Supported trading symbols
