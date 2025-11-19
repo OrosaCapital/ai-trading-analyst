@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWatchlist, WatchlistItem } from '@/hooks/useWatchlist';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,15 +11,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { BookmarkPlus, Plus, Clock, DollarSign, LogOut, Trash2, Eye, MoreVertical, Loader2, TrendingUp, TrendingDown, Activity, Sparkles, Search, Star, BarChart3 } from 'lucide-react';
+import { BookmarkPlus, Plus, Clock, DollarSign, LogOut, Trash2, Eye, MoreVertical, Loader2, TrendingUp, Activity, Sparkles, Search, Star, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { formatPrice } from '@/lib/priceFormatter';
 
 const Watchlist = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
-  const { watchlist, isLoading, addToWatchlist, removeFromWatchlist, analyzeSymbol, analyzeAllSymbols, updateWatchlistItem } = useWatchlist();
+  const { user, signOut, loading } = useAuth();
+  const { watchlist, isLoading, addToWatchlist, removeFromWatchlist, analyzeSymbol, analyzeAllSymbols } = useWatchlist();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [symbol, setSymbol] = useState('');
   const [nickname, setNickname] = useState('');
@@ -27,6 +27,13 @@ const Watchlist = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth?redirect=/watchlist');
+    }
+  }, [user, loading, navigate]);
 
   const handleAddSymbol = async () => {
     if (!symbol.trim()) {
@@ -51,6 +58,20 @@ const Watchlist = () => {
     toast.success('Signed out successfully');
     navigate('/auth');
   };
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  // Don't render if no user
+  if (!user) {
+    return null;
+  }
 
   const getUserInitials = () => {
     if (!user?.email) return 'U';

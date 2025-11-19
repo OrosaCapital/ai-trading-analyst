@@ -5,6 +5,7 @@ import App from "./App";
 import "./index.css";
 import { setupGlobalErrorHandlers } from "./lib/globalErrorHandler";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // Set up global error handlers before app renders
 setupGlobalErrorHandlers();
@@ -21,9 +22,11 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 );
