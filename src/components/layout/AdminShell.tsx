@@ -1,17 +1,18 @@
 import type { PropsWithChildren } from "react";
+import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { Topbar } from "./Topbar";
 
-interface AppShellProps extends PropsWithChildren {
+interface AdminShellProps extends PropsWithChildren {
   showProgress?: boolean;
   minutesCollected?: number;
   minutesRequired?: number;
-  symbol?: string;
 }
 
-export function AppShell({ children, showProgress, minutesCollected, minutesRequired }: AppShellProps) {
+export function AdminShell({ children, showProgress, minutesCollected, minutesRequired }: AdminShellProps) {
   return (
     <div className="flex h-screen w-screen bg-gradient-to-br from-black via-slate-950 to-black text-gray-100">
+      <Sidebar symbol="" />
       <div className="flex flex-1 flex-col">
         <Navbar />
         <Topbar 

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppShell } from "./components/layout/AppShell";
+import { AdminShell } from "./components/layout/AdminShell";
 import { Dashboard } from "./pages/Dashboard";
 import Watchlist from "./pages/Watchlist";
 import AITrading from "./pages/AITrading";
@@ -13,7 +14,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<AppShell><Dashboard /></AppShell>} />
+        <Route path="/" element={<AdminShell><Dashboard /></AdminShell>} />
         <Route path="/watchlist" element={<AppShell><Watchlist /></AppShell>} />
         <Route path="/ai-trading" element={<AppShell><AITrading /></AppShell>} />
         <Route path="/symbol/:symbolParam" element={<SymbolDetails />} />

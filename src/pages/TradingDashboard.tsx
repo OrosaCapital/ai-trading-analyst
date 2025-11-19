@@ -44,7 +44,7 @@ export default function TradingDashboard() {
   const alerts = useMemo(() => buildAlerts(candles1m, candles15m, candles1h), [candles1m, candles15m, candles1h]);
 
   return (
-    <AppShell showProgress={false} minutesCollected={0} minutesRequired={0} symbol={normalizedSymbol}>
+    <AppShell showProgress={false} minutesCollected={0} minutesRequired={0}>
       <TradingCommandCenter symbol={symbol} onSymbolChange={setSymbol} currentPrice={currentPrice} />
 
       <AlertStrip alerts={alerts} isLoading={isLoading} />

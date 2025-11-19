@@ -61,7 +61,7 @@ export default function SymbolDetails() {
   };
 
   return (
-    <AppShell symbol={tradingSymbol}>
+    <AppShell>
       <div className="space-y-4">
         {/* Hero Header - Iron Man Style */}
         <Card className="relative overflow-hidden bg-gradient-to-br from-card via-card/90 to-card/70 backdrop-blur-xl border-primary/30 shadow-2xl">
