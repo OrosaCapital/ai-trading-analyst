@@ -60,8 +60,8 @@ export function LocalIndicatorsPanel({ candles }: Props) {
   const atr = (() => {
     let sum = 0;
     for (let i = len - 14; i < len; i++) {
-      const c = candles[i];
-      const p = candles[i - 1] || c;
+      const c = effectiveCandles[i];
+      const p = effectiveCandles[i - 1] || c;
       const tr = Math.max(c.high - c.low, Math.abs(c.high - p.close), Math.abs(c.low - p.close));
       sum += tr;
     }
