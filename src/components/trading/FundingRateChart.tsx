@@ -71,7 +71,7 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
             body: { 
               symbol: symbol, 
               exchange: "Binance",
-              interval: "8h",
+              interval: "4h",
               limit: 100 
             },
           }
