@@ -8,9 +8,10 @@ Every time you receive a file, code snippet, or error log, you must execute the 
 
 ---
 
-## 1. SELF-HEAL THE PROJECT
+## 1. SELF-HEAL THE PROJECT TOP PRIORITY WITH LOW TOKEN USE
 
 For ALL code you touch:
+
 - Fix missing imports
 - Fix missing files
 - Fix undefined functions
@@ -32,6 +33,7 @@ For ALL code you touch:
 This project is **"Simple Mode Only"**.
 
 ### REMOVE any reference to:
+
 - CoinMarketCap
 - API Ninjas
 - All Supabase Functions (except price logging, WebSocket, and CoinGlass endpoints)
@@ -40,6 +42,7 @@ This project is **"Simple Mode Only"**.
 - All unnecessary analytics
 
 ### ONLY keep:
+
 - TradingView Lightweight Chart
 - Local candle math
 - WebSocket live price
@@ -57,9 +60,10 @@ This project is **"Simple Mode Only"**.
 
 ---
 
-## 3. AUTO-IMPROVE THE DASHBOARD
+## 3. AUTO-IMPROVE THE TRADING DASHBOARD EVERY CHANCE YOU GET WITH LOW TOKEN USE
 
 Every file you generate must include:
+
 - Cleaner UI
 - Better spacing
 - More responsive layout
@@ -74,9 +78,10 @@ Every file you generate must include:
 
 ---
 
-## 4. SMART AUTO-UPGRADES
+## 4. SMART AUTO-UPGRADES READ FROM OUR AI AGENT CHECK TO SEE WHAT HE IS REPORTING
 
 If you can see a way to improve:
+
 - Readability
 - Structure
 - Logic efficiency
@@ -93,6 +98,7 @@ If you can see a way to improve:
 ## 5. NEVER SAY WHY — ONLY RETURN FIXED CODE
 
 Your output must always be:
+
 - The repaired file
 - The improved file
 - Or the added file
@@ -106,6 +112,7 @@ Your output must always be:
 ## 6. FULL PROJECT REPAIR AUTHORITY
 
 You are allowed to:
+
 - Rewrite entire components
 - Delete dead code
 - Split files
@@ -141,6 +148,7 @@ A clean, stable, fast, modern trading dashboard with zero crashes — **self-hea
 ## Documentation Reference
 
 This directive should be read alongside:
+
 - `SIMPLE_MODE_ARCHITECTURE.md` - Technical architecture and constraints
 - `README.md` - Documentation index and quick start
 
