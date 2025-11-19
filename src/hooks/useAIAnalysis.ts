@@ -21,7 +21,11 @@ export function useAIAnalysis(
   const debounceRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    if (!symbol || candles1h.length < 20) return;
+    console.log("AI Analysis Hook:", { symbol, candlesCount: candles1h.length, hasIndicators: !!indicators["1h"] });
+    if (!symbol || candles1h.length < 20) {
+      console.log("AI Analysis: Not enough data yet");
+      return;
+    }
 
     // Check cache
     const cached = cache.get(symbol);
@@ -34,6 +38,7 @@ export function useAIAnalysis(
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(async () => {
+      console.log("AI Analysis: Starting analysis for", symbol);
       setIsAnalyzing(true);
 
       try {
@@ -50,6 +55,7 @@ RSI 15M: ${indicators["15m"]?.rsi?.slice(-1)[0]?.toFixed(1) || "N/A"}
 Recent 1H High: ${Math.max(...latest1h.map(c => c.high))}
 Recent 1H Low: ${Math.min(...latest1h.map(c => c.low))}`;
 
+        console.log("AI Analysis: Sending request with summary:", summary);
         const { data, error } = await supabase.functions.invoke("ai-chat", {
           body: {
             messages: [
@@ -63,6 +69,7 @@ Recent 1H Low: ${Math.min(...latest1h.map(c => c.low))}`;
           }
         });
 
+        console.log("AI Analysis: Response received", { data, error });
         if (error) throw error;
 
         const result: AIAnalysis = {
