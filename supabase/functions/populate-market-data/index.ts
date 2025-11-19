@@ -39,19 +39,24 @@ Deno.serve(async (req) => {
       try {
         // Fetch from Tatum (real-time price)
         const cleanSymbol = symbol.replace('USDT', '');
-        const tatumUrl = `https://api.tatum.io/v3/tatum/rate/${cleanSymbol}?basePair=USDT`;
+        const tatumUrl = `https://api.tatum.io/v4/data/rate/symbol?symbol=${cleanSymbol}&basePair=USD`;
         
+        console.log(`Fetching price for ${symbol} from Tatum...`);
         const tatumRes = await fetch(tatumUrl, {
-          headers: { 'x-api-key': TATUM_API_KEY || '' }
+          headers: { 
+            'accept': 'application/json',
+            'x-api-key': TATUM_API_KEY || '' 
+          }
         });
 
         let currentPrice = 50000;
         if (tatumRes.ok) {
           const data = await tatumRes.json();
           currentPrice = parseFloat(data.value || '50000');
+          console.log(`✓ ${symbol} current price: $${currentPrice.toFixed(4)}`);
           
           // Update snapshot
-          await supabaseClient
+          const { error: snapshotError } = await supabaseClient
             .from('market_snapshots')
             .upsert({
               symbol,
@@ -61,6 +66,14 @@ Deno.serve(async (req) => {
               last_updated: new Date().toISOString(),
               source: 'tatum'
             });
+          
+          if (snapshotError) {
+            console.error(`Snapshot error for ${symbol}:`, snapshotError);
+          }
+        } else {
+          const errorText = await tatumRes.text();
+          console.error(`Tatum API failed for ${symbol} [${tatumRes.status}]:`, errorText);
+          console.log(`Using default price $${currentPrice} for ${symbol}`);
         }
 
         // Generate simulated candles based on current price
