@@ -8,7 +8,7 @@ import { FundingRateChart } from "@/components/trading/FundingRateChart";
 import { AlertStrip, type AlertBadge } from "@/components/trading/AlertStrip";
 import { MicroTimeframePanel } from "@/components/trading/MicroTimeframePanel";
 import { SessionStatsPanel, type SessionStats } from "@/components/trading/SessionStatsPanel";
-import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
+import { useChartData } from "@/hooks/useChartData";
 import { Card } from "@/components/ui/card";
 
 export default function TradingDashboard() {
@@ -23,36 +23,30 @@ export default function TradingDashboard() {
   };
 
   const normalizedSymbol = normalizeSymbol(symbol);
-  const { chartData, isLoading } = useProfessionalChartData(normalizedSymbol);
-
-  const candles1m = chartData?.candles1m || [];
-  const candles15m = chartData?.candles15m || [];
-  const candles1h = chartData?.candles1h || [];
+  const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000);
 
   const currentPrice =
-    candles1m.length > 0
-      ? candles1m[candles1m.length - 1].close
-      : candles1h.length > 0
-        ? candles1h[candles1h.length - 1].close
-        : null;
+    candles.length > 0
+      ? candles[candles.length - 1].close
+      : null;
 
-  const sessionStats = useMemo(() => buildSessionStats(candles1h), [candles1h]);
-  const alerts = useMemo(() => buildAlerts(candles1m, candles15m, candles1h), [candles1m, candles15m, candles1h]);
+  const sessionStats = useMemo(() => buildSessionStats(candles), [candles]);
+  const alerts = useMemo(() => buildAlerts(candles, candles, candles), [candles]);
 
   // Calculate KPIs for top display
   const kpis = useMemo(() => {
-    if (!candles1h.length) return null;
+    if (!candles.length) return null;
     
-    const last = candles1h[candles1h.length - 1];
-    const prev = candles1h[candles1h.length - 2] || last;
+    const last = candles[candles.length - 1];
+    const prev = candles[candles.length - 2] || last;
     const dayChange = ((last.close - prev.close) / prev.close) * 100;
     
-    const volume = candles1h.reduce((sum, c) => sum + (c.volume || 0), 0);
-    const high24h = Math.max(...candles1h.map(c => c.high));
-    const low24h = Math.min(...candles1h.map(c => c.low));
+    const volume = candles.reduce((sum, c) => sum + (c.volume || 0), 0);
+    const high24h = Math.max(...candles.map(c => c.high));
+    const low24h = Math.min(...candles.map(c => c.low));
     
     return { dayChange, volume, high24h, low24h };
-  }, [candles1h]);
+  }, [candles]);
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -104,14 +98,16 @@ export default function TradingDashboard() {
             {/* Main Chart - Priority Widget */}
             <DayTraderChartContainer 
               symbol={normalizedSymbol}
-              candles={candles1m}
+              candles={candles}
               isLoading={isLoading}
+              isUsingFallback={isUsingFallback}
+              error={error}
             />
 
             {/* Secondary Metrics Grid - Max 5-6 widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <FundingRateChart symbol={normalizedSymbol} />
-              <MicroTimeframePanel candles1m={candles1m} candles15m={candles15m} />
+              <MicroTimeframePanel candles1m={candles} candles15m={candles} />
               
               {/* Session Summary Card */}
               {sessionStats && (

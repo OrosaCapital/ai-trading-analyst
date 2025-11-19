@@ -1,105 +1,24 @@
-import { useState, useEffect, useRef } from "react";
+import { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Activity } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { createChart, IChartApi, LineData, ISeriesApi, AreaSeries } from "lightweight-charts";
-
-interface FundingCandle {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-}
-
-interface FundingHistoryResponse {
-  success: boolean;
-  symbol: string;
-  exchange: string;
-  interval: string;
-  candles: FundingCandle[];
-  stats: {
-    count: number;
-    average: number;
-    min: number;
-    max: number;
-  };
-  error?: string;
-}
+import { TrendingUp, TrendingDown, Activity, AlertCircle } from "lucide-react";
+import { useFundingHistory } from "@/hooks/useFundingHistory";
+import { createChart, IChartApi, ISeriesApi, LineData, HistogramSeries } from "lightweight-charts";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FundingRateChartProps {
   symbol: string;
 }
 
 export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
-  const [data, setData] = useState<FundingHistoryResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { candles, stats, isLoading, error } = useFundingHistory(symbol);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<"Area"> | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
 
   useEffect(() => {
-    const fetchFundingHistory = async () => {
-      // Validate symbol before making API call
-      if (!symbol || symbol.trim() === "") {
-        setIsLoading(false);
-        return;
-      }
-
-      // Extract base symbol and validate minimum length
-      const baseSymbol = symbol
-        .toUpperCase()
-        .trim()
-        .replace(/USDT$/i, '')
-        .replace(/USD$/i, '');
-      
-      // Must have at least 2 characters for base currency
-      if (baseSymbol.length < 2) {
-        console.error(`Invalid symbol: ${symbol}. Base currency must be at least 2 characters.`);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        console.log("Fetching funding history for:", symbol);
-        
-        const { data: result, error } = await supabase.functions.invoke<FundingHistoryResponse>(
-          "fetch-funding-history",
-          {
-            body: { 
-              symbol: symbol, 
-              exchange: "Binance",
-              interval: "4h",
-              limit: 100 
-            },
-          }
-        );
-
-        if (error) {
-          console.error("Supabase function error:", error);
-          throw error;
-        }
-        
-        if (result?.success) {
-          console.log("Funding history loaded:", result.candles.length, "candles");
-          setData(result);
-        } else {
-          console.error("API returned error:", result?.error);
-        }
-      } catch (err) {
-        console.error("Failed to fetch funding history:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchFundingHistory();
-  }, [symbol]);
-
-  useEffect(() => {
-    if (!chartContainerRef.current || !data?.candles.length) return;
+    if (!chartContainerRef.current || !candles.length) return;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
@@ -121,15 +40,16 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
       },
     });
 
-    const lineSeries = chart.addSeries(AreaSeries, {
-      topColor: "rgba(139, 92, 246, 0.4)",
-      bottomColor: "rgba(139, 92, 246, 0.0)",
-      lineColor: "#8b5cf6",
-      lineWidth: 2,
+    const lineSeries = chart.addSeries(HistogramSeries, {
+      color: "#8b5cf6",
+      priceFormat: {
+        type: 'custom',
+        formatter: (price: number) => `${(price * 100).toFixed(4)}%`,
+      },
     });
 
-    const chartData: LineData[] = data.candles.map((candle) => ({
-      time: (candle.time / 1000) as any, // Convert ms to seconds
+    const chartData: LineData[] = candles.map((candle) => ({
+      time: (candle.time / 1000) as any,
       value: candle.close,
     }));
 
@@ -153,22 +73,46 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data]);
+  }, [candles]);
 
   if (isLoading) {
     return (
       <Card className="p-4 glass">
-        <div className="flex items-center gap-2 mb-3">
-          <Activity className="h-4 w-4 text-primary animate-pulse" />
-          <span className="text-sm font-semibold text-muted-foreground">Loading funding rates...</span>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary animate-pulse" />
+            <span className="text-sm font-semibold text-muted-foreground">Loading funding rates...</span>
+          </div>
+          <Skeleton className="h-[200px] w-full" />
         </div>
       </Card>
     );
   }
 
-  if (!data) return null;
+  if (error) {
+    return (
+      <Card className="p-4 glass border-destructive/30">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            {error}
+          </AlertDescription>
+        </Alert>
+      </Card>
+    );
+  }
 
-  const latestRate = data.candles[data.candles.length - 1]?.close || 0;
+  if (!candles.length || !stats) {
+    return (
+      <Card className="p-4 glass">
+        <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+          No funding rate data available
+        </div>
+      </Card>
+    );
+  }
+
+  const latestRate = candles[candles.length - 1]?.close || 0;
   const isPositive = latestRate >= 0;
 
   return (
@@ -187,26 +131,36 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
             variant="outline"
             className={`text-xs ${isPositive ? "text-chart-green border-chart-green/30" : "text-chart-red border-chart-red/30"}`}
           >
-            {latestRate.toFixed(4)}%
+            {latestRate >= 0 ? "+" : ""}{(latestRate * 100).toFixed(4)}%
           </Badge>
         </div>
 
-        <div ref={chartContainerRef} className="w-full h-[200px] rounded-lg overflow-hidden" />
+        <div ref={chartContainerRef} className="w-full" />
 
-        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50">
-          <div className="text-center">
-            <div className="text-xs text-muted-foreground mb-1">Avg</div>
-            <div className="text-xs font-semibold text-foreground">{data.stats.average.toFixed(4)}%</div>
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="flex flex-col">
+            <span className="text-muted-foreground">Average</span>
+            <span className="font-semibold text-foreground">
+              {(stats.average * 100).toFixed(4)}%
+            </span>
           </div>
-          <div className="text-center">
-            <div className="text-xs text-muted-foreground mb-1">Min</div>
-            <div className="text-xs font-semibold text-chart-red">{data.stats.min.toFixed(4)}%</div>
+          <div className="flex flex-col">
+            <span className="text-muted-foreground">Min</span>
+            <span className="font-semibold text-chart-red">
+              {(stats.min * 100).toFixed(4)}%
+            </span>
           </div>
-          <div className="text-center">
-            <div className="text-xs text-muted-foreground mb-1">Max</div>
-            <div className="text-xs font-semibold text-chart-green">{data.stats.max.toFixed(4)}%</div>
+          <div className="flex flex-col">
+            <span className="text-muted-foreground">Max</span>
+            <span className="font-semibold text-chart-green">
+              {(stats.max * 100).toFixed(4)}%
+            </span>
           </div>
         </div>
+
+        <p className="text-xs text-muted-foreground">
+          {stats.count} data points • 4h interval • Binance
+        </p>
       </div>
     </Card>
   );
