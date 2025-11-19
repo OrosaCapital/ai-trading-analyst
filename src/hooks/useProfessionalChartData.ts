@@ -47,19 +47,63 @@ export function useProfessionalChartData(symbol: string | null) {
   const [isLoading, setIsLoading] = useState(true);
   const [error] = useState<string | null>(null);
 
-  const candles1mRef = useRef<Candle[]>([]);
+  const candles1hRef = useRef<Candle[]>([]);
   const hasInitializedRef = useRef(false);
   const lastPriceRef = useRef<number | null>(null);
 
   const { priceData, isConnected } = useRealtimePriceStream(symbol, !!symbol);
 
   const updateChartData = useCallback(() => {
-    if (candles1mRef.current.length === 0) return;
+    if (candles1hRef.current.length === 0) return;
 
-    const candles1m = candles1mRef.current;
-    const candles5m = aggregateCandles(candles1m, 5);
-    const candles15m = aggregateCandles(candles1m, 15);
-    const candles1h = aggregateCandles(candles1m, 60);
+    const candles1h = candles1hRef.current;
+    
+    // Generate 15m candles by interpolating 1h candles (4x15m = 1h)
+    const candles15m: Candle[] = [];
+    candles1h.forEach((candle1h) => {
+      const intervalMs = 15 * 60 * 1000;
+      for (let i = 0; i < 4; i++) {
+        candles15m.push({
+          time: candle1h.time + (i * intervalMs),
+          open: candle1h.open + (candle1h.close - candle1h.open) * (i / 4),
+          high: candle1h.high,
+          low: candle1h.low,
+          close: candle1h.open + (candle1h.close - candle1h.open) * ((i + 1) / 4),
+          volume: candle1h.volume / 4
+        });
+      }
+    });
+
+    // Generate 5m and 1m candles similarly
+    const candles5m: Candle[] = [];
+    candles15m.forEach((candle15m) => {
+      const intervalMs = 5 * 60 * 1000;
+      for (let i = 0; i < 3; i++) {
+        candles5m.push({
+          time: candle15m.time + (i * intervalMs),
+          open: candle15m.open + (candle15m.close - candle15m.open) * (i / 3),
+          high: candle15m.high,
+          low: candle15m.low,
+          close: candle15m.open + (candle15m.close - candle15m.open) * ((i + 1) / 3),
+          volume: candle15m.volume / 3
+        });
+      }
+    });
+
+    const candles1m: Candle[] = [];
+    candles5m.forEach((candle5m) => {
+      const intervalMs = 60 * 1000;
+      for (let i = 0; i < 5; i++) {
+        candles1m.push({
+          time: candle5m.time + (i * intervalMs),
+          open: candle5m.open + (candle5m.close - candle5m.open) * (i / 5),
+          high: candle5m.high,
+          low: candle5m.low,
+          close: candle5m.open + (candle5m.close - candle5m.open) * ((i + 1) / 5),
+          volume: candle5m.volume / 5
+        });
+      }
+    });
 
     const prices1h = candles1h.map((c) => c.close);
     const volumes1h = candles1h.map((c) => c.volume);
@@ -80,7 +124,8 @@ export function useProfessionalChartData(symbol: string | null) {
 
     console.log("updateChartData: Setting chart data", {
       candles1hLength: candles1h.length,
-      candles15mLength: candles15m.length
+      candles15mLength: candles15m.length,
+      dataSource: hasInitializedRef.current ? "historical" : "sample"
     });
 
     setChartData({
@@ -102,8 +147,8 @@ export function useProfessionalChartData(symbol: string | null) {
       },
       levels,
       liquiditySweeps,
-      candleCount: candles1m.length,
-      dataSource: hasInitializedRef.current ? "realtime" : "sample",
+      candleCount: candles1h.length,
+      dataSource: hasInitializedRef.current ? "historical" : "sample",
     });
   }, []);
 
@@ -117,14 +162,15 @@ export function useProfessionalChartData(symbol: string | null) {
           .from('market_candles')
           .select('*')
           .eq('symbol', symbol)
-          .eq('timeframe', '1m')
+          .eq('timeframe', '1h')
           .order('timestamp', { ascending: true })
-          .limit(2000);
+          .limit(500);
 
         if (error) throw error;
 
         if (dbCandles && dbCandles.length > 0) {
-          candles1mRef.current = dbCandles.map(c => ({
+          console.log(`Loaded ${dbCandles.length} 1h candles for ${symbol} from database`);
+          candles1hRef.current = dbCandles.map(c => ({
             time: c.timestamp,
             timestamp: c.timestamp,
             open: Number(c.open),
@@ -136,16 +182,17 @@ export function useProfessionalChartData(symbol: string | null) {
           hasInitializedRef.current = true;
           updateChartData();
         } else {
+          console.warn(`No 1h candles found for ${symbol}, using sample data`);
           const samplePrice = 50000;
-          candles1mRef.current = generateSampleCandles(samplePrice, 2000);
-          hasInitializedRef.current = true;
+          candles1hRef.current = generateSampleCandles(samplePrice, 100);
+          hasInitializedRef.current = false;
           updateChartData();
         }
       } catch (err) {
         console.error("Failed to load candles from DB:", err);
         const samplePrice = 50000;
-        candles1mRef.current = generateSampleCandles(samplePrice, 2000);
-        hasInitializedRef.current = true;
+        candles1hRef.current = generateSampleCandles(samplePrice, 100);
+        hasInitializedRef.current = false;
         updateChartData();
       } finally {
         setIsLoading(false);
@@ -163,15 +210,15 @@ export function useProfessionalChartData(symbol: string | null) {
 
     const now = Date.now() / 1000;
 
-    if (!hasInitializedRef.current && candles1mRef.current.length === 0) {
-      candles1mRef.current = generateSampleCandles(currentPrice, 100);
-      hasInitializedRef.current = true;
+    if (!hasInitializedRef.current && candles1hRef.current.length === 0) {
+      candles1hRef.current = generateSampleCandles(currentPrice, 100);
+      hasInitializedRef.current = false;
       setIsLoading(false);
     }
 
     if (currentPrice !== lastPriceRef.current) {
-      candles1mRef.current = buildCandleFromPriceUpdates(
-        candles1mRef.current,
+      candles1hRef.current = buildCandleFromPriceUpdates(
+        candles1hRef.current,
         currentPrice,
         priceData?.volume || 0,
         now,
@@ -187,7 +234,7 @@ export function useProfessionalChartData(symbol: string | null) {
 
   useEffect(() => {
     if (symbol) {
-      candles1mRef.current = [];
+      candles1hRef.current = [];
       hasInitializedRef.current = false;
       lastPriceRef.current = null;
       setChartData(null);
