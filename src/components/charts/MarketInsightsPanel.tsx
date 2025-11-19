@@ -6,11 +6,12 @@ interface MarketInsightsPanelProps {
   symbol: string;
   currentPrice: number;
   candles: any[];
+  isUsingFallback?: boolean;
 }
 
-export function MarketInsightsPanel({ symbol, currentPrice, candles }: MarketInsightsPanelProps) {
+export function MarketInsightsPanel({ symbol, currentPrice, candles, isUsingFallback = false }: MarketInsightsPanelProps) {
   // Fetch funding rate data from database
-  const { data: fundingData } = useQuery({
+  const { data: fundingData, isLoading: isFundingLoading } = useQuery({
     queryKey: ['market-insights-funding', symbol],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -26,56 +27,74 @@ export function MarketInsightsPanel({ symbol, currentPrice, candles }: MarketIns
     refetchInterval: 60000,
   });
 
-  // Calculate aggregated funding sentiment
-  const fundingSentiment = fundingData?.length ? 
-    fundingData.reduce((sum, d) => sum + parseFloat(d.rate.toString()), 0) / fundingData.length : 0;
-  
-  const exchangeCount = fundingData ? new Set(fundingData.map(d => d.exchange)).size : 0;
+  // Don't calculate indicators on fake/fallback data
+  const hasRealData = !isUsingFallback && candles.length > 0;
+  const hasRealFunding = !isFundingLoading && fundingData && fundingData.length > 0;
 
-  // Calculate VWAP from candles
-  const vwap = candles.length > 0 ? 
+  // Calculate aggregated funding sentiment (only with real data)
+  const fundingSentiment = hasRealFunding ? 
+    fundingData.reduce((sum, d) => sum + parseFloat(d.rate.toString()), 0) / fundingData.length : null;
+  
+  const exchangeCount = hasRealFunding ? new Set(fundingData.map(d => d.exchange)).size : null;
+
+  // Calculate VWAP from candles (only with real data)
+  const vwap = hasRealData ? 
     candles.reduce((sum, c) => sum + (c.close * (c.volume || 1)), 0) / 
-    candles.reduce((sum, c) => sum + (c.volume || 1), 0) : currentPrice;
+    candles.reduce((sum, c) => sum + (c.volume || 1), 0) : null;
   
-  const vwapDeviation = ((currentPrice - vwap) / vwap) * 100;
+  const vwapDeviation = hasRealData && vwap ? ((currentPrice - vwap) / vwap) * 100 : null;
 
-  // Calculate recent volatility (last 20 candles)
-  const recentCandles = candles.slice(-20);
-  const avgRange = recentCandles.length > 0 ?
-    recentCandles.reduce((sum, c) => sum + ((c.high - c.low) / c.close) * 100, 0) / recentCandles.length : 0;
+  // Calculate recent volatility (last 20 candles, only with real data)
+  const recentCandles = hasRealData ? candles.slice(-20) : [];
+  const avgRange = hasRealData && recentCandles.length > 0 ?
+    recentCandles.reduce((sum, c) => sum + ((c.high - c.low) / c.close) * 100, 0) / recentCandles.length : null;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <InsightCard
         icon={<DollarSign className="h-4 w-4" />}
         label="Funding Bias"
-        value={`${(fundingSentiment * 100).toFixed(3)}%`}
-        subtext={fundingSentiment > 0.01 ? "Longs paying" : fundingSentiment < -0.01 ? "Shorts paying" : "Balanced"}
-        status={fundingSentiment > 0.01 ? "negative" : fundingSentiment < -0.01 ? "positive" : "neutral"}
+        value={fundingSentiment !== null ? `${(fundingSentiment * 100).toFixed(3)}%` : "Loading..."}
+        subtext={fundingSentiment !== null ? 
+          (fundingSentiment > 0.01 ? "Longs paying" : fundingSentiment < -0.01 ? "Shorts paying" : "Balanced") :
+          "Fetching data"}
+        status={fundingSentiment !== null ? 
+          (fundingSentiment > 0.01 ? "negative" : fundingSentiment < -0.01 ? "positive" : "neutral") :
+          "neutral"}
+        isLoadingData={fundingSentiment === null}
       />
       
       <InsightCard
         icon={<Activity className="h-4 w-4" />}
         label="Exchange Coverage"
-        value={`${exchangeCount} exchanges`}
-        subtext="Real-time tracking"
+        value={exchangeCount !== null ? `${exchangeCount} exchanges` : "Loading..."}
+        subtext={exchangeCount !== null ? "Real-time tracking" : "Fetching data"}
         status="neutral"
+        isLoadingData={exchangeCount === null}
       />
       
       <InsightCard
-        icon={vwapDeviation > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+        icon={vwapDeviation !== null && vwapDeviation > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
         label="VWAP Deviation"
-        value={`${vwapDeviation >= 0 ? '+' : ''}${vwapDeviation.toFixed(2)}%`}
-        subtext={Math.abs(vwapDeviation) > 1 ? "Extended" : "Fair value"}
-        status={Math.abs(vwapDeviation) > 1 ? (vwapDeviation > 0 ? "positive" : "negative") : "neutral"}
+        value={vwapDeviation !== null ? `${vwapDeviation >= 0 ? '+' : ''}${vwapDeviation.toFixed(2)}%` : "Loading..."}
+        subtext={vwapDeviation !== null ? 
+          (Math.abs(vwapDeviation) > 1 ? "Extended" : "Fair value") :
+          "Fetching candles"}
+        status={vwapDeviation !== null ? 
+          (Math.abs(vwapDeviation) > 1 ? (vwapDeviation > 0 ? "positive" : "negative") : "neutral") :
+          "neutral"}
+        isLoadingData={vwapDeviation === null}
       />
       
       <InsightCard
         icon={<Activity className="h-4 w-4" />}
         label="Avg Candle Range"
-        value={`${avgRange.toFixed(2)}%`}
-        subtext={avgRange > 1.5 ? "High volatility" : avgRange > 0.8 ? "Moderate" : "Low volatility"}
-        status={avgRange > 1.5 ? "negative" : "neutral"}
+        value={avgRange !== null ? `${avgRange.toFixed(2)}%` : "Loading..."}
+        subtext={avgRange !== null ? 
+          (avgRange > 1.5 ? "High volatility" : avgRange > 0.8 ? "Moderate" : "Low volatility") :
+          "Fetching candles"}
+        status={avgRange !== null ? (avgRange > 1.5 ? "negative" : "neutral") : "neutral"}
+        isLoadingData={avgRange === null}
       />
     </div>
   );
@@ -87,9 +106,10 @@ interface InsightCardProps {
   value: string;
   subtext: string;
   status: "positive" | "negative" | "neutral";
+  isLoadingData?: boolean;
 }
 
-function InsightCard({ icon, label, value, subtext, status }: InsightCardProps) {
+function InsightCard({ icon, label, value, subtext, status, isLoadingData = false }: InsightCardProps) {
   const statusColors = {
     positive: "text-chart-green",
     negative: "text-chart-red",
@@ -97,15 +117,25 @@ function InsightCard({ icon, label, value, subtext, status }: InsightCardProps) 
   };
 
   return (
-    <div className="p-3 bg-card/30 rounded-lg border border-border/40 hover:border-border/60 transition-all">
+    <div className={`p-3 bg-card/30 rounded-lg border transition-all ${
+      isLoadingData 
+        ? "border-orange-500/40 hover:border-orange-500/60" 
+        : "border-border/40 hover:border-border/60"
+    }`}>
       <div className="flex items-center gap-2 mb-2">
-        <div className={`${statusColors[status]}`}>{icon}</div>
+        <div className={`${isLoadingData ? "text-orange-500 animate-pulse" : statusColors[status]}`}>
+          {icon}
+        </div>
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">{label}</span>
       </div>
-      <div className={`text-lg font-bold ${statusColors[status]} mb-1`}>
+      <div className={`text-lg font-bold mb-1 ${
+        isLoadingData ? "text-orange-500" : statusColors[status]
+      }`}>
         {value}
       </div>
-      <div className="text-[10px] text-muted-foreground/80">
+      <div className={`text-[10px] ${
+        isLoadingData ? "text-orange-500/70" : "text-muted-foreground/80"
+      }`}>
         {subtext}
       </div>
     </div>

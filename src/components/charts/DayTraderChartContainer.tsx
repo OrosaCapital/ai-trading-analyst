@@ -106,6 +106,7 @@ export function DayTraderChartContainer({
           symbol={symbol} 
           currentPrice={candles[candles.length - 1]?.close || 0}
           candles={candles}
+          isUsingFallback={isUsingFallback}
         />
       </div>
     </Card>

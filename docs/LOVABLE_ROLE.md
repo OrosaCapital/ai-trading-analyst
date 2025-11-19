@@ -378,6 +378,69 @@ A clean, stable, fast, modern trading dashboard with zero crashes — **self-hea
 
 ## 9. COMMON FIXES AND KNOWN ISSUES
 
+### Preventing Fake Data Issues in Charts and Indicators
+
+**Problem**: New trading pairs without real data generate fake fallback candles which cause incorrect indicator calculations (VWAP, funding rates, volatility).
+
+**Solution**: Detect fallback data and prevent indicator calculations on fake data.
+
+**Implementation**:
+
+```typescript
+// src/components/charts/MarketInsightsPanel.tsx
+export function MarketInsightsPanel({ 
+  symbol, 
+  currentPrice, 
+  candles, 
+  isUsingFallback = false 
+}: MarketInsightsPanelProps) {
+  // Don't calculate indicators on fake/fallback data
+  const hasRealData = !isUsingFallback && candles.length > 0;
+  
+  // Only calculate metrics with real data
+  const vwap = hasRealData ? 
+    candles.reduce((sum, c) => sum + (c.close * (c.volume || 1)), 0) / 
+    candles.reduce((sum, c) => sum + (c.volume || 1), 0) : null;
+  
+  // Show "Loading..." for indicators when data is fake/pending
+  return (
+    <InsightCard
+      value={vwap !== null ? `${vwap.toFixed(2)}` : "Loading..."}
+      subtext={vwap !== null ? "Real data" : "Fetching candles"}
+      isLoadingData={vwap === null}
+    />
+  );
+}
+```
+
+**Visual Indicators**:
+- Orange pulsing border when fetching real data
+- "Loading..." text instead of fake calculations
+- "Fetching data" subtext to inform users
+- Normal display once real data arrives
+
+**Data Flow**:
+1. User selects new symbol
+2. `useFreshSymbolData` triggers edge function calls
+3. While fetching: indicators show "Loading..." (orange)
+4. Once data arrives: calculations run on real data
+5. Indicators update with accurate values
+
+**Benefits**:
+- ✅ No misleading fake VWAP calculations
+- ✅ No fake funding rate displays
+- ✅ Users see clear loading states
+- ✅ Indicators only show real market data
+- ✅ Prevents trading decisions on simulated data
+
+**When This Prevents Issues**:
+- New trading pairs not yet in database
+- Symbols with stale data >4 hours old
+- Edge function failures generating fallback data
+- Initial page load before data fetch completes
+
+---
+
 ### Auto-Fetch Fresh Data on Symbol Change
 
 **Pattern**: Automatically populate fresh data when user selects a new trading symbol
