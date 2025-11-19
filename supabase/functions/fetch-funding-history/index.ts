@@ -31,16 +31,19 @@ Deno.serve(async (req) => {
       throw new Error('Symbol is required');
     }
 
+    // Format symbol for CoinGlass (they expect BTCUSDT format, not BTC)
+    const formattedSymbol = symbol.endsWith('USDT') ? symbol : `${symbol}USDT`;
+
     const apiKey = Deno.env.get('COINGLASS_API_KEY');
     if (!apiKey) {
       throw new Error('COINGLASS_API_KEY not configured');
     }
 
-    console.log(`Fetching funding rate history for ${symbol} on ${exchange} with interval ${interval}...`);
+    console.log(`Fetching funding rate history for ${formattedSymbol} on ${exchange} with interval ${interval}...`);
 
     const url = new URL('https://open-api-v4.coinglass.com/api/futures/funding-rate/history');
     url.searchParams.append('exchange', exchange);
-    url.searchParams.append('symbol', symbol);
+    url.searchParams.append('symbol', formattedSymbol);
     url.searchParams.append('interval', interval);
     url.searchParams.append('limit', limit.toString());
 
