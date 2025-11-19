@@ -1,6 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-
 type Candle = {
   open: number;
   high: number;
@@ -12,28 +9,9 @@ type Candle = {
 interface MicroTimeframePanelProps {
   candles1m: Candle[];
   candles15m: Candle[];
-  symbol?: string;
 }
 
-export function MicroTimeframePanel({ candles1m, candles15m, symbol = "BTCUSDT" }: MicroTimeframePanelProps) {
-  // Fetch latest funding rate from database
-  const { data: fundingData } = useQuery({
-    queryKey: ['funding-rate', symbol],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('market_funding_rates')
-        .select('rate, timestamp')
-        .eq('symbol', symbol)
-        .order('timestamp', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 60000, // Refresh every minute
-  });
-
+export function MicroTimeframePanel({ candles1m, candles15m }: MicroTimeframePanelProps) {
   if (!candles1m.length) {
     return (
       <div className="flex flex-col gap-3 p-6 rounded-xl bg-gradient-to-br from-card via-card to-card/95 border border-border/40 shadow-lg">
@@ -74,13 +52,8 @@ export function MicroTimeframePanel({ candles1m, candles15m, symbol = "BTCUSDT" 
     ? ((last1m.close - candles1m[candles1m.length - 5].close) / candles1m[candles1m.length - 5].close) * 100
     : 0;
 
-  // Funding rate analysis
-  const fundingRate = fundingData?.rate ? parseFloat(fundingData.rate.toString()) : null;
-  const fundingBias = fundingRate 
-    ? fundingRate > 0.01 ? "Long squeeze risk" 
-    : fundingRate < -0.01 ? "Short squeeze risk"
-    : "Neutral"
-    : "Loading...";
+  // Price volatility (high-low range as % of close)
+  const volatility = ((last15m.high - last15m.low) / last15m.close) * 100;
 
   return (
     <div className="flex flex-col gap-3 p-4 rounded-xl bg-gradient-to-br from-card via-card to-card/95 border border-border/40 hover:border-border/60 transition-all duration-300 shadow-lg hover:shadow-xl">
@@ -106,11 +79,10 @@ export function MicroTimeframePanel({ candles1m, candles15m, symbol = "BTCUSDT" 
       />
 
       <MiniRow
-        label="Funding Rate"
-        value={fundingRate ? `${(fundingRate * 100).toFixed(3)}%` : "N/A"}
-        hint={fundingBias}
-        positive={fundingRate !== null && fundingRate < -0.01}
-        negative={fundingRate !== null && fundingRate > 0.01}
+        label="15m Volatility"
+        value={`${volatility.toFixed(2)}%`}
+        hint={volatility > 2 ? "High" : volatility > 1 ? "Moderate" : "Low"}
+        negative={volatility > 2}
       />
 
       <MiniRow
