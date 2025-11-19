@@ -10,9 +10,6 @@ export interface WatchlistItem {
   nickname: string | null;
   notes: string | null;
   added_at: string;
-  last_analysis_time?: string;
-  last_decision?: string;
-  last_confidence?: number;
   current_price?: number;
 }
 
@@ -45,16 +42,6 @@ export const useWatchlist = () => {
 
       const enriched = await Promise.all(
         items.map(async (item) => {
-          // Latest analysis
-          const analysis = await supabase
-            .from("ai_analysis_history")
-            .select("created_at, decision, confidence")
-            .eq("symbol", item.symbol)
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
           // Price (cached to prevent flooding)
           let price = priceCacheRef.current[item.symbol];
 
@@ -77,9 +64,6 @@ export const useWatchlist = () => {
             nickname: item.nickname,
             notes: item.notes,
             added_at: item.added_at,
-            last_analysis_time: analysis.data?.created_at,
-            last_decision: analysis.data?.decision,
-            last_confidence: analysis.data?.confidence,
             current_price: price || null,
           };
         }),
