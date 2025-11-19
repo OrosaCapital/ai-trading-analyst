@@ -1,31 +1,10 @@
 project_id = "alzxeplijnbpuqkfnpjk"
 
-[functions.websocket-price-stream]
-verify_jwt = false
-
 [functions.tatum-price-logger]
-verify_jwt = false
-
-[functions.fetch-coinglass-coins]
-verify_jwt = false
-
-[functions.fetch-exchange-pairs]
-verify_jwt = false
-
-[functions.fetch-funding-history]
-verify_jwt = false
-
-[functions.fetch-current-funding]
-verify_jwt = false
-
-[functions.fetch-historical-candles]
 verify_jwt = false
 
 [functions.populate-market-data]
 verify_jwt = false
 
 [functions.populate-coinglass-data]
-verify_jwt = false
-
-[functions.system-health-ai]
 verify_jwt = false
