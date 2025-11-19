@@ -1,98 +1,126 @@
-import { useEffect, useMemo } from "react";
-import { SentimentGauge } from "../SentimentGauge";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { TrendingUp, TrendingDown, DollarSign, Activity, BarChart3, Zap } from "lucide-react";
+import { 
+  Zap, 
+  CheckCircle2, 
+  AlertTriangle, 
+  XCircle, 
+  Server, 
+  Database, 
+  Globe, 
+  Activity,
+  TrendingUp,
+  TrendingDown
+} from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
-import { useMarketStore } from "@/store/useMarketStore";
-import { useFundingRate } from "@/hooks/useFundingRate";
+import { useSystemHealth } from "@/hooks/useSystemHealth";
+import { Badge } from "../ui/badge";
 
 interface SidebarProps {
   symbol: string;
 }
 
 export function Sidebar({ symbol }: SidebarProps) {
-  const { metrics, loading, fetchMetrics, initialize, cleanup } = useMarketStore();
-  const { data: fundingData, isLoading: fundingLoading } = useFundingRate(symbol);
-  
-  useEffect(() => {
-    initialize();
-    return () => cleanup();
-  }, [initialize, cleanup]);
+  const { data: healthData, isLoading, error } = useSystemHealth();
 
-  useEffect(() => {
-    if (symbol) {
-      fetchMetrics(symbol);
-    }
-  }, [symbol, fetchMetrics]);
+  const healthScore = useMemo(() => {
+    if (!healthData?.metrics) return 0;
+    const m = healthData.metrics;
+    const functionHealth = (m.edgeFunctions.healthy / m.edgeFunctions.total) * 100;
+    const dbHealth = m.database.status === 'healthy' ? 100 : m.database.status === 'degraded' ? 50 : 0;
+    const apiHealth = (
+      (m.apis.coinglassStatus === 'operational' ? 100 : m.apis.coinglassStatus === 'degraded' ? 50 : 0) +
+      (m.apis.tatumStatus === 'operational' ? 100 : m.apis.tatumStatus === 'degraded' ? 50 : 0)
+    ) / 2;
+    const errorPenalty = Math.max(0, 100 - (m.errors.criticalCount * 10));
+    
+    return Math.round((functionHealth + dbHealth + apiHealth + errorPenalty) / 4);
+  }, [healthData]);
 
-  const currentMetrics = metrics[symbol];
-  const isLoading = loading.metrics || !currentMetrics;
-
-  const formatLargeNumber = (num: number | null | undefined) => {
-    if (!num || num === 0) return '$0';
-    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-    if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
-    if (num >= 1e3) return `$${(num / 1e3).toFixed(1)}K`;
-    return `$${num.toFixed(0)}`;
+  const getHealthStatus = (score: number) => {
+    if (score >= 90) return { label: 'EXCELLENT', color: 'text-chart-green', icon: CheckCircle2 };
+    if (score >= 70) return { label: 'GOOD', color: 'text-emerald-400', icon: CheckCircle2 };
+    if (score >= 50) return { label: 'DEGRADED', color: 'text-amber-400', icon: AlertTriangle };
+    return { label: 'CRITICAL', color: 'text-chart-red', icon: XCircle };
   };
 
-  const fundingRateColor = useMemo(() => {
-    if (!fundingData) return 'text-muted-foreground';
-    if (fundingData.rate > 0.01) return 'text-chart-green';
-    if (fundingData.rate < -0.01) return 'text-chart-red';
-    return 'text-muted-foreground';
-  }, [fundingData]);
-
-  const longShortColor = useMemo(() => {
-    if (!currentMetrics) return 'text-muted-foreground';
-    if (currentMetrics.longShortRatio > 1.2) return 'text-chart-green';
-    if (currentMetrics.longShortRatio < 0.8) return 'text-chart-red';
-    return 'text-muted-foreground';
-  }, [currentMetrics]);
+  const status = getHealthStatus(healthScore);
+  const StatusIcon = status.icon;
 
   return (
     <aside className="flex w-64 flex-col border-r border-border/50 bg-gradient-to-b from-background via-background/98 to-background/95 overflow-y-auto backdrop-blur-sm">
       <div className="px-6 py-6 border-b border-border/30 bg-gradient-to-r from-primary/5 to-transparent">
         <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
           <Zap className="w-4 h-4 text-primary" />
-          OCAPX AI
+          ADMIN CONTROL
         </h2>
-        <p className="text-xs text-muted-foreground mt-1 font-medium">Market Intelligence</p>
+        <p className="text-xs text-muted-foreground mt-1 font-medium">AI System Monitor</p>
       </div>
       
       <div className="flex-1 px-4 py-4 space-y-3">
+        {/* System Health Score */}
         <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Market Sentiment
+              System Health
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <SentimentGauge />
+            {isLoading ? (
+              <Skeleton className="h-16 w-full rounded-md" />
+            ) : error ? (
+              <p className="text-sm text-destructive">Failed to load</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <StatusIcon className={`w-5 h-5 ${status.color}`} />
+                    <span className={`text-sm font-bold ${status.color}`}>
+                      {status.label}
+                    </span>
+                  </div>
+                  <span className="text-3xl font-bold">{healthScore}%</span>
+                </div>
+                <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-500 ${
+                      healthScore >= 90 ? 'bg-chart-green' :
+                      healthScore >= 70 ? 'bg-emerald-400' :
+                      healthScore >= 50 ? 'bg-amber-400' : 'bg-chart-red'
+                    }`}
+                    style={{ width: `${healthScore}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
+        {/* Edge Functions */}
         <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <TrendingUp className="w-3 h-3 transition-transform group-hover:scale-110" />
-              Funding Rate
+              <Server className="w-3 h-3 transition-transform group-hover:scale-110" />
+              Edge Functions
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {fundingLoading ? (
+            {isLoading ? (
               <Skeleton className="h-8 w-24 rounded-md" />
-            ) : fundingData ? (
-              <div className="flex items-center justify-between">
-                <p className={`text-xl font-bold transition-colors ${fundingRateColor}`}>
-                  {fundingData.rate.toFixed(4)}%
-                </p>
-                {fundingData.rate > 0 ? (
-                  <TrendingUp className="w-5 h-5 text-chart-green animate-pulse" />
-                ) : fundingData.rate < 0 ? (
-                  <TrendingDown className="w-5 h-5 text-chart-red animate-pulse" />
-                ) : (
-                  <Activity className="w-5 h-5 text-muted-foreground" />
+            ) : healthData?.metrics ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-bold text-chart-green">
+                    {healthData.metrics.edgeFunctions.healthy}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    / {healthData.metrics.edgeFunctions.total}
+                  </span>
+                </div>
+                {healthData.metrics.edgeFunctions.errors > 0 && (
+                  <Badge variant="destructive" className="text-xs">
+                    {healthData.metrics.edgeFunctions.errors} errors
+                  </Badge>
                 )}
               </div>
             ) : (
@@ -101,99 +129,125 @@ export function Sidebar({ symbol }: SidebarProps) {
           </CardContent>
         </Card>
 
+        {/* Database Status */}
         <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <DollarSign className="w-3 h-3 transition-transform group-hover:scale-110" />
-              Open Interest
+              <Database className="w-3 h-3 transition-transform group-hover:scale-110" />
+              Database
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-28 rounded-md" />
-            ) : (
-              <p className="text-xl font-bold text-foreground">
-                {formatLargeNumber(currentMetrics.openInterest)}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <Activity className="w-3 h-3" />
-              Long/Short Ratio
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-20 rounded-md" />
-            ) : (
+            ) : healthData?.metrics ? (
               <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-medium">
-                  <span className="text-chart-green">Long</span>
-                  <span className="text-chart-red">Short</span>
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant={healthData.metrics.database.status === 'healthy' ? 'default' : 'destructive'}
+                    className="uppercase text-xs"
+                  >
+                    {healthData.metrics.database.status}
+                  </Badge>
                 </div>
-                <div className="h-2.5 bg-muted/30 rounded-full overflow-hidden flex shadow-inner">
-                  <div 
-                    className="bg-gradient-to-r from-chart-green to-chart-green/80 transition-all duration-500 ease-out" 
-                    style={{ width: `${(currentMetrics.longShortRatio / (currentMetrics.longShortRatio + 1)) * 100}%` }}
-                  />
-                  <div 
-                    className="bg-gradient-to-l from-chart-red to-chart-red/80 transition-all duration-500 ease-out" 
-                    style={{ width: `${(1 / (currentMetrics.longShortRatio + 1)) * 100}%` }}
-                  />
-                </div>
-                <p className={`text-base font-bold text-center transition-colors ${longShortColor}`}>
-                  {currentMetrics.longShortRatio.toFixed(2)}
+                <p className="text-xs text-muted-foreground">
+                  {healthData.metrics.database.connections} connections
                 </p>
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No data</p>
             )}
           </CardContent>
         </Card>
 
+        {/* API Status */}
         <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <Activity className="w-3 h-3 transition-transform group-hover:scale-110" />
-              Liquidations 24h
+              <Globe className="w-3 h-3 transition-transform group-hover:scale-110" />
+              External APIs
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-24 rounded-md" />
-            ) : (
-              <div>
-                {currentMetrics.liquidations24h > 0 ? (
-                  <p className="text-xl font-bold text-destructive">
-                    {formatLargeNumber(currentMetrics.liquidations24h)}
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground font-medium">No Data</p>
-                )}
+            ) : healthData?.metrics ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span>CoinGlass</span>
+                  <Badge 
+                    variant={healthData.metrics.apis.coinglassStatus === 'operational' ? 'default' : 'destructive'}
+                    className="text-xs"
+                  >
+                    {healthData.metrics.apis.coinglassStatus}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span>Tatum</span>
+                  <Badge 
+                    variant={healthData.metrics.apis.tatumStatus === 'operational' ? 'default' : 'destructive'}
+                    className="text-xs"
+                  >
+                    {healthData.metrics.apis.tatumStatus}
+                  </Badge>
+                </div>
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No data</p>
             )}
           </CardContent>
         </Card>
 
+        {/* Error Metrics */}
         <Card className="glass-panel border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <BarChart3 className="w-3 h-3 transition-transform group-hover:scale-110" />
-              Volume 24h
+              <Activity className="w-3 h-3 transition-transform group-hover:scale-110" />
+              Errors (24h)
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-8 w-28 rounded-md" />
+              <Skeleton className="h-8 w-24 rounded-md" />
+            ) : healthData?.metrics ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-bold">
+                    {healthData.metrics.errors.last24h}
+                  </span>
+                  {healthData.metrics.errors.criticalCount > 0 ? (
+                    <Badge variant="destructive" className="text-xs">
+                      {healthData.metrics.errors.criticalCount} critical
+                    </Badge>
+                  ) : (
+                    <CheckCircle2 className="w-5 h-5 text-chart-green" />
+                  )}
+                </div>
+              </div>
             ) : (
-              <p className="text-xl font-bold text-foreground">
-                {formatLargeNumber(currentMetrics.volume24h)}
-              </p>
+              <p className="text-sm text-muted-foreground">No data</p>
             )}
           </CardContent>
         </Card>
+
+        {/* AI Analysis */}
+        {healthData?.analysis && (
+          <Card className="glass-panel border border-primary/40 bg-primary/5 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <Zap className="w-3 h-3" />
+                AI Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {healthData.analysis.length > 200 
+                  ? `${healthData.analysis.substring(0, 200)}...` 
+                  : healthData.analysis}
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </aside>
   );
