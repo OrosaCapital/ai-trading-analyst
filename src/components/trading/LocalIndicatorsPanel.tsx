@@ -34,7 +34,7 @@ export function LocalIndicatorsPanel({ candles }: Props) {
 
   const trendScore = (last.close > e9 ? 1 : 0) + (e9 > e21 ? 1 : 0) + (e21 > e50 ? 1 : 0);
 
-  const trendColor = trendScore === 3 ? "text-green-400" : trendScore === 2 ? "text-yellow-400" : "text-red-400";
+  const trendColor = trendScore === 3 ? "text-chart-green" : trendScore === 2 ? "text-amber-400" : "text-chart-red";
 
   const rsi = (() => {
     let gain = 0,
@@ -48,7 +48,7 @@ export function LocalIndicatorsPanel({ candles }: Props) {
     return 100 - 100 / (1 + rs);
   })();
 
-  const rsiColor = rsi > 70 ? "text-red-400" : rsi < 30 ? "text-green-400" : "text-foreground";
+  const rsiColor = rsi > 70 ? "text-chart-red" : rsi < 30 ? "text-chart-green" : "text-foreground";
 
   const volWindow = Math.min(len, 20);
   const avgVol = volumes.slice(-volWindow).reduce((a, b) => a + b, 0) / (volWindow || 1);
@@ -68,7 +68,7 @@ export function LocalIndicatorsPanel({ candles }: Props) {
   const atrPct = (atr / last.close) * 100;
 
   const momentum = last.close - prev.close;
-  const momentumColor = momentum > 0 ? "text-green-400" : momentum < 0 ? "text-red-400" : "text-muted-foreground";
+  const momentumColor = momentum > 0 ? "text-chart-green" : momentum < 0 ? "text-chart-red" : "text-muted-foreground";
 
   const sparkline = closes.slice(-20);
 
@@ -81,7 +81,7 @@ export function LocalIndicatorsPanel({ candles }: Props) {
 
       <Section title="Trend">
         <Value label="Trend Score" value={trendScore} valueClass={trendColor} />
-        <Bar percent={(trendScore / 3) * 100} color="bg-green-500" />
+        <Bar percent={(trendScore / 3) * 100} color="bg-chart-green" />
       </Section>
 
       <Section title="Momentum">
@@ -95,12 +95,12 @@ export function LocalIndicatorsPanel({ candles }: Props) {
 
       <Section title="Volatility">
         <Value label="ATR %" value={atrPct.toFixed(2)} />
-        <Bar percent={Math.min(atrPct, 10) * 10} color="bg-purple-500" />
+        <Bar percent={Math.min(atrPct, 10) * 10} color="bg-cyber-purple" />
       </Section>
 
       <Section title="Volume">
         <Value label="Volume Pressure" value={volPressure.toFixed(2)} />
-        <Bar percent={(Math.min(volPressure, 3) / 3) * 100} color="bg-blue-500" />
+        <Bar percent={(Math.min(volPressure, 3) / 3) * 100} color="bg-cyber-blue" />
       </Section>
 
       <Section title="Sparkline (20 closes)">
@@ -113,7 +113,7 @@ export function LocalIndicatorsPanel({ candles }: Props) {
             return (
               <div
                 key={i}
-                className="w-1 bg-green-400 rounded-sm"
+                className="w-1 bg-chart-green rounded-sm"
                 style={{ height: `${pct}%`, opacity: 0.4 + pct / 150 }}
               />
             );
