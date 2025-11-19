@@ -50,6 +50,29 @@ External APIs → Database Tables → React Components
      ↓                ↓                  ↓
 CoinGlass API   market_candles      Chart Hook
 CoinMarketCap API  market_funding      Price Display
+
+## 🚨 CRITICAL: CoinMarketCap API Rate Limits
+
+**Monthly Allowance**: 10,000 credits/month (Basic Plan)
+**Current Usage**: Monitor at https://pro.coinmarketcap.com/account
+
+### API Call Conservation Rules:
+1. **NEVER** poll CMC API on intervals < 5 minutes
+2. **ALWAYS** use database cache (`market_snapshots`) first
+3. **ONLY** call CMC API when:
+   - User explicitly refreshes data
+   - Cache is older than 5 minutes
+   - Initial data population
+4. **BATCH** requests when possible (multiple symbols in one call)
+5. **LIMIT** populate-market-data runs to max 2x per hour
+
+### Implementation Guidelines:
+- ✅ Cache in `market_snapshots` table (TTL: 5 minutes minimum)
+- ✅ Use `last_updated` timestamp to check cache freshness
+- ✅ Prefer WebSocket for real-time updates (doesn't use CMC credits)
+- ❌ NO auto-refresh on page load if cache is valid
+- ❌ NO background polling of CMC API
+- ❌ NO individual calls per symbol (use batch endpoints)
                market_snapshots    Live Updates
 ```
 

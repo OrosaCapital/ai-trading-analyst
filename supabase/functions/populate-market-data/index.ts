@@ -1,5 +1,12 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
+// 🚨 CRITICAL: CoinMarketCap API Rate Limits
+// - Monthly Limit: 10,000 credits
+// - This function costs ~5-10 credits per run (1 credit per symbol)
+// - DO NOT call more than 2x per hour
+// - ALWAYS check cache before calling CMC API
+// - Cache TTL: 5 minutes minimum
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -34,6 +41,7 @@ Deno.serve(async (req) => {
     const timeframe = '1h';
     const limit = 200;
 
+    console.log(`⚠️ CMC API Rate Limit: Check cache before calling!`);
     console.log(`Populating market data for ${symbols.length} symbols...`);
 
     for (const symbol of symbols) {
@@ -42,36 +50,54 @@ Deno.serve(async (req) => {
         let currentPrice = 50000;
         let priceSource = 'fallback';
 
-        // Try CoinMarketCap first
-        if (CMC_API_KEY) {
-          console.log(`🧪 Testing CoinMarketCap API for ${symbol}...`);
-          const cmcUrl = `https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${cleanSymbol}&convert=USD`;
-          
-          try {
-            const cmcRes = await fetch(cmcUrl, {
-              headers: { 
-                'X-CMC_PRO_API_KEY': CMC_API_KEY,
-                'Accept': 'application/json'
-              }
-            });
+        // 🔍 Check cache first (5-minute TTL to conserve API credits)
+        const { data: cachedSnapshot } = await supabaseClient
+          .from('market_snapshots')
+          .select('price, last_updated')
+          .eq('symbol', symbol)
+          .single();
 
-            console.log(`CMC Response Status: ${cmcRes.status}`);
-            
-            if (cmcRes.ok) {
-              const cmcData = await cmcRes.json();
-              console.log(`CMC Full Response for ${symbol}:`, JSON.stringify(cmcData, null, 2));
+        const cacheAge = cachedSnapshot 
+          ? (Date.now() - new Date(cachedSnapshot.last_updated).getTime()) / 1000 
+          : Infinity;
+
+        // Use cache if less than 5 minutes old (300 seconds)
+        if (cachedSnapshot && cacheAge < 300) {
+          currentPrice = cachedSnapshot.price;
+          priceSource = 'cache';
+          console.log(`💾 ${symbol} using cached price: $${currentPrice.toFixed(4)} (age: ${Math.floor(cacheAge)}s)`);
+        } else {
+          // Try CoinMarketCap only if cache is stale
+          if (CMC_API_KEY) {
+            console.log(`🌐 Fetching fresh price for ${symbol} from CoinMarketCap...`);
+            const cmcUrl = `https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${cleanSymbol}&convert=USD`;
+          
+            try {
+              const cmcRes = await fetch(cmcUrl, {
+                headers: { 
+                  'X-CMC_PRO_API_KEY': CMC_API_KEY,
+                  'Accept': 'application/json'
+                }
+              });
+
+              console.log(`CMC Response Status: ${cmcRes.status}`);
               
-              if (cmcData.data && cmcData.data[cleanSymbol] && cmcData.data[cleanSymbol][0]) {
-                currentPrice = cmcData.data[cleanSymbol][0].quote.USD.price;
-                priceSource = 'coinmarketcap';
-                console.log(`✅ ${symbol} price from CoinMarketCap: $${currentPrice.toFixed(4)}`);
+              if (cmcRes.ok) {
+                const cmcData = await cmcRes.json();
+                console.log(`CMC Response for ${symbol}:`, JSON.stringify(cmcData, null, 2));
+                
+                if (cmcData.data && cmcData.data[cleanSymbol] && cmcData.data[cleanSymbol][0]) {
+                  currentPrice = cmcData.data[cleanSymbol][0].quote.USD.price;
+                  priceSource = 'coinmarketcap';
+                  console.log(`✅ ${symbol} price from CoinMarketCap: $${currentPrice.toFixed(4)}`);
+                }
+              } else {
+                const errorText = await cmcRes.text();
+                console.error(`❌ CoinMarketCap API failed for ${symbol} [${cmcRes.status}]:`, errorText);
               }
-            } else {
-              const errorText = await cmcRes.text();
-              console.error(`❌ CoinMarketCap API failed for ${symbol} [${cmcRes.status}]:`, errorText);
+            } catch (cmcError) {
+              console.error(`❌ CoinMarketCap error for ${symbol}:`, cmcError);
             }
-          } catch (cmcError) {
-            console.error(`❌ CoinMarketCap error for ${symbol}:`, cmcError);
           }
         }
 
