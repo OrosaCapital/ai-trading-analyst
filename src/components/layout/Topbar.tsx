@@ -2,7 +2,7 @@ import { useMarketStore } from "../../store/useMarketStore";
 import { DataAccumulationBanner } from "../trading/DataAccumulationBanner";
 import { TickerRibbon } from "../trading/TickerRibbon";
 
-const timeframes: Array<"1m" | "5m" | "15m" | "1h" | "4h" | "1d"> = ["1m", "5m", "15m", "1h", "4h", "1d"];
+const timeframes: Array<"1m" | "5m" | "1h" | "4h" | "1d"> = ["1m", "5m", "1h", "4h", "1d"];
 
 interface TopbarProps {
   showProgress?: boolean;
