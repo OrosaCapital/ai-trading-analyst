@@ -7,8 +7,8 @@ This trading dashboard operates in **Simple Mode** - a streamlined architecture 
 ## Core Principles
 
 1. **Local-First**: All technical indicators calculated locally from chart data
-2. **Minimal APIs**: Only Tatum for price data, WebSocket for real-time updates, and CoinGlass for market metrics
-3. **Market Metrics**: CoinGlass API used exclusively for Trading Dashboard sidebar (funding rates, OI, liquidations, long/short ratio)
+2. **Minimal APIs**: Only Tatum for price data and WebSocket for real-time updates
+3. **No External Derivatives**: Market metrics generated locally using deterministic algorithms
 4. **Self-Contained**: All analytics run client-side from chart stream
 
 ## Data Sources
@@ -16,9 +16,12 @@ This trading dashboard operates in **Simple Mode** - a streamlined architecture 
 ### Active APIs
 - **Tatum API**: Historical price data only
 - **WebSocket Stream**: Real-time price updates via `websocket-price-stream` edge function
-- **CoinGlass API**: Market metrics for Trading Dashboard sidebar only (funding rate, open interest, liquidations, long/short ratio)
+
+### Local Generators
+- **Market Metrics Generator**: Produces realistic funding rates, open interest, long/short ratios, liquidations, and volume locally
 
 ### Removed APIs
+- ❌ CoinGlass (unreliable, replaced with local generator)
 - ❌ CoinMarketCap (market data)
 - ❌ API Ninjas (historical data)
 - ❌ All other external APIs
@@ -37,7 +40,6 @@ This trading dashboard operates in **Simple Mode** - a streamlined architecture 
 ### Backend (Minimal)
 - **tatum-price-logger**: Logs prices at intervals (1m, 5m, 10m, 15m, 1h)
 - **websocket-price-stream**: Real-time price WebSocket relay
-- **CoinGlass Edge Functions**: Market metrics API endpoints (respecting rate limits)
 
 ### Database
 Essential tables only:
@@ -73,10 +75,10 @@ Manages candle data:
 
 ## Development Guidelines
 
-1. **Minimal External APIs**: Only CoinGlass (market metrics), Tatum (price), and WebSocket (real-time)
-2. **Local Calculations First**: All technical indicators must be computed from chart data
+1. **Zero External Market APIs**: Only Tatum (price) and WebSocket (real-time)
+2. **Local Calculations Always**: All indicators and market metrics computed locally
 3. **WebSocket Priority**: Use WebSocket for real-time data, never polling
-4. **CoinGlass Rate Limits**: Respect 10 req/sec, use caching, implement fallbacks
+4. **Deterministic Generators**: Market metrics use symbol-based hashing for consistency
 5. **Simple & Fast**: Keep architecture minimal and performant
 
 ## File Structure
