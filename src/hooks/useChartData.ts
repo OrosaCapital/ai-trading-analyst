@@ -90,8 +90,8 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
 
     try {
       const result = await fetchWithRetry(async () => {
-        const { data, error } = await supabase.functions.invoke('websocket-price-stream', {
-          body: { symbol },
+        const { data, error } = await supabase.functions.invoke('fetch-historical-candles', {
+          body: { symbol, limit: 100 },
         });
 
         if (error) {
@@ -106,8 +106,8 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
           throw error;
         }
 
-        if (!data?.candles || !Array.isArray(data.candles) || data.candles.length === 0) {
-          throw new Error('No candle data received');
+        if (!data?.success || !data?.candles || !Array.isArray(data.candles) || data.candles.length === 0) {
+          throw new Error(data?.message || 'No candle data received');
         }
 
         return data.candles;
