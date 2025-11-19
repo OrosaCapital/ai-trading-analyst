@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
-import { AppShell } from "@/components/layout/AppShell";
-import { TradingCommandCenter } from "@/components/trading/TradingCommandCenter";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { TradingNavigation } from "@/components/trading/TradingNavigation";
+import { FilterBar } from "@/components/trading/FilterBar";
+import { KPICard } from "@/components/trading/KPICard";
 import { TradingViewChart } from "@/components/TradingViewChart";
-import { LocalIndicatorsPanel } from "@/components/trading/LocalIndicatorsPanel";
-import { ExchangeCoverage } from "@/components/trading/ExchangeCoverage";
 import { FundingRateChart } from "@/components/trading/FundingRateChart";
 import { AlertStrip, type AlertBadge } from "@/components/trading/AlertStrip";
-import { SessionStatsPanel, type SessionStats } from "@/components/trading/SessionStatsPanel";
 import { MicroTimeframePanel } from "@/components/trading/MicroTimeframePanel";
+import { SessionStatsPanel, type SessionStats } from "@/components/trading/SessionStatsPanel";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
+import { Card } from "@/components/ui/card";
 
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
@@ -38,53 +39,111 @@ export default function TradingDashboard() {
   const sessionStats = useMemo(() => buildSessionStats(candles1h), [candles1h]);
   const alerts = useMemo(() => buildAlerts(candles1m, candles15m, candles1h), [candles1m, candles15m, candles1h]);
 
+  // Calculate KPIs for top display
+  const kpis = useMemo(() => {
+    if (!candles1h.length) return null;
+    
+    const last = candles1h[candles1h.length - 1];
+    const prev = candles1h[candles1h.length - 2] || last;
+    const dayChange = ((last.close - prev.close) / prev.close) * 100;
+    
+    const volume = candles1h.reduce((sum, c) => sum + (c.volume || 0), 0);
+    const high24h = Math.max(...candles1h.map(c => c.high));
+    const low24h = Math.min(...candles1h.map(c => c.low));
+    
+    return { dayChange, volume, high24h, low24h };
+  }, [candles1h]);
+
   return (
-    <AppShell showProgress={false} minutesCollected={0} minutesRequired={0}>
-      <TradingCommandCenter symbol={symbol} onSymbolChange={setSymbol} currentPrice={currentPrice} />
-
-      <AlertStrip alerts={alerts} isLoading={isLoading} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
-        <div className="lg:col-span-8 flex flex-col gap-4">
-          {/* Enhanced chart container with glow effect */}
-          <div className="group relative h-[500px] rounded-xl overflow-hidden border border-border/40 bg-gradient-to-br from-card via-card/95 to-card/90 shadow-2xl hover:shadow-primary/10 transition-all duration-500">
-            {/* Animated border glow */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            <div className="relative h-full">
-              <TradingViewChart symbol={normalizedSymbol} />
-            </div>
-          </div>
-
-          <SessionStatsPanel stats={sessionStats} symbol={normalizedSymbol} />
-        </div>
-
-        <div className="lg:col-span-4 flex flex-col gap-4">
-          <ExchangeCoverage />
-          <FundingRateChart symbol={normalizedSymbol} />
-          <LocalIndicatorsPanel candles={candles1m} />
-          <MicroTimeframePanel candles1m={candles1m} candles15m={candles15m} />
-        </div>
-      </div>
-
-      {/* Enhanced footer with animation */}
-      <div className="relative h-[200px] flex items-center justify-center border-t border-border/20 mt-4 rounded-xl overflow-hidden backdrop-blur-sm">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-card/30 to-primary/5 animate-pulse opacity-40" />
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex min-h-screen w-full bg-background">
+        <TradingNavigation />
         
-        <div className="relative text-center space-y-3">
-          <div className="flex items-center justify-center gap-3">
-            <div className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary shadow-lg shadow-primary/50" />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header with trigger and filters */}
+          <header className="flex items-center border-b border-border/40 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
+            <SidebarTrigger className="ml-4" />
+            <div className="flex-1">
+              <FilterBar symbol={symbol} onSymbolChange={setSymbol} />
             </div>
-            <div className="text-lg font-bold text-primary tracking-tight">Real-Time Market Analysis</div>
-          </div>
-          <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Live price streaming • Technical indicators • Multi-timeframe analysis • Exchange coverage
-          </p>
+          </header>
+
+          {/* Main content */}
+          <main className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Alert Strip */}
+            <AlertStrip alerts={alerts} isLoading={isLoading} />
+
+            {/* Top KPIs - 5 Second Rule: Most Important Info */}
+            {kpis && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KPICard
+                  label="Current Price"
+                  value={currentPrice ? `$${currentPrice.toLocaleString()}` : "Loading..."}
+                  change={kpis.dayChange}
+                  trend={kpis.dayChange > 0 ? "up" : "down"}
+                  subtitle={normalizedSymbol}
+                />
+                <KPICard
+                  label="24h Volume"
+                  value={`${(kpis.volume / 1000).toFixed(1)}K`}
+                  subtitle="Trading activity"
+                />
+                <KPICard
+                  label="24h High"
+                  value={`$${kpis.high24h.toLocaleString()}`}
+                  subtitle="Peak price"
+                />
+                <KPICard
+                  label="24h Low"
+                  value={`$${kpis.low24h.toLocaleString()}`}
+                  subtitle="Lowest price"
+                />
+              </div>
+            )}
+
+            {/* Main Chart - Priority Widget */}
+            <Card className="p-0 overflow-hidden border border-border/40 bg-gradient-to-br from-card via-card to-card/95 hover:border-primary/40 transition-all duration-300">
+              <div className="h-[500px]">
+                <TradingViewChart symbol={normalizedSymbol} />
+              </div>
+            </Card>
+
+            {/* Secondary Metrics Grid - Max 5-6 widgets */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <FundingRateChart symbol={normalizedSymbol} />
+              <MicroTimeframePanel candles1m={candles1m} candles15m={candles15m} />
+              
+              {/* Session Summary Card */}
+              {sessionStats && (
+                <Card className="p-4 bg-gradient-to-br from-card via-card to-card/95 border border-border/40">
+                  <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-3">
+                    Session Summary
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Direction</span>
+                      <span className={`text-sm font-bold ${
+                        sessionStats.direction === 'up' ? 'text-chart-green' :
+                        sessionStats.direction === 'down' ? 'text-chart-red' :
+                        'text-muted-foreground'
+                      }`}>
+                        {sessionStats.direction?.toUpperCase() || 'NEUTRAL'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Range</span>
+                      <span className="text-sm font-bold">
+                        {sessionStats.rangePct?.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </main>
         </div>
       </div>
-    </AppShell>
+    </SidebarProvider>
   );
 }
 
