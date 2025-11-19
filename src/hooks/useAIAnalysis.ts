@@ -30,7 +30,7 @@ export function useAIAnalysis(
       hasIndicators15m: !!indicators?.["15m"]
     });
     
-    if (!symbol || candles1h.length < 20) {
+    if (!symbol || candles1h.length < 10) {
       console.log("AI Analysis: Not enough data yet", { symbol, count: candles1h.length });
       return;
     }
