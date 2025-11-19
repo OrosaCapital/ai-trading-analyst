@@ -7,6 +7,7 @@ import AITrading from "./pages/AITrading";
 import TradingDashboard from "./pages/TradingDashboard";
 import SymbolDetails from "./pages/SymbolDetails";
 import Auth from "./pages/Auth";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { assertEnv } from "./config/env";
 
 assertEnv();
@@ -17,8 +18,8 @@ export default function App() {
       <Routes>
         <Route path="/auth" element={<Auth />} />
         <Route path="/" element={<Dashboard />} />
-        <Route path="/watchlist" element={<AppShell><Watchlist /></AppShell>} />
-        <Route path="/ai-trading" element={<AppShell><AITrading /></AppShell>} />
+        <Route path="/watchlist" element={<ProtectedRoute><AppShell><Watchlist /></AppShell></ProtectedRoute>} />
+        <Route path="/ai-trading" element={<ProtectedRoute><AppShell><AITrading /></AppShell></ProtectedRoute>} />
         <Route path="/symbol/:symbolParam" element={<SymbolDetails />} />
         <Route path="/trading" element={<TradingDashboard />} />
       </Routes>
