@@ -32,7 +32,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages, symbol } = await req.json();
+    const { messages, symbol, stream = true } = await req.json();
     
     // Validate input
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -165,7 +165,7 @@ Keep responses under 100 words. Be decisive. No hedging.${marketContext}`;
           { role: "system", content: systemPrompt },
           ...messages,
         ],
-        stream: true,
+        stream,
       }),
     });
 
@@ -186,6 +186,13 @@ Keep responses under 100 words. Be decisive. No hedging.${marketContext}`;
       console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI gateway error" }), {
         status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!stream) {
+      const data = await response.json();
+      return new Response(JSON.stringify({ message: data.choices?.[0]?.message?.content || "" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

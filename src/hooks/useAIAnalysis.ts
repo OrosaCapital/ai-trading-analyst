@@ -1,0 +1,89 @@
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Candle } from "@/lib/indicators";
+
+interface AIAnalysis {
+  signal: string;
+  message: string;
+  timestamp: number;
+}
+
+const cache = new Map<string, { result: AIAnalysis; expiresAt: number }>();
+
+export function useAIAnalysis(
+  symbol: string,
+  candles1h: Candle[],
+  candles15m: Candle[],
+  indicators: any
+) {
+  const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    if (!symbol || candles1h.length < 20) return;
+
+    // Check cache
+    const cached = cache.get(symbol);
+    if (cached && cached.expiresAt > Date.now()) {
+      setAnalysis(cached.result);
+      return;
+    }
+
+    // Debounce 500ms
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      setIsAnalyzing(true);
+
+      try {
+        const latest1h = candles1h.slice(-50);
+        const latest15m = candles15m.slice(-20);
+        const last1h = latest1h[latest1h.length - 1];
+        const last15m = latest15m[latest15m.length - 1];
+
+        const summary = `Symbol: ${symbol}
+Current Price: ${last1h?.close || 0}
+1H Trend: ${indicators["1h"]?.ema50?.slice(-1)[0] > last1h?.close ? "Below EMA50" : "Above EMA50"}
+RSI 1H: ${indicators["1h"]?.rsi?.slice(-1)[0]?.toFixed(1) || "N/A"}
+RSI 15M: ${indicators["15m"]?.rsi?.slice(-1)[0]?.toFixed(1) || "N/A"}
+Recent 1H High: ${Math.max(...latest1h.map(c => c.high))}
+Recent 1H Low: ${Math.min(...latest1h.map(c => c.low))}`;
+
+        const { data, error } = await supabase.functions.invoke("ai-chat", {
+          body: {
+            messages: [
+              {
+                role: "user",
+                content: `Analyze this trading data and give ONE decisive signal:\n${summary}`
+              }
+            ],
+            symbol,
+            stream: false
+          }
+        });
+
+        if (error) throw error;
+
+        const result: AIAnalysis = {
+          signal: "ANALYZED",
+          message: data?.message || "Analysis complete",
+          timestamp: Date.now()
+        };
+
+        setAnalysis(result);
+        cache.set(symbol, { result, expiresAt: Date.now() + 300000 }); // 5 min
+      } catch (err) {
+        console.error("AI analysis failed:", err);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    }, 500);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [symbol, candles1h, candles15m, indicators]);
+
+  return { analysis, isAnalyzing };
+}

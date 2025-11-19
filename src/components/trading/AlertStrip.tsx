@@ -26,27 +26,34 @@ export function AlertStrip({ alerts, isLoading }: AlertStripProps) {
           Market neutral • No alerts
         </span>
       )}
-      {alerts.map((a) => (
-        <span
-          key={a.id}
-          className={`px-3 py-1.5 rounded-full border font-semibold flex items-center gap-2 transition-all hover:scale-105 ${
-            a.severity === "danger"
-              ? "bg-chart-red/10 text-chart-red border-chart-red/30"
-              : a.severity === "warn"
-                ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                : "bg-sky-500/10 text-sky-400 border-sky-500/30"
-          }`}
-        >
-          <div className={`w-1.5 h-1.5 rounded-full ${
-            a.severity === "danger"
-              ? "bg-chart-red animate-pulse"
-              : a.severity === "warn"
-                ? "bg-amber-400"
-                : "bg-sky-400"
-          }`} />
-          {a.label}
-        </span>
-      ))}
+      {alerts.map((a) => {
+        const isAI = a.id === "ai-signal";
+        return (
+          <span
+            key={a.id}
+            className={`px-3 py-1.5 rounded-full border font-semibold flex items-center gap-2 transition-all hover:scale-105 ${
+              isAI
+                ? "bg-primary/10 text-primary border-primary/30"
+                : a.severity === "danger"
+                  ? "bg-chart-red/10 text-chart-red border-chart-red/30"
+                  : a.severity === "warn"
+                    ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                    : "bg-sky-500/10 text-sky-400 border-sky-500/30"
+            }`}
+          >
+            <div className={`w-1.5 h-1.5 rounded-full ${
+              isAI
+                ? "bg-primary animate-pulse"
+                : a.severity === "danger"
+                  ? "bg-chart-red animate-pulse"
+                  : a.severity === "warn"
+                    ? "bg-amber-400"
+                    : "bg-sky-400"
+            }`} />
+            {a.label}
+          </span>
+        );
+      })}
     </div>
   );
 }
