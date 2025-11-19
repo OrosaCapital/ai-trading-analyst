@@ -50,27 +50,27 @@ export function DayTraderChartContainer({
         </div>
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(var(--chart-green))' }} />
+            <div className="w-3 h-3 rounded-full bg-chart-green" />
             <span>Bullish</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(var(--chart-red))' }} />
+            <div className="w-3 h-3 rounded-full bg-chart-red" />
             <span>Bearish</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5" style={{ background: 'hsl(var(--chart-yellow))' }} />
+            <div className="w-3 h-0.5 bg-chart-yellow" />
             <span>EMA 9</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5" style={{ background: 'hsl(var(--chart-orange))' }} />
+            <div className="w-3 h-0.5 bg-chart-orange" />
             <span>EMA 21</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5" style={{ background: 'hsl(var(--chart-blue))' }} />
+            <div className="w-3 h-0.5 bg-chart-blue" />
             <span>EMA 50</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5" style={{ background: 'hsl(var(--cyber-purple))' }} />
+            <div className="w-3 h-0.5 bg-cyber-purple" />
             <span>VWAP</span>
           </div>
         </div>
