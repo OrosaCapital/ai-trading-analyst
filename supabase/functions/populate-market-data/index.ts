@@ -1,11 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// 🚨 CRITICAL: CoinMarketCap API Rate Limits
-// - Monthly Limit: 10,000 credits
-// - This function costs ~5-10 credits per run (1 credit per symbol)
-// - DO NOT call more than 2x per hour
-// - ALWAYS check cache before calling CMC API
-// - Cache TTL: 5 minutes minimum
+// Using Kraken public API (free, no rate limits)
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,9 +27,11 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const TATUM_API_KEY = Deno.env.get('TATUM_API_KEY');
     const COINGLASS_API_KEY = Deno.env.get('COINGLASS_API_KEY');
-    const CMC_API_KEY = Deno.env.get('COINMARKETCAP_API_KEY');
+    
+    // Import Kraken utilities
+    const { translateToKraken } = await import('../_shared/krakenSymbols.ts');
+    const { loadKrakenPairs } = await import('../_shared/krakenPairDiscovery.ts');
 
     // Accept symbol parameter from request, or use default list
     const body = await req.json().catch(() => ({}));
@@ -48,8 +45,10 @@ Deno.serve(async (req) => {
     const timeframe = '1h';
     const limit = 200;
 
-    console.log(`⚠️ CMC API Rate Limit: Check cache before calling!`);
-    console.log(`Populating market data for ${symbols.length} symbol(s): ${symbols.join(', ')}...`);
+    console.log(`📊 Populating market data for ${symbols.length} symbol(s): ${symbols.join(', ')}...`);
+    
+    // Load supported Kraken pairs once
+    const supportedPairs = await loadKrakenPairs();
 
     for (const symbol of symbols) {
       try {
@@ -74,65 +73,41 @@ Deno.serve(async (req) => {
           priceSource = 'cache';
           console.log(`💾 ${symbol} using cached price: $${currentPrice.toFixed(4)} (age: ${Math.floor(cacheAge)}s)`);
         } else {
-          // Try CoinMarketCap only if cache is stale
-          if (CMC_API_KEY) {
-            console.log(`🌐 Fetching fresh price for ${symbol} from CoinMarketCap...`);
-            const cmcUrl = `https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${cleanSymbol}&convert=USD`;
+          // Fetch from Kraken
+          const krakenSymbol = translateToKraken(symbol);
           
-            try {
-              const cmcRes = await fetch(cmcUrl, {
-                headers: { 
-                  'X-CMC_PRO_API_KEY': CMC_API_KEY,
-                  'Accept': 'application/json'
-                }
-              });
-
-              console.log(`CMC Response Status: ${cmcRes.status}`);
+          // Check if pair is supported
+          if (!supportedPairs.includes(krakenSymbol)) {
+            console.log(`⚠️ ${symbol} (${krakenSymbol}) not supported by Kraken, skipping...`);
+            continue;
+          }
+          
+          console.log(`🌐 Fetching fresh price for ${symbol} from Kraken (${krakenSymbol})...`);
+          
+          try {
+            const krakenUrl = `https://api.kraken.com/0/public/Ticker?pair=${krakenSymbol}`;
+            const krakenRes = await fetch(krakenUrl);
+            
+            if (krakenRes.ok) {
+              const krakenData = await krakenRes.json();
               
-              if (cmcRes.ok) {
-                const cmcData = await cmcRes.json();
-                console.log(`CMC Response for ${symbol}:`, JSON.stringify(cmcData, null, 2));
-                
-                if (cmcData.data && cmcData.data[cleanSymbol] && cmcData.data[cleanSymbol][0]) {
-                  currentPrice = cmcData.data[cleanSymbol][0].quote.USD.price;
-                  priceSource = 'coinmarketcap';
-                  console.log(`✅ ${symbol} price from CoinMarketCap: $${currentPrice.toFixed(4)}`);
-                }
+              if (krakenData.error && krakenData.error.length > 0) {
+                console.error(`❌ Kraken API error for ${symbol}:`, krakenData.error);
               } else {
-                const errorText = await cmcRes.text();
-                console.error(`❌ CoinMarketCap API failed for ${symbol} [${cmcRes.status}]:`, errorText);
+                const pairData = krakenData.result[krakenSymbol] || krakenData.result[Object.keys(krakenData.result)[0]];
+                
+                if (pairData && pairData.c) {
+                  currentPrice = parseFloat(pairData.c[0]);
+                  priceSource = 'kraken';
+                  console.log(`✅ ${symbol} price from Kraken: $${currentPrice.toFixed(4)}`);
+                }
               }
-            } catch (cmcError) {
-              console.error(`❌ CoinMarketCap error for ${symbol}:`, cmcError);
+            } else {
+              console.error(`❌ Kraken API failed for ${symbol} [${krakenRes.status}]`);
             }
+          } catch (krakenError) {
+            console.error(`❌ Kraken fetch error for ${symbol}:`, krakenError);
           }
-        }
-
-        // Fallback to Tatum if CMC didn't work
-        if (priceSource === 'fallback' && TATUM_API_KEY) {
-          console.log(`Trying Tatum API for ${symbol}...`);
-          const tatumUrl = `https://api.tatum.io/v4/data/rate/symbol?symbol=${cleanSymbol}&basePair=USD`;
-          
-          const tatumRes = await fetch(tatumUrl, {
-            headers: { 
-              'accept': 'application/json',
-              'x-api-key': TATUM_API_KEY
-            }
-          });
-
-          if (tatumRes.ok) {
-            const data = await tatumRes.json();
-            currentPrice = parseFloat(data.value || '50000');
-            priceSource = 'tatum';
-            console.log(`✓ ${symbol} price from Tatum: $${currentPrice.toFixed(4)}`);
-          } else {
-            const errorText = await tatumRes.text();
-            console.error(`Tatum API failed for ${symbol} [${tatumRes.status}]:`, errorText);
-          }
-        }
-
-        if (priceSource === 'fallback') {
-          console.log(`⚠️ Using fallback price $${currentPrice} for ${symbol}`);
         }
 
         // Update snapshot

@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.populate-coinglass-data]
 verify_jwt = false
+
+[functions.fetch-kraken-candles]
+verify_jwt = false
