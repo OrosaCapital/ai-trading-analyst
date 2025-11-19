@@ -10,6 +10,7 @@ import { MicroTimeframePanel } from "@/components/trading/MicroTimeframePanel";
 import { SessionStatsPanel, type SessionStats } from "@/components/trading/SessionStatsPanel";
 import { useChartData } from "@/hooks/useChartData";
 import { useFreshSymbolData } from "@/hooks/useFreshSymbolData";
+import { formatPrice, formatVolume } from "@/lib/priceFormatter";
 import { Card } from "@/components/ui/card";
 
 export default function TradingDashboard() {
@@ -77,24 +78,24 @@ export default function TradingDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KPICard
                   label="Current Price"
-                  value={currentPrice ? `$${currentPrice.toLocaleString()}` : "Loading..."}
+                  value={currentPrice ? formatPrice(currentPrice) : "Loading..."}
                   change={kpis.dayChange}
                   trend={kpis.dayChange > 0 ? "up" : "down"}
                   subtitle={normalizedSymbol}
                 />
                 <KPICard
                   label="24h Volume"
-                  value={`${(kpis.volume / 1000).toFixed(1)}K`}
+                  value={formatVolume(kpis.volume)}
                   subtitle="Trading activity"
                 />
                 <KPICard
                   label="24h High"
-                  value={`$${kpis.high24h.toLocaleString()}`}
+                  value={formatPrice(kpis.high24h)}
                   subtitle="Peak price"
                 />
                 <KPICard
                   label="24h Low"
-                  value={`$${kpis.low24h.toLocaleString()}`}
+                  value={formatPrice(kpis.low24h)}
                   subtitle="Lowest price"
                 />
               </div>
