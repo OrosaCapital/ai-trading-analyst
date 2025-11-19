@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { validateSymbol } from '../_shared/symbolFormatter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,19 +28,19 @@ Deno.serve(async (req) => {
   try {
     const { symbol, exchange = 'Binance', interval = '8h', limit = 100 } = await req.json();
     
-    if (!symbol) {
-      throw new Error('Symbol is required');
+    // Validate symbol using shared validation function
+    const validation = validateSymbol(symbol);
+    if (!validation.valid) {
+      throw new Error(`Invalid symbol: ${validation.error}`);
     }
 
     // Normalize symbol for CoinGlass API
-    // Remove any trailing USDT, USD, then ensure it ends with USDT
-    let baseSymbol = symbol.toUpperCase().trim();
-    baseSymbol = baseSymbol.replace(/USDT$/i, '').replace(/USD$/i, '');
+    const cleanedSymbol = symbol.toUpperCase().trim();
     
-    // Ensure valid base currency (minimum 2 characters)
-    if (baseSymbol.length < 2) {
-      throw new Error(`Invalid symbol: ${symbol}. Base currency must be at least 2 characters.`);
-    }
+    // Remove any trailing USDT, USD
+    let baseSymbol = cleanedSymbol
+      .replace(/USDT$/i, '')
+      .replace(/USD$/i, '');
     
     const formattedSymbol = `${baseSymbol}USDT`;
 
