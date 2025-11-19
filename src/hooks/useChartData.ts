@@ -67,18 +67,9 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Check cache first
-      const cached = getCachedCandles(symbol);
-      if (cached) {
-        console.log(`Using cached candles for ${symbol}`);
-        setState({
-          candles: cached,
-          isLoading: false,
-          error: null,
-          isUsingFallback: false,
-        });
-        return;
-      }
+      // DON'T use cache - always fetch fresh data to avoid stale prices
+      // const cached = getCachedCandles(symbol);
+      // if (cached) { ... }
 
       // Fetch from database
       const { data: dbCandles, error: dbError } = await supabase
@@ -104,6 +95,7 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
           volume: parseFloat(c.volume || 0)
         }));
 
+        // Cache for this symbol
         setCachedCandles(symbol, formattedCandles);
         setState({
           candles: formattedCandles,
@@ -114,9 +106,16 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
         return;
       }
 
-      // If no data in database, use fallback
-      console.warn("No candles in database, using fallback data");
-      const fallbackCandles = generateFallbackCandles(symbol, basePrice);
+      // If no data in database, fetch correct basePrice from market_snapshots
+      console.warn("No candles in database, fetching price for fallback data");
+      const { data: snapshot } = await supabase
+        .from('market_snapshots')
+        .select('price')
+        .eq('symbol', symbol)
+        .single();
+
+      const correctBasePrice = snapshot?.price || basePrice;
+      const fallbackCandles = generateFallbackCandles(symbol, correctBasePrice);
       setState({
         candles: fallbackCandles,
         isLoading: false,
@@ -125,7 +124,16 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
       });
     } catch (err: any) {
       console.error("Error in fetchCandles:", err);
-      const fallbackCandles = generateFallbackCandles(symbol, basePrice);
+      
+      // Try to get correct price for fallback
+      const { data: snapshot } = await supabase
+        .from('market_snapshots')
+        .select('price')
+        .eq('symbol', symbol)
+        .single();
+      
+      const correctBasePrice = snapshot?.price || basePrice;
+      const fallbackCandles = generateFallbackCandles(symbol, correctBasePrice);
       setState({
         candles: fallbackCandles,
         isLoading: false,
