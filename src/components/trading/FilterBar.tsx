@@ -1,5 +1,5 @@
-import { Search, Calendar, SlidersHorizontal } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useState, useMemo } from "react";
+import { Search, Calendar, SlidersHorizontal, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -8,6 +8,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useTradingPairs } from "@/hooks/useTradingPairs";
+import { cn } from "@/lib/utils";
 
 interface FilterBarProps {
   symbol: string;
@@ -15,17 +30,71 @@ interface FilterBarProps {
 }
 
 export function FilterBar({ symbol, onSymbolChange }: FilterBarProps) {
+  const [open, setOpen] = useState(false);
+  const { pairs, isLoading } = useTradingPairs();
+
+  const displayName = useMemo(() => {
+    const pair = pairs.find(p => p.symbol === symbol);
+    return pair?.displayName || symbol;
+  }, [pairs, symbol]);
+
   return (
     <div className="flex items-center gap-3 p-4 bg-card/50 border-b border-border/40 backdrop-blur-sm">
-      {/* Search */}
-      <div className="relative flex-1 max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search symbol..."
-          value={symbol}
-          onChange={(e) => onSymbolChange(e.target.value)}
-          className="pl-10 bg-background/50 border-border/60"
-        />
+      {/* Symbol Selector with Search */}
+      <div className="flex-1 max-w-md">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="w-full justify-between bg-background/50 border-border/60 hover:bg-background/70"
+            >
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{displayName}</span>
+              </div>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[400px] p-0" align="start">
+            <Command>
+              <CommandInput 
+                placeholder="Search trading pairs..." 
+                className="h-9"
+              />
+              <CommandList>
+                <CommandEmpty>
+                  {isLoading ? "Loading pairs..." : "No trading pair found."}
+                </CommandEmpty>
+                <CommandGroup>
+                  {pairs.map((pair) => (
+                    <CommandItem
+                      key={pair.symbol}
+                      value={pair.symbol}
+                      onSelect={(currentValue) => {
+                        onSymbolChange(currentValue.toUpperCase());
+                        setOpen(false);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          symbol === pair.symbol ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <span className="font-medium">{pair.displayName}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {pair.symbol}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Timeframe Selector */}
