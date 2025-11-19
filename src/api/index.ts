@@ -1,1 +1,1 @@
-export * as TatumApi from "./tatum";
+export * as CMCApi from "./coinmarketcap";

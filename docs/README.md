@@ -20,7 +20,7 @@ This is a **Simple Mode Trading Dashboard** built with:
 - React + TypeScript
 - TradingView Lightweight Charts
 - Local technical indicators
-- Minimal external APIs (Tatum + WebSocket + CoinGlass)
+- Minimal external APIs (CoinMarketCap + WebSocket + CoinGlass)
 
 CoinGlass API provides real-time market data including funding rates, exchange coverage, and derivatives metrics.
 

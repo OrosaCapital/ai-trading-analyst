@@ -17,7 +17,6 @@ export function APIConnectionTest() {
   const [results, setResults] = useState<APITestResult[]>([
     { name: "CoinMarketCap API", status: "idle" },
     { name: "Coinglass API", status: "idle" },
-    { name: "Tatum API", status: "idle" },
     { name: "API Ninjas", status: "idle" },
   ]);
 
@@ -39,10 +38,6 @@ export function APIConnectionTest() {
         case "Coinglass API":
           edgeFunction = "fetch-funding-rate";
           payload = { symbol: "BTCUSDT" };
-          break;
-        case "Tatum API":
-          edgeFunction = "fetch-tatum-price";
-          payload = { symbol: "BTC" };
           break;
         case "API Ninjas":
           edgeFunction = "fetch-rsi";

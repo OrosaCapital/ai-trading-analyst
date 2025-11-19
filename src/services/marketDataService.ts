@@ -19,7 +19,7 @@ interface EdgeFunctionResponse {
       plan: string;
       rateLimit: string;
     };
-    tatum: { 
+    cmc: { 
       valid: boolean; 
       price: number | null; 
       error: string | null;
@@ -136,16 +136,16 @@ export async function buildDataValidation(params: SymbolTimeframe): Promise<Data
         rateLimit: data.validation.coinglass.rateLimit,
       },
       {
-        key: "tatum_spot",
-        received: data.validation.tatum.price,
-        valid: data.validation.tatum.valid,
-        notes: data.validation.tatum.valid
+        key: "cmc_spot",
+        received: data.validation.cmc.price,
+        valid: data.validation.cmc.valid,
+        notes: data.validation.cmc.valid
           ? "Spot price OK"
-          : data.validation.tatum.error || "Failed to fetch spot price",
-        responseTime: data.validation.tatum.responseTime,
-        endpoint: data.validation.tatum.endpoint,
-        plan: data.validation.tatum.plan,
-        credits: data.validation.tatum.credits,
+          : data.validation.cmc.error || "Failed to fetch spot price",
+        responseTime: data.validation.cmc.responseTime,
+        endpoint: data.validation.cmc.endpoint,
+        plan: data.validation.cmc.plan,
+        credits: data.validation.cmc.credits,
       },
       {
         key: "api_ninjas_price",

@@ -21,14 +21,14 @@ export const LivePriceHeader = ({
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch current price from Tatum and 1-minute ago price from logs
+  // Fetch current price from CoinMarketCap and 1-minute ago price from logs
   const fetchPrice = async () => {
     try {
       // Fetch current price
       const {
         data,
         error
-      } = await supabase.functions.invoke('fetch-tatum-price', {
+      } = await supabase.functions.invoke('fetch-cmc-price', {
         body: {
           symbol: `${symbol}USD`
         }
@@ -48,17 +48,20 @@ export const LivePriceHeader = ({
         setError(null);
       }
 
-      // Fetch price from 1 minute ago from tatum_price_logs
-      const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
-      const {
-        data: logData,
-        error: logError
-      } = await supabase.from('tatum_price_logs').select('price').eq('symbol', `${symbol}USD`).eq('interval', '1m').lte('timestamp', oneMinuteAgo.toISOString()).order('timestamp', {
-        ascending: false
-      }).limit(1).single();
-      if (!logError && logData) {
-        setPriceOneMinuteAgo(logData.price);
-      }
+      // TODO: Fetch price from 1 minute ago from cmc_price_logs after migration
+      // const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+      // const { data: logData, error: logError } = await supabase
+      //   .from('cmc_price_logs')
+      //   .select('price')
+      //   .eq('symbol', `${symbol}USD`)
+      //   .eq('interval', '1m')
+      //   .lte('timestamp', oneMinuteAgo.toISOString())
+      //   .order('timestamp', { ascending: false })
+      //   .limit(1)
+      //   .single();
+      // if (!logError && logData) {
+      //   setPriceOneMinuteAgo(logData.price);
+      // }
     } catch (err) {
       console.error('Price fetch error:', err);
       setError('Connection error');
@@ -115,7 +118,7 @@ export const LivePriceHeader = ({
           </div>
           <div className="text-xs text-muted-foreground">
             <span className="px-1.5 py-0.5 bg-accent/10 text-accent rounded">
-              Tatum
+              CoinMarketCap
             </span>
           </div>
         </div>

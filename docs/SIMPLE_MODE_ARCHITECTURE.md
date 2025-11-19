@@ -7,14 +7,14 @@ This trading dashboard operates in **Simple Mode** - a streamlined architecture 
 ## Core Principles
 
 1. **Local-First**: All technical indicators calculated locally from chart data
-2. **Minimal APIs**: Only Tatum for price data and WebSocket for real-time updates
+2. **Minimal APIs**: Only CoinMarketCap for price data and WebSocket for real-time updates
 3. **No External Derivatives**: Market metrics generated locally using deterministic algorithms
 4. **Self-Contained**: All analytics run client-side from chart stream
 
 ## Data Sources
 
 ### Active APIs
-- **Tatum API**: Historical price data (via `tatum-price-logger`)
+- **CoinMarketCap API**: Historical price data (via `cmc-price-logger`)
 - **WebSocket Stream**: Real-time price updates via `websocket-price-stream` edge function
 - **CoinGlass API v4**: Market derivatives data (funding rates, exchange pairs, market coverage)
   - See [COINGLASS_API.md](COINGLASS_API.md) for complete integration details
@@ -25,7 +25,7 @@ This trading dashboard operates in **Simple Mode** - a streamlined architecture 
 
 ### Removed APIs
 - ❌ CoinMarketCap (not needed with CoinGlass integration)
-- ❌ API Ninjas (replaced with Tatum + local calculations)
+- ❌ API Ninjas (replaced with CoinMarketCap + local calculations)
 
 ## Technical Stack
 
@@ -39,15 +39,15 @@ This trading dashboard operates in **Simple Mode** - a streamlined architecture 
   - Trend detection
 
 ### Backend (Minimal)
-- **tatum-price-logger**: Logs prices at intervals (1m, 5m, 10m, 15m, 1h)
+- **cmc-price-logger**: Logs prices at intervals (1m, 5m, 10m, 15m, 1h)
 - **websocket-price-stream**: Real-time price WebSocket relay
 
 ### Database
 Essential tables only:
 - `profiles`: User data
 - `user_watchlists`: User preferences
-- `tatum_price_cache`: Tatum API caching
-- `tatum_price_logs`: Price history
+- `cmc_price_cache`: CoinMarketCap API caching
+- `cmc_price_logs`: Price history
 
 ## Key Components
 
@@ -76,7 +76,7 @@ Manages candle data:
 
 ## Development Guidelines
 
-1. **Minimal External APIs**: Only Tatum (price history), WebSocket (real-time), and CoinGlass (market derivatives)
+1. **Minimal External APIs**: Only CoinMarketCap (price history), WebSocket (real-time), and CoinGlass (market derivatives)
 2. **Local Calculations Priority**: All chart indicators computed client-side
 3. **CoinGlass Integration**: Market data via edge functions (see [COINGLASS_API.md](COINGLASS_API.md))
 4. **Simple Architecture**: Avoid complex state management and over-engineering
@@ -103,7 +103,7 @@ src/
     └── indicators.ts                 # Technical indicator calculations
 
 supabase/functions/
-├── tatum-price-logger/              # Price logging
+├── cmc-price-logger/                # Price logging
 ├── websocket-price-stream/          # WebSocket relay
 ├── fetch-coinglass-coins/           # CoinGlass: Supported coins
 ├── fetch-exchange-pairs/            # CoinGlass: Exchange pairs

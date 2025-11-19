@@ -6,7 +6,7 @@ export function EnvironmentInfo() {
     { key: "VITE_SUPABASE_URL", status: "set", icon: Terminal },
     { key: "VITE_SUPABASE_PUBLISHABLE_KEY", status: "set", icon: Key },
     { key: "VITE_COINGLASS_API_KEY", status: "set", icon: Shield },
-    { key: "VITE_TATUM_API_KEY", status: "set", icon: Shield },
+    { key: "VITE_COINMARKETCAP_API_KEY", status: "set", icon: Shield },
     { key: "VITE_API_NINJAS_KEY", status: "set", icon: Shield },
   ];
 

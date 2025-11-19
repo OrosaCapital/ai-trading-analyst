@@ -14,7 +14,7 @@ interface SystemMetrics {
   };
   apis: {
     coinglassStatus: 'operational' | 'degraded' | 'down';
-    tatumStatus: 'operational' | 'degraded' | 'down';
+    cmcStatus: 'operational' | 'degraded' | 'down';
   };
   errors: {
     last24h: number;
