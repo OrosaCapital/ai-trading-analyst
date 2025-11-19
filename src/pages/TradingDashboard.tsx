@@ -3,7 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TradingNavigation } from "@/components/trading/TradingNavigation";
 import { FilterBar } from "@/components/trading/FilterBar";
 import { KPICard } from "@/components/trading/KPICard";
-import { TradingViewChart } from "@/components/TradingViewChart";
+import { DayTraderChartContainer } from "@/components/charts/DayTraderChartContainer";
 import { FundingRateChart } from "@/components/trading/FundingRateChart";
 import { AlertStrip, type AlertBadge } from "@/components/trading/AlertStrip";
 import { MicroTimeframePanel } from "@/components/trading/MicroTimeframePanel";
@@ -102,11 +102,11 @@ export default function TradingDashboard() {
             )}
 
             {/* Main Chart - Priority Widget */}
-            <Card className="p-0 overflow-hidden border border-border/40 bg-gradient-to-br from-card via-card to-card/95 hover:border-primary/40 transition-all duration-300">
-              <div className="h-[500px]">
-                <TradingViewChart symbol={normalizedSymbol} />
-              </div>
-            </Card>
+            <DayTraderChartContainer 
+              symbol={normalizedSymbol}
+              candles={candles1h}
+              isLoading={isLoading}
+            />
 
             {/* Secondary Metrics Grid - Max 5-6 widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
