@@ -101,3 +101,5 @@ function Item({ label, value }: { label: string; value: string | number }) {
     </div>
   );
 }
+
+export { LocalIndicatorsPanel as SimpleIndicatorPanel };
