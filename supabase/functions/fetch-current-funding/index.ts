@@ -107,84 +107,21 @@ Deno.serve(async (req) => {
       },
     });
 
-    if (!cgResponse.ok) {
-      // CoinGlass doesn't support this symbol, try Binance directly
-      console.log(`CoinGlass doesn't support ${formattedSymbol}, trying Binance API...`);
-      
-      try {
-        const binanceUrl = `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${formattedSymbol}`;
-        const binanceResponse = await safeFetch(binanceUrl, {
-          headers: { 'accept': 'application/json' }
-        });
-
-        if (binanceResponse.ok && binanceResponse.data) {
-          const binanceData = binanceResponse.data;
-          const fundingRate = parseFloat(binanceData.lastFundingRate || '0');
-          
-          const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-          const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-          const supabase = createClient(supabaseUrl, supabaseKey);
-
-          // Store in database
-          const { error: insertError } = await supabase
-            .from('market_funding_rates')
-            .upsert({
-              symbol: formattedSymbol,
-              exchange: 'Binance',
-              rate: fundingRate,
-              timestamp: Date.now()
-            }, {
-              onConflict: 'symbol,exchange,timestamp'
-            });
-
-          if (insertError) {
-            console.error('Database insert error:', insertError);
-          } else {
-            console.log(`Stored ${formattedSymbol} funding rate: ${fundingRate}`);
-          }
-
-          const result = {
-            success: true,
-            symbol: formattedSymbol,
-            exchange: 'Binance',
-            rate: fundingRate,
-            source: 'binance_direct',
-            timestamp: Date.now()
-          };
-
-          CACHE[cacheKey] = { time: now, data: result };
-          
-          return new Response(
-            JSON.stringify(result),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-      } catch (binanceError: any) {
-        console.error('Binance API also failed:', binanceError.message);
-      }
-
-      // Both APIs failed - return error but don't crash
-      return new Response(
-        JSON.stringify({
-          error: 'SYMBOL_NOT_SUPPORTED',
-          message: `${formattedSymbol} not available`,
-          detail: 'Neither CoinGlass nor Binance support this symbol',
-          symbol: formattedSymbol
-        }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const data: CoinglassResponse = cgResponse.data;
-
-    if (data.code !== '0' || !data.data) {
+    
+    if (!cgResponse.ok || data.code !== '0' || !data.data) {
+      // CoinGlass doesn't support this symbol - return empty data gracefully
+      console.log(`CoinGlass doesn't support ${formattedSymbol} (404)`);
+      
       return new Response(
         JSON.stringify({
-          error: 'COINGLASS_API_ERROR',
-          message: `CoinGlass API error: ${data.msg}`,
-          detail: data
+          success: false,
+          error: 'SYMBOL_NOT_SUPPORTED',
+          message: `${formattedSymbol} not available in CoinGlass`,
+          symbol: formattedSymbol,
+          data: []
         }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

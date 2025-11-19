@@ -443,36 +443,34 @@ export function MarketInsightsPanel({
 
 ### Handling CoinGlass API 404 Errors (Symbol Not Supported)
 
-**Problem**: CoinGlass API returns 404 "Not Found" for many symbols (LINKUSDT, XLMUSDT, etc.), causing edge functions to fail with 502 errors and blank trading dashboard.
+**Problem**: CoinGlass API returns 404 "Not Found" for many symbols (LINKUSDT, XLMUSDT, etc.) because it only supports ~200 major trading pairs.
 
-**Root Cause**: CoinGlass only supports ~200 major symbols, but our trading pairs list has 900+ symbols. When users select unsupported symbols, CoinGlass returns 404.
+**Root Cause**: Our trading pairs list has 900+ symbols, but CoinGlass Hobbyist plan only covers major symbols. When users select unsupported symbols, CoinGlass returns 404.
 
-**Solution**: Implement Binance API as fallback for unsupported symbols.
+**CRITICAL**: Follow documented architecture - CoinGlass for funding rates ONLY, CoinMarketCap for price data.
 
-**Edge Function Fix Pattern**:
+**Solution**: Return graceful empty responses (200 status) instead of 502 errors that crash the UI.
+
+**Edge Function Pattern**:
 
 ```typescript
 // supabase/functions/fetch-current-funding/index.ts
-if (!cgResponse.ok) {
-  // CoinGlass doesn't support this symbol, try Binance directly
-  console.log(`CoinGlass doesn't support ${formattedSymbol}, trying Binance API...`);
-  
-  const binanceUrl = `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${formattedSymbol}`;
-  const binanceResponse = await safeFetch(binanceUrl, {
-    headers: { 'accept': 'application/json' }
-  });
+const data: CoinglassResponse = cgResponse.data;
 
-  if (binanceResponse.ok && binanceResponse.data) {
-    const fundingRate = parseFloat(binanceResponse.data.lastFundingRate || '0');
-    // Store in database and return success
-  }
+if (!cgResponse.ok || data.code !== '0' || !data.data) {
+  // CoinGlass doesn't support this symbol - return empty data gracefully
+  console.log(`CoinGlass doesn't support ${formattedSymbol} (404)`);
   
-  // Both APIs failed - return 404 (not 502) so UI doesn't crash
-  return new Response(JSON.stringify({
-    error: 'SYMBOL_NOT_SUPPORTED',
-    message: `${formattedSymbol} not available`,
-    symbol: formattedSymbol
-  }), { status: 404 });
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: 'SYMBOL_NOT_SUPPORTED',
+      message: `${formattedSymbol} not available in CoinGlass`,
+      symbol: formattedSymbol,
+      data: []
+    }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }
 ```
 
@@ -480,48 +478,45 @@ if (!cgResponse.ok) {
 ```typescript
 // supabase/functions/fetch-historical-candles/index.ts
 if (candles.length === 0) {
-  console.log(`Trying Binance API for ${formattedSymbol}...`);
+  console.log(`No candle data available for ${formattedSymbol} from CoinGlass`);
   
-  const binanceUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${formattedSymbol}&interval=1h&limit=${limit}`;
-  const binanceResponse = await safeFetch(binanceUrl, { headers: { 'accept': 'application/json' } });
-
-  if (binanceResponse.ok && Array.isArray(binanceResponse.data)) {
-    candles = binanceResponse.data.map((k: any) => ({
-      time: Math.floor(k[0] / 1000),
-      open: parseFloat(k[1]),
-      high: parseFloat(k[2]),
-      low: parseFloat(k[3]),
-      close: parseFloat(k[4]),
-      volume: parseFloat(k[5])
-    }));
-  }
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: 'NO_DATA',
+      message: `No historical data for ${formattedSymbol}`,
+      symbol: formattedSymbol,
+      candles: []
+    }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }
 ```
 
-**Benefits**:
-- ✅ Binance supports 200+ symbols (more than CoinGlass)
-- ✅ No 502 errors crashing the UI
-- ✅ Graceful 404 response for truly unsupported symbols
-- ✅ Automatic fallback - no user intervention needed
-- ✅ Data still gets stored in database for caching
+**Why 200 Status (Not 404 or 502)**:
+- ✅ Edge function executed successfully (not server error)
+- ✅ UI receives valid JSON response structure
+- ✅ Frontend can handle empty data gracefully
+- ✅ No error dialogs or blank screens
+- ✅ Indicators show "Loading..." state until real data arrives
 
-**Binance API Endpoints Used**:
-- Funding Rates: `https://fapi.binance.com/fapi/v1/premiumIndex?symbol={SYMBOL}`
-- Candles: `https://fapi.binance.com/fapi/v1/klines?symbol={SYMBOL}&interval=1h&limit=200`
-- No API key required (public endpoints)
-- High rate limits (1200 requests/min)
+**UI Handling**:
+- `MarketInsightsPanel` checks `isUsingFallback` flag
+- Shows "Loading..." with orange borders for missing data
+- Prevents calculations on fake/missing data
+- Users see clear "Fetching data" messaging
 
-**Error Handling Hierarchy**:
-1. Try CoinGlass (if API key exists)
-2. On 404: Try Binance API (public, no key needed)
-3. On Binance success: Store in database, return success
-4. On both failed: Return 404 (not 502) with helpful message
+**Documented Data Sources** (from LOVABLE_ROLE.md):
+1. **CoinGlass**: Funding rates, liquidations, open interest (4-hour cache)
+2. **CoinMarketCap**: Price data (5-minute cache, 10K credits/month limit)
+3. **Tatum**: Fallback for price data only
+4. **NO OTHER APIs**: Do not add Binance, Kraken, or other undocumented sources
 
-**When to Use This Pattern**:
-- Any edge function calling CoinGlass API
-- Functions that need broad symbol coverage
-- APIs with limited symbol support
-- When user experience requires high availability
+**When Symbol Not Supported**:
+- Return empty data gracefully (200 status)
+- UI shows "Loading..." indicators
+- `useFreshSymbolData` hook doesn't retry failed symbols
+- Users can select different symbol from list
 
 ---
 

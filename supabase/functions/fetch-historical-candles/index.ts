@@ -129,33 +129,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback to Binance if CoinGlass didn't work
+    // If CoinGlass didn't return data, return empty gracefully
     if (candles.length === 0) {
-      console.log(`Trying Binance API for ${formattedSymbol}...`);
+      console.log(`No candle data available for ${formattedSymbol} from CoinGlass`);
       
-      try {
-        // Binance uses different intervals: 1m, 5m, 15m, 30m, 1h, 4h, 1d
-        const binanceUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${formattedSymbol}&interval=1h&limit=${limit}`;
-        const binanceResponse = await safeFetch(binanceUrl, {
-          headers: { 'accept': 'application/json' }
-        });
-
-        if (binanceResponse.ok && Array.isArray(binanceResponse.data)) {
-          console.log(`Binance returned ${binanceResponse.data.length} candles`);
-          candles = binanceResponse.data.map((k: any) => ({
-            time: Math.floor(k[0] / 1000), // Convert ms to seconds
-            open: parseFloat(k[1]),
-            high: parseFloat(k[2]),
-            low: parseFloat(k[3]),
-            close: parseFloat(k[4]),
-            volume: parseFloat(k[5])
-          }));
-        } else {
-          console.log(`Binance failed: ${binanceResponse.text || binanceResponse.error}`);
-        }
-      } catch (binanceError: any) {
-        console.error('Binance API error:', binanceError.message);
-      }
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'NO_DATA',
+          message: `No historical data for ${formattedSymbol}`,
+          symbol: formattedSymbol,
+          candles: []
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (candles.length === 0) {
