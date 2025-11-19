@@ -6,16 +6,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { createChart, IChartApi, ISeriesApi, LineData } from "lightweight-charts";
 
 interface FundingCandle {
-  t: number;
-  o: number;
-  h: number;
-  l: number;
-  c: number;
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
 }
 
 interface FundingHistoryResponse {
   success: boolean;
   symbol: string;
+  exchange: string;
   interval: string;
   candles: FundingCandle[];
   stats: {
@@ -42,16 +43,31 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
     const fetchFundingHistory = async () => {
       setIsLoading(true);
       try {
+        const cleanSymbol = symbol.replace("USDT", "");
+        console.log("Fetching funding history for:", cleanSymbol);
+        
         const { data: result, error } = await supabase.functions.invoke<FundingHistoryResponse>(
           "fetch-funding-history",
           {
-            body: { symbol: symbol.replace("USDT", ""), interval: "8h" },
+            body: { 
+              symbol: cleanSymbol, 
+              exchange: "Binance",
+              interval: "8h",
+              limit: 100 
+            },
           }
         );
 
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase function error:", error);
+          throw error;
+        }
+        
         if (result?.success) {
+          console.log("Funding history loaded:", result.candles.length, "candles");
           setData(result);
+        } else {
+          console.error("API returned error:", result?.error);
         }
       } catch (err) {
         console.error("Failed to fetch funding history:", err);
@@ -95,8 +111,8 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
     });
 
     const chartData: LineData[] = data.candles.map((candle) => ({
-      time: candle.t as any,
-      value: candle.c,
+      time: (candle.time / 1000) as any, // Convert ms to seconds
+      value: candle.close,
     }));
 
     lineSeries.setData(chartData);
@@ -134,7 +150,7 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
 
   if (!data) return null;
 
-  const latestRate = data.candles[data.candles.length - 1]?.c || 0;
+  const latestRate = data.candles[data.candles.length - 1]?.close || 0;
   const isPositive = latestRate >= 0;
 
   return (
