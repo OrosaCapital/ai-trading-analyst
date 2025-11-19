@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
 
     const TATUM_API_KEY = Deno.env.get('TATUM_API_KEY');
     const COINGLASS_API_KEY = Deno.env.get('COINGLASS_API_KEY');
+    const CMC_API_KEY = Deno.env.get('COINMARKETCAP_API_KEY');
 
     // Symbols to populate
     const symbols = ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'SOLUSDT', 'BNBUSDT'];
@@ -37,43 +38,84 @@ Deno.serve(async (req) => {
 
     for (const symbol of symbols) {
       try {
-        // Fetch from Tatum (real-time price)
         const cleanSymbol = symbol.replace('USDT', '');
-        const tatumUrl = `https://api.tatum.io/v4/data/rate/symbol?symbol=${cleanSymbol}&basePair=USD`;
-        
-        console.log(`Fetching price for ${symbol} from Tatum...`);
-        const tatumRes = await fetch(tatumUrl, {
-          headers: { 
-            'accept': 'application/json',
-            'x-api-key': TATUM_API_KEY || '' 
-          }
-        });
-
         let currentPrice = 50000;
-        if (tatumRes.ok) {
-          const data = await tatumRes.json();
-          currentPrice = parseFloat(data.value || '50000');
-          console.log(`✓ ${symbol} current price: $${currentPrice.toFixed(4)}`);
+        let priceSource = 'fallback';
+
+        // Try CoinMarketCap first
+        if (CMC_API_KEY) {
+          console.log(`🧪 Testing CoinMarketCap API for ${symbol}...`);
+          const cmcUrl = `https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=${cleanSymbol}&convert=USD`;
           
-          // Update snapshot
-          const { error: snapshotError } = await supabaseClient
-            .from('market_snapshots')
-            .upsert({
-              symbol,
-              price: currentPrice,
-              volume_24h: Math.random() * 1000000000,
-              change_24h: (Math.random() - 0.5) * 10,
-              last_updated: new Date().toISOString(),
-              source: 'tatum'
+          try {
+            const cmcRes = await fetch(cmcUrl, {
+              headers: { 
+                'X-CMC_PRO_API_KEY': CMC_API_KEY,
+                'Accept': 'application/json'
+              }
             });
-          
-          if (snapshotError) {
-            console.error(`Snapshot error for ${symbol}:`, snapshotError);
+
+            console.log(`CMC Response Status: ${cmcRes.status}`);
+            
+            if (cmcRes.ok) {
+              const cmcData = await cmcRes.json();
+              console.log(`CMC Full Response for ${symbol}:`, JSON.stringify(cmcData, null, 2));
+              
+              if (cmcData.data && cmcData.data[cleanSymbol] && cmcData.data[cleanSymbol][0]) {
+                currentPrice = cmcData.data[cleanSymbol][0].quote.USD.price;
+                priceSource = 'coinmarketcap';
+                console.log(`✅ ${symbol} price from CoinMarketCap: $${currentPrice.toFixed(4)}`);
+              }
+            } else {
+              const errorText = await cmcRes.text();
+              console.error(`❌ CoinMarketCap API failed for ${symbol} [${cmcRes.status}]:`, errorText);
+            }
+          } catch (cmcError) {
+            console.error(`❌ CoinMarketCap error for ${symbol}:`, cmcError);
           }
-        } else {
-          const errorText = await tatumRes.text();
-          console.error(`Tatum API failed for ${symbol} [${tatumRes.status}]:`, errorText);
-          console.log(`Using default price $${currentPrice} for ${symbol}`);
+        }
+
+        // Fallback to Tatum if CMC didn't work
+        if (priceSource === 'fallback' && TATUM_API_KEY) {
+          console.log(`Trying Tatum API for ${symbol}...`);
+          const tatumUrl = `https://api.tatum.io/v4/data/rate/symbol?symbol=${cleanSymbol}&basePair=USD`;
+          
+          const tatumRes = await fetch(tatumUrl, {
+            headers: { 
+              'accept': 'application/json',
+              'x-api-key': TATUM_API_KEY
+            }
+          });
+
+          if (tatumRes.ok) {
+            const data = await tatumRes.json();
+            currentPrice = parseFloat(data.value || '50000');
+            priceSource = 'tatum';
+            console.log(`✓ ${symbol} price from Tatum: $${currentPrice.toFixed(4)}`);
+          } else {
+            const errorText = await tatumRes.text();
+            console.error(`Tatum API failed for ${symbol} [${tatumRes.status}]:`, errorText);
+          }
+        }
+
+        if (priceSource === 'fallback') {
+          console.log(`⚠️ Using fallback price $${currentPrice} for ${symbol}`);
+        }
+
+        // Update snapshot
+        const { error: snapshotError } = await supabaseClient
+          .from('market_snapshots')
+          .upsert({
+            symbol,
+            price: currentPrice,
+            volume_24h: Math.random() * 1000000000,
+            change_24h: (Math.random() - 0.5) * 10,
+            last_updated: new Date().toISOString(),
+            source: priceSource
+          });
+        
+        if (snapshotError) {
+          console.error(`Snapshot error for ${symbol}:`, snapshotError);
         }
 
         // Generate simulated candles based on current price
