@@ -6,11 +6,11 @@ const corsHeaders = {
 }
 
 interface FundingRateCandle {
-  t: number; // timestamp
-  o: number; // open
-  h: number; // high
-  l: number; // low
-  c: number; // close
+  time: number;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
 }
 
 interface CoinglassResponse {
@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { symbol, interval = '8h' } = await req.json();
+    const { symbol, exchange = 'Binance', interval = '8h', limit = 100 } = await req.json();
     
     if (!symbol) {
       throw new Error('Symbol is required');
@@ -36,11 +36,13 @@ Deno.serve(async (req) => {
       throw new Error('COINGLASS_API_KEY not configured');
     }
 
-    console.log(`Fetching funding rate history for ${symbol} with interval ${interval}...`);
+    console.log(`Fetching funding rate history for ${symbol} on ${exchange} with interval ${interval}...`);
 
     const url = new URL('https://open-api-v4.coinglass.com/api/futures/funding-rate/history');
+    url.searchParams.append('exchange', exchange);
     url.searchParams.append('symbol', symbol);
     url.searchParams.append('interval', interval);
+    url.searchParams.append('limit', limit.toString());
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -59,26 +61,36 @@ Deno.serve(async (req) => {
       throw new Error(`CoinGlass API error: ${data.msg}`);
     }
 
+    // Convert string values to numbers and calculate stats
+    const numericCandles = data.data.map(candle => ({
+      time: candle.time,
+      open: parseFloat(candle.open),
+      high: parseFloat(candle.high),
+      low: parseFloat(candle.low),
+      close: parseFloat(candle.close),
+    }));
+
     // Calculate average funding rate
-    const avgFunding = data.data.length > 0
-      ? data.data.reduce((sum, candle) => sum + candle.c, 0) / data.data.length
+    const avgFunding = numericCandles.length > 0
+      ? numericCandles.reduce((sum, candle) => sum + candle.close, 0) / numericCandles.length
       : 0;
 
     // Find min and max
-    const rates = data.data.map(c => c.c);
+    const rates = numericCandles.map(c => c.close);
     const minRate = Math.min(...rates);
     const maxRate = Math.max(...rates);
 
-    console.log(`Successfully fetched ${data.data.length} funding rate candles. Avg: ${avgFunding.toFixed(4)}%`);
+    console.log(`Successfully fetched ${numericCandles.length} funding rate candles. Avg: ${avgFunding.toFixed(4)}%`);
 
     return new Response(
       JSON.stringify({
         success: true,
         symbol,
+        exchange,
         interval,
-        candles: data.data,
+        candles: numericCandles,
         stats: {
-          count: data.data.length,
+          count: numericCandles.length,
           average: avgFunding,
           min: minRate,
           max: maxRate,
