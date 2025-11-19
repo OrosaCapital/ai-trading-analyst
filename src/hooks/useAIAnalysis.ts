@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Candle } from "@/lib/indicators";
+import { toast } from "@/hooks/use-toast";
 
 interface AIAnalysis {
   signal: string;
@@ -47,6 +48,10 @@ export function useAIAnalysis(
 
     debounceRef.current = setTimeout(async () => {
       console.log("AI Analysis: Starting analysis for", symbol);
+      toast({
+        title: "🤖 AI Analysis",
+        description: `Analyzing ${symbol}...`,
+      });
       setIsAnalyzing(true);
 
       try {
@@ -86,10 +91,20 @@ Recent 1H Low: ${Math.min(...latest1h.map(c => c.low))}`;
           timestamp: Date.now()
         };
 
+        toast({
+          title: "✅ AI Analysis Complete",
+          description: data?.message || "Analysis complete",
+        });
+
         setAnalysis(result);
         cache.set(symbol, { result, expiresAt: Date.now() + 300000 }); // 5 min
       } catch (err) {
         console.error("AI analysis failed:", err);
+        toast({
+          title: "❌ AI Analysis Failed",
+          description: "Could not complete analysis",
+          variant: "destructive"
+        });
       } finally {
         setIsAnalyzing(false);
       }
