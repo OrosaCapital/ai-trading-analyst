@@ -43,14 +43,14 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
     const fetchFundingHistory = async () => {
       setIsLoading(true);
       try {
-        const cleanSymbol = symbol.replace("USDT", "");
-        console.log("Fetching funding history for:", cleanSymbol);
+        // Pass full symbol to edge function - it handles normalization
+        console.log("Fetching funding history for:", symbol);
         
         const { data: result, error } = await supabase.functions.invoke<FundingHistoryResponse>(
           "fetch-funding-history",
           {
             body: { 
-              symbol: cleanSymbol, 
+              symbol: symbol, 
               exchange: "Binance",
               interval: "8h",
               limit: 100 
