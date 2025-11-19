@@ -41,9 +41,28 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
 
   useEffect(() => {
     const fetchFundingHistory = async () => {
+      // Validate symbol before making API call
+      if (!symbol || symbol.trim() === "") {
+        setIsLoading(false);
+        return;
+      }
+
+      // Extract base symbol and validate minimum length
+      const baseSymbol = symbol
+        .toUpperCase()
+        .trim()
+        .replace(/USDT$/i, '')
+        .replace(/USD$/i, '');
+      
+      // Must have at least 2 characters for base currency
+      if (baseSymbol.length < 2) {
+        console.error(`Invalid symbol: ${symbol}. Base currency must be at least 2 characters.`);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       try {
-        // Pass full symbol to edge function - it handles normalization
         console.log("Fetching funding history for:", symbol);
         
         const { data: result, error } = await supabase.functions.invoke<FundingHistoryResponse>(

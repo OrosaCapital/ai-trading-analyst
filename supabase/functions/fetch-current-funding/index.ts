@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { validateSymbol } from '../_shared/symbolFormatter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,8 +26,10 @@ Deno.serve(async (req) => {
   try {
     const { symbol, exchange = 'Binance' } = await req.json();
     
-    if (!symbol) {
-      throw new Error('Symbol is required');
+    // Validate symbol
+    const validation = validateSymbol(symbol);
+    if (!validation.valid) {
+      throw new Error(`Invalid symbol: ${validation.error}`);
     }
 
     const apiKey = Deno.env.get('COINGLASS_API_KEY');

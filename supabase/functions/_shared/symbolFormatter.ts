@@ -3,6 +3,40 @@
  */
 
 /**
+ * Validate if a symbol is properly formed
+ * @param symbol - Symbol to validate
+ * @returns { valid: boolean, error?: string }
+ */
+export function validateSymbol(symbol: string): { valid: boolean; error?: string } {
+  if (!symbol || typeof symbol !== 'string') {
+    return { valid: false, error: 'Symbol must be a non-empty string' };
+  }
+
+  const cleaned = symbol.toUpperCase().trim();
+  
+  if (cleaned === 'USDT' || cleaned === 'USD') {
+    return { valid: false, error: 'Symbol cannot be only quote currency (USDT/USD)' };
+  }
+
+  // Extract base symbol
+  const base = cleaned.replace(/USDT$/i, '').replace(/USD$/i, '');
+  
+  if (base.length < 2) {
+    return { valid: false, error: `Base currency "${base}" must be at least 2 characters` };
+  }
+
+  if (base.length > 10) {
+    return { valid: false, error: `Base currency "${base}" is too long (max 10 characters)` };
+  }
+
+  if (!/^[A-Z0-9]+$/.test(base)) {
+    return { valid: false, error: 'Base currency can only contain letters and numbers' };
+  }
+
+  return { valid: true };
+}
+
+/**
  * Format symbol for Coinglass derivatives APIs
  * Coinglass APIs expect the base symbol only (e.g., BTC, ETH)
  * NOT pair formats like BTCUSDT or BTCUSD
