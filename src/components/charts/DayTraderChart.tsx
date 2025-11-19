@@ -19,7 +19,6 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
   useEffect(() => {
     if (!containerRef.current || !candles || candles.length === 0) return;
 
-    // Clear previous charts
     if (priceChartRef.current) priceChartRef.current.remove();
     if (macdChartRef.current) macdChartRef.current.remove();
     if (rsiChartRef.current) rsiChartRef.current.remove();
@@ -31,15 +30,14 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
 
     if (!priceContainer || !macdContainer || !rsiContainer) return;
 
-    // Theme colors from design system
     const chartOptions = {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: 'hsl(var(--foreground))',
       },
       grid: {
-        vertLines: { color: 'hsl(var(--border))' },
-        horzLines: { color: 'hsl(var(--border))' },
+        vertLines: { color: 'hsl(var(--chart-grid))' },
+        horzLines: { color: 'hsl(var(--chart-grid))' },
       },
       rightPriceScale: { borderColor: 'hsl(var(--border))' },
       timeScale: { 
@@ -50,7 +48,6 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       },
     };
 
-    // Initialize Price Chart
     const priceChart = createChart(priceContainer, {
       ...chartOptions,
       width: priceContainer.clientWidth,
@@ -58,7 +55,6 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
     });
     priceChartRef.current = priceChart;
 
-    // Initialize MACD Chart
     const macdChart = createChart(macdContainer, {
       ...chartOptions,
       width: macdContainer.clientWidth,
@@ -66,7 +62,6 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
     });
     macdChartRef.current = macdChart;
 
-    // Initialize RSI Chart
     const rsiChart = createChart(rsiContainer, {
       ...chartOptions,
       width: rsiContainer.clientWidth,
@@ -74,7 +69,6 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
     });
     rsiChartRef.current = rsiChart;
 
-    // Add series to Price Chart
     const candleSeries = priceChart.addSeries(CandlestickSeries, {
       upColor: 'hsl(var(--chart-green))',
       downColor: 'hsl(var(--chart-red))',
@@ -95,23 +89,21 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
     });
 
     const prevHighSeries = priceChart.addSeries(LineSeries, {
-      color: 'rgba(0, 255, 255, 0.4)',
+      color: 'hsla(var(--cyber-cyan), 0.4)',
       lineWidth: 1,
       lineStyle: 2,
     });
 
     const prevLowSeries = priceChart.addSeries(LineSeries, {
-      color: 'rgba(255, 0, 255, 0.4)',
+      color: 'hsla(var(--cyber-pink), 0.4)',
       lineWidth: 1,
       lineStyle: 2,
     });
 
-    // Add series to MACD Chart
     const macdLineSeries = macdChart.addSeries(LineSeries, { color: 'hsl(var(--foreground))', lineWidth: 2 });
     const macdSignalSeries = macdChart.addSeries(LineSeries, { color: 'hsl(var(--muted-foreground))', lineWidth: 2 });
     const macdHistSeries = macdChart.addSeries(HistogramSeries, {});
 
-    // Add series to RSI Chart
     const rsiSeries = rsiChart.addSeries(LineSeries, { color: 'hsl(var(--chart-orange))', lineWidth: 2 });
     const rsiOverbought = rsiChart.addSeries(LineSeries, { 
       color: 'hsla(var(--chart-red), 0.5)', 
@@ -129,7 +121,6 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       lineStyle: 2,
     });
 
-    // Calculate indicators
     const prices = candles.map(c => c.close);
     const ema9 = calculateEMA(prices, 9);
     const ema21 = calculateEMA(prices, 21);
@@ -140,7 +131,6 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
     const { macdLine, signalLine, histogram } = calculateMACD(candles);
     const rsi = calculateRSI(prices, 14);
 
-    // Set data for Price Chart (cast time as any for v5 compatibility)
     candleSeries.setData(candles.map(c => ({ 
       time: c.time as any, 
       open: c.open, 
@@ -167,12 +157,10 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       prevLowSeries.setData(candles.map(c => ({ time: c.time as any, value: prevLow })));
     }
 
-    // Set data for MACD Chart
     macdLineSeries.setData(macdLine.map(m => ({ time: m.time as any, value: m.value })));
     macdSignalSeries.setData(signalLine.map(s => ({ time: s.time as any, value: s.value })));
     macdHistSeries.setData(histogram.map(h => ({ time: h.time as any, value: h.value, color: h.color })));
 
-    // Set data for RSI Chart
     if (rsi.length > 0) {
       const rsiData = candles.slice(14).map((c, i) => ({ time: c.time as any, value: rsi[i + 14] }));
       rsiSeries.setData(rsiData);
@@ -186,7 +174,6 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       rsiMidline.setData(mid);
     }
 
-    // Sync time scales
     const syncCharts = (sourceChart: IChartApi, targetCharts: IChartApi[]) => {
       sourceChart.timeScale().subscribeVisibleTimeRangeChange(range => {
         if (range) {
@@ -199,14 +186,12 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
     syncCharts(macdChart, [priceChart, rsiChart]);
     syncCharts(rsiChart, [priceChart, macdChart]);
 
-    // Set initial visible range
     if (candles.length > 0) {
       const from = candles[Math.max(0, candles.length - 120)].time as any;
       const to = candles[candles.length - 1].time as any;
       priceChart.timeScale().setVisibleRange({ from, to });
     }
 
-    // Handle resize
     const handleResize = () => {
       if (priceChartRef.current && priceContainer) {
         priceChartRef.current.applyOptions({ 

@@ -71,6 +71,9 @@ export default {
           green: "hsl(var(--chart-green))",
           red: "hsl(var(--chart-red))",
           grid: "hsl(var(--chart-grid))",
+          yellow: "hsl(var(--chart-yellow))",
+          orange: "hsl(var(--chart-orange))",
+          blue: "hsl(var(--chart-blue))",
         },
       },
       borderRadius: {

@@ -66,6 +66,9 @@ All colors MUST be HSL.
     /* Chart colors - cyber style */
     --chart-green: 150 100% 45%;
     --chart-red: 0 85% 60%;
+    --chart-yellow: 45 100% 55%;
+    --chart-orange: 25 100% 60%;
+    --chart-blue: 200 100% 55%;
     --chart-grid: 220 20% 18%;
 
     /* Futuristic Gradients */
