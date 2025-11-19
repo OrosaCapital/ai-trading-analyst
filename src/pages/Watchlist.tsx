@@ -12,43 +12,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { BookmarkPlus, Plus, TrendingUp, TrendingDown, Clock, DollarSign, Activity, LogOut, Trash2, Eye, MoreVertical, Loader2 } from 'lucide-react';
+import { BookmarkPlus, Plus, Clock, DollarSign, LogOut, Trash2, Eye, MoreVertical, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
 const Watchlist = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { watchlist, isLoading, addToWatchlist, removeFromWatchlist, analyzeSymbol, analyzeAllSymbols } = useWatchlist();
+  const { watchlist, isLoading, addToWatchlist, removeFromWatchlist } = useWatchlist();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [symbol, setSymbol] = useState('');
   const [nickname, setNickname] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
-  const [isAnalyzingAll, setIsAnalyzingAll] = useState(false);
-  const [apiUsage, setApiUsage] = useState<{ current: number; limit: number } | null>(null);
-
-  // Fetch API usage on mount
-  useEffect(() => {
-    const fetchApiUsage = async () => {
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-
-      const { data, error } = await supabase
-        .from('api_ninjas_usage')
-        .select('api_calls_used')
-        .gte('fetched_at', startOfMonth.toISOString());
-
-      if (!error && data) {
-        const total = data.reduce((sum, row) => sum + row.api_calls_used, 0);
-        setApiUsage({ current: total, limit: 3000 });
-      }
-    };
-
-    fetchApiUsage();
-  }, []);
 
   const handleAddSymbol = async () => {
     if (!symbol.trim()) {
@@ -79,25 +55,6 @@ const Watchlist = () => {
     return user.email.charAt(0).toUpperCase();
   };
 
-  const getDecisionBadge = (decision?: string) => {
-    if (!decision) return null;
-    
-    const config: Record<string, { variant: 'default' | 'destructive' | 'secondary', icon: any, className: string }> = {
-      'LONG': { variant: 'default', icon: TrendingUp, className: 'bg-chart-green text-white' },
-      'SHORT': { variant: 'destructive', icon: TrendingDown, className: 'bg-chart-red text-white' },
-      'NO TRADE': { variant: 'secondary', icon: Activity, className: 'bg-muted text-muted-foreground' }
-    };
-
-    const { variant, icon: Icon, className } = config[decision as keyof typeof config] || config['NO TRADE'];
-    
-    return (
-      <Badge variant={variant} className={`gap-1 ${className}`}>
-        <Icon className="w-3 h-3" />
-        {decision}
-      </Badge>
-    );
-  };
-
   const formatPrice = (price?: number) => {
     if (!price) return 'N/A';
     return new Intl.NumberFormat('en-US', {
@@ -106,24 +63,6 @@ const Watchlist = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(price);
-  };
-
-  const handleAnalyze = async (item: WatchlistItem) => {
-    setAnalyzingId(item.id);
-    await analyzeSymbol(item.id, item.symbol);
-    setAnalyzingId(null);
-  };
-
-  const handleAnalyzeAll = async () => {
-    setIsAnalyzingAll(true);
-    await analyzeAllSymbols();
-    setIsAnalyzingAll(false);
-  };
-
-  const isAnalysisOld = (lastAnalysisTime?: string) => {
-    if (!lastAnalysisTime) return false;
-    const hoursSince = (Date.now() - new Date(lastAnalysisTime).getTime()) / (1000 * 60 * 60);
-    return hoursSince > 1;
   };
 
   return (
@@ -137,23 +76,6 @@ const Watchlist = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              onClick={handleAnalyzeAll}
-              disabled={isAnalyzingAll || watchlist.length === 0}
-            >
-              {isAnalyzingAll ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Activity className="w-4 h-4 mr-2" />
-                  Analyze All
-                </>
-              )}
-            </Button>
             <Button variant="outline" onClick={() => navigate('/dashboard')}>
               Back to Dashboard
             </Button>
@@ -193,19 +115,8 @@ const Watchlist = () => {
           <div>
             <h2 className="text-3xl font-bold mb-2">My Trading Watchlist</h2>
             <p className="text-muted-foreground">
-              Track your favorite crypto symbols and get AI-powered analysis
+              Track your favorite crypto symbols for quick access
             </p>
-            {apiUsage && (
-              <div className="mt-2">
-                <Badge variant="outline" className="gap-1.5">
-                  <Activity className="w-3 h-3" />
-                  API Usage: {apiUsage.current} / {apiUsage.limit} calls
-                  {apiUsage.current > 2500 && (
-                    <span className="text-destructive ml-1">(⚠️ {apiUsage.limit - apiUsage.current} remaining)</span>
-                  )}
-                </Badge>
-              </div>
-            )}
           </div>
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -360,66 +271,14 @@ const Watchlist = () => {
                         {formatPrice(item.current_price)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {isAnalysisOld(item.last_analysis_time) && item.last_decision && (
-                        <Badge variant="outline" className="text-xs">
-                          ⚠️ Outdated
-                        </Badge>
-                      )}
-                      {getDecisionBadge(item.last_decision)}
-                    </div>
                   </div>
 
-                  {/* Confidence Bar */}
-                  {item.last_confidence && (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Confidence</span>
-                        <span className="font-semibold text-foreground">{Math.round(item.last_confidence)}%</span>
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-accent transition-all"
-                          style={{ width: `${item.last_confidence}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Last Analysis Time */}
-                  <div className="flex items-center justify-between">
-                    {item.last_analysis_time ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          {formatDistanceToNow(new Date(item.last_analysis_time), { addSuffix: true })}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        <span>Never analyzed</span>
-                      </div>
-                    )}
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleAnalyze(item)}
-                      disabled={analyzingId === item.id || isAnalyzingAll}
-                    >
-                      {analyzingId === item.id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Activity className="w-4 h-4 mr-2" />
-                          Analyze
-                        </>
-                      )}
-                    </Button>
+                  {/* Added Date */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="w-4 h-4" />
+                    <span>
+                      Added {formatDistanceToNow(new Date(item.added_at), { addSuffix: true })}
+                    </span>
                   </div>
 
                   {/* Notes Preview */}
