@@ -9,6 +9,15 @@ interface FundingRateData {
   timestamp: number;
 }
 
+function normalizeFundingTimestamp(rawTimestamp: number): number {
+  // Detect and correct milliseconds-vs-seconds issue
+  // If timestamp is suspiciously far in the future, assume it needs conversion
+  if (rawTimestamp > 9999999999) { // e.g., > 2286-11-20 in seconds
+    return Math.floor(rawTimestamp / 1000);
+  }
+  return rawTimestamp;
+}
+
 async function fetchFundingRate(symbol: string): Promise<FundingRateData | null> {
   const { data, error } = await supabase
     .from("market_funding_rates")
@@ -30,7 +39,7 @@ async function fetchFundingRate(symbol: string): Promise<FundingRateData | null>
     symbol: data.symbol,
     exchange: data.exchange,
     rate: Number(data.rate),
-    timestamp: data.timestamp,
+    timestamp: normalizeFundingTimestamp(data.timestamp),
   };
 }
 
