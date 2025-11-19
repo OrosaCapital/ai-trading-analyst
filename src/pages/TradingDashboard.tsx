@@ -33,9 +33,16 @@ export default function TradingDashboard() {
   const { isFetching: isFetchingFresh } = useFreshSymbolData(normalizedSymbol);
   
   const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000);
-  const { chartData } = useProfessionalChartData(normalizedSymbol);
+  const { chartData, isLoading: isChartLoading } = useProfessionalChartData(normalizedSymbol);
 
-  console.log("TradingDashboard - RAW chartData:", chartData);
+  console.log("=== CHART DATA DEBUG ===", {
+    chartDataExists: !!chartData,
+    chartDataKeys: chartData ? Object.keys(chartData) : [],
+    candles1hExists: chartData?.candles1h !== undefined,
+    candles1hLength: chartData?.candles1h?.length,
+    candles15mLength: chartData?.candles15m?.length,
+    fullChartData: chartData
+  });
 
   // DEBUG: Show what data we have
   useEffect(() => {
