@@ -47,29 +47,32 @@ Deno.serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const systemPrompt = `You are an AI system administrator monitoring the OCAPX trading platform. Analyze the provided system metrics and real-time alerts to provide:
-1. Overall system health assessment
-2. Critical issues requiring immediate attention (from console errors and alerts)
-3. Root cause analysis of recurring errors
-4. Actionable recommendations for fixes
+    // Check cache first (15 min TTL to reduce token usage)
+    const cacheKey = `system_health_${Math.floor(Date.now() / (15 * 60 * 1000))}`;
+    
+    const { data: cached } = await supabase
+      .from('market_data_cache')
+      .select('data')
+      .eq('key', cacheKey)
+      .maybeSingle();
 
-Be concise, technical, and prioritize the most severe issues. Focus on patterns in the errors and alerts.`;
+    if (cached?.data) {
+      console.log('Returning cached system health analysis');
+      return new Response(
+        JSON.stringify(cached.data),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Build alerts summary
+    const systemPrompt = `System admin for OCAPX. Provide: 1) Health status 2) Critical issues 3) Quick fixes. Max 3 sentences.`;
+
+    // Build minimal alerts summary (reduced to save tokens)
     const alertsSummary = alerts.length > 0 
-      ? `\n\nRECENT ALERTS (${alerts.length} total):\n${alerts.map((a: any) => 
-          `- [${a.type.toUpperCase()}] ${a.title}: ${a.message}${a.source ? ` (${a.source})` : ''}`
-        ).slice(0, 20).join('\n')}`
-      : '\n\nNo recent alerts detected.';
+      ? `\nAlerts: ${alerts.length} (${alerts.filter((a: any) => a.type === 'error').length} errors)`
+      : '\nNo alerts.';
 
-    const metricsDescription = `
-SYSTEM STATUS:
-- Edge Functions: ${metrics.edgeFunctions.healthy}/${metrics.edgeFunctions.total} healthy (${metrics.edgeFunctions.errors} errors)
-- Database: ${metrics.database.status} (${metrics.database.connections} connections)
-- CoinGlass API: ${metrics.apis.coinglassStatus}
-- Tatum API: ${metrics.apis.tatumStatus}
-- Errors (24h): ${metrics.errors.last24h} total, ${metrics.errors.criticalCount} critical${alertsSummary}
-`;
+    // Minimized metrics to reduce tokens
+    const metricsDescription = `Functions: ${metrics.edgeFunctions.healthy}/${metrics.edgeFunctions.total} | DB: ${metrics.database.status} | APIs: CG-${metrics.apis.coinglassStatus} T-${metrics.apis.tatumStatus} | Errors: ${metrics.errors.criticalCount}/${metrics.errors.last24h}${alertsSummary}`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -98,13 +101,24 @@ SYSTEM STATUS:
 
     console.log('AI System Health Analysis completed');
 
+    const response = {
+      success: true,
+      metrics,
+      analysis,
+      timestamp: Date.now(),
+    };
+
+    // Cache the response for 15 minutes
+    await supabase
+      .from('market_data_cache')
+      .upsert({
+        key: cacheKey,
+        data: response,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+      });
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        metrics,
-        analysis,
-        timestamp: Date.now(),
-      }),
+      JSON.stringify(response),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
