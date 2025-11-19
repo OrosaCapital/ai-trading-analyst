@@ -32,11 +32,11 @@ For ALL code you touch:
 This project is **"Simple Mode Only"**.
 
 ### REMOVE any reference to:
-- CoinGlass
 - CoinMarketCap
-- All Supabase Functions (except price logging + WebSocket)
-- All REST fetches
-- Any external data sources beyond price/volume
+- API Ninjas
+- All Supabase Functions (except price logging, WebSocket, and CoinGlass endpoints)
+- All REST fetches to removed APIs
+- Any external data sources beyond price/volume/CoinGlass
 - All unnecessary analytics
 
 ### ONLY keep:
@@ -44,8 +44,14 @@ This project is **"Simple Mode Only"**.
 - Local candle math
 - WebSocket live price
 - Optional Tatum price fallback
-- **Local market metrics generator** (replaces all external derivative APIs)
-- **CoinGlass supported coins & exchange pairs APIs** (for market coverage data only)
+- **Local market metrics generator** (fallback when CoinGlass unavailable)
+- **CoinGlass API integration** (funding rates, exchange pairs, market data)
+  - `fetch-coinglass-coins` - Supported trading symbols
+  - `fetch-exchange-pairs` - Exchange coverage and pairs
+  - `fetch-funding-history` - Historical funding rate OHLC data
+  - `fetch-current-funding` - Real-time funding rates
+
+**API Documentation:** See [COINGLASS_API.md](COINGLASS_API.md) for complete reference.
 
 **Nothing else.**
 
