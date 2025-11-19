@@ -378,7 +378,90 @@ A clean, stable, fast, modern trading dashboard with zero crashes — **self-hea
 
 ## 9. COMMON FIXES AND KNOWN ISSUES
 
-### React Query Configuration Error
+### Auto-Fetch Fresh Data on Symbol Change
+
+**Pattern**: Automatically populate fresh data when user selects a new trading symbol
+
+**Implementation**: Use `useFreshSymbolData` hook in any component that needs auto-populated data
+
+**How It Works**:
+1. User selects new symbol in FilterBar
+2. `useFreshSymbolData` hook detects symbol change
+3. Hook checks database for data freshness (4-hour TTL)
+4. If data is missing or stale:
+   - Triggers `fetch-historical-candles` edge function
+   - Triggers `fetch-current-funding` edge function
+   - Triggers `fetch-funding-history` edge function
+5. Edge functions populate database tables
+6. React Query invalidates cache and refetches
+7. UI updates with fresh data
+
+**Hook Code**:
+```typescript
+// src/hooks/useFreshSymbolData.ts
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+
+export function useFreshSymbolData(symbol: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    async function ensureFreshData() {
+      // Check data freshness (4-hour TTL)
+      const fourHoursAgo = Date.now() - (4 * 60 * 60 * 1000);
+      
+      // Check candles and funding rates freshness
+      // If stale or missing, trigger edge functions
+      // Invalidate queries after population
+    }
+    
+    ensureFreshData();
+  }, [symbol, queryClient]);
+
+  return { isFetching, error, lastFetched };
+}
+```
+
+**Usage in Components**:
+```typescript
+// src/pages/TradingDashboard.tsx
+import { useFreshSymbolData } from '@/hooks/useFreshSymbolData';
+
+export default function TradingDashboard() {
+  const [symbol, setSymbol] = useState("BTCUSDT");
+  const normalizedSymbol = normalizeSymbol(symbol);
+  
+  // Automatically fetch fresh data when symbol changes
+  useFreshSymbolData(normalizedSymbol);
+  
+  // Rest of component uses database queries
+  const { candles } = useChartData(normalizedSymbol);
+  // ...
+}
+```
+
+**Benefits**:
+- ✅ Always fresh data for newly selected symbols
+- ✅ Respects 4-hour cache TTL (conserves API credits)
+- ✅ Parallel edge function calls for efficiency
+- ✅ Automatic React Query cache invalidation
+- ✅ No manual refresh needed by user
+
+**When to Use**:
+- Trading dashboard symbol selection
+- Watchlist symbol navigation
+- Any UI where users switch between symbols frequently
+
+**API Credit Conservation**:
+- Only fetches when data is >4 hours old
+- Skips fetch if recent data exists
+- Batches multiple edge function calls in parallel
+- Aligns with CoinGlass Hobbyist plan limits
+
+---
+
+
 
 **Error**: `"No QueryClient set, use QueryClientProvider to set one"`
 
