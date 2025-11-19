@@ -47,30 +47,47 @@ export default function TradingDashboard() {
 
       <AlertStrip alerts={alerts} isLoading={isLoading} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-3">
-        <div className="lg:col-span-8 flex flex-col gap-3">
-          <div className="h-[500px] rounded-xl overflow-hidden border border-border/50 bg-card shadow-lg">
-            <TradingViewChart symbol={normalizedSymbol} />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
+        <div className="lg:col-span-8 flex flex-col gap-4">
+          {/* Enhanced chart container with glow effect */}
+          <div className="group relative h-[500px] rounded-xl overflow-hidden border border-border/40 bg-gradient-to-br from-card via-card/95 to-card/90 shadow-2xl hover:shadow-primary/10 transition-all duration-500">
+            {/* Animated border glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="relative h-full">
+              <TradingViewChart symbol={normalizedSymbol} />
+            </div>
           </div>
 
           <SessionStatsPanel stats={sessionStats} symbol={normalizedSymbol} />
         </div>
 
-        <div className="lg:col-span-4 flex flex-col gap-3 max-h-[700px] overflow-y-auto">
+        <div className="lg:col-span-4 flex flex-col gap-4 max-h-[700px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent hover:scrollbar-thumb-border/60">
           <LocalIndicatorsPanel candles={candles1m} />
           <MicroTimeframePanel candles1m={candles1m} candles15m={candles15m} />
         </div>
       </div>
 
-      <div className="h-[200px] flex items-center justify-center border-t border-border/30 mt-3 bg-gradient-to-br from-card/50 via-card/30 to-transparent rounded-xl backdrop-blur-sm">
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <p className="font-bold text-sm text-foreground">Simple Mode Active</p>
+      {/* Enhanced footer with animation */}
+      <div className="relative h-[200px] flex items-center justify-center border-t border-border/20 mt-4 rounded-xl overflow-hidden backdrop-blur-sm">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-card/30 to-primary/5 animate-pulse opacity-40" />
+        
+        <div className="relative text-center space-y-3">
+          <div className="flex items-center justify-center gap-3">
+            <div className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary shadow-lg shadow-primary/50" />
+            </div>
+            <p className="font-black text-base text-foreground tracking-tight">Simple Mode Active</p>
           </div>
-          <p className="text-xs text-muted-foreground font-medium">
+          <p className="text-xs text-muted-foreground font-semibold tracking-wide">
             All analytics computed locally • Zero external dependencies
           </p>
+          <div className="flex items-center justify-center gap-1.5 pt-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-chart-green animate-pulse" style={{ animationDelay: '0ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-chart-green animate-pulse" style={{ animationDelay: '200ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-chart-green animate-pulse" style={{ animationDelay: '400ms' }} />
+          </div>
         </div>
       </div>
     </AppShell>
@@ -130,43 +147,106 @@ interface SessionStats {
 }
 
 function SessionStatsPanel({ stats, symbol }: { stats: SessionStats; symbol: string }) {
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-gradient-to-br from-card via-card to-card/95 border border-border/40 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300">
-      <StatItem 
-        label="Symbol" 
-        value={symbol} 
-        accent="text-primary font-bold" 
-      />
-      <StatItem
-        label="Session Move"
-        value={stats.sessionChangePct !== null ? `${stats.sessionChangePct >= 0 ? '+' : ''}${stats.sessionChangePct.toFixed(2)}%` : "—"}
-        accent={
-          stats.sessionChangePct !== null && Math.abs(stats.sessionChangePct) > 0.01
-            ? stats.sessionChangePct > 0
-              ? "text-chart-green font-bold"
-              : "text-chart-red font-bold"
-            : "text-muted-foreground"
-        }
-      />
-      <StatItem 
-        label="Session High" 
-        value={stats.high !== null ? `$${stats.high.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : "—"} 
-        accent="text-foreground font-semibold"
-      />
-      <StatItem 
-        label="Session Low" 
-        value={stats.low !== null ? `$${stats.low.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : "—"} 
-        accent="text-foreground font-semibold"
-      />
-    </div>
-  );
-}
+  const changeIsPositive = stats.sessionChangePct !== null && stats.sessionChangePct > 0.01;
+  const changeIsNegative = stats.sessionChangePct !== null && stats.sessionChangePct < -0.01;
+  const hasRange = stats.high !== null && stats.low !== null;
 
-function StatItem({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
-    <div className="flex flex-col gap-1.5 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground/80 font-bold">{label}</span>
-      <span className={`text-base ${accent ?? "text-foreground font-semibold"}`}>{value}</span>
+    <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/95 via-card to-card/90 backdrop-blur-sm shadow-xl">
+      {/* Subtle animated background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 animate-pulse opacity-50" />
+      
+      <div className="relative grid grid-cols-2 md:grid-cols-4 gap-4 p-6">
+        {/* Symbol with icon */}
+        <div className="group flex flex-col gap-2 p-3 rounded-lg bg-gradient-to-br from-muted/30 to-transparent hover:from-muted/50 transition-all duration-300 hover:scale-105">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-lg shadow-primary/50" />
+            <span className="text-[9px] uppercase tracking-[0.15em] font-bold text-muted-foreground/70">Symbol</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-black text-primary tracking-tight">{symbol}</span>
+          </div>
+        </div>
+
+        {/* Session Move with trend indicator */}
+        <div className="group flex flex-col gap-2 p-3 rounded-lg bg-gradient-to-br from-muted/30 to-transparent hover:from-muted/50 transition-all duration-300 hover:scale-105">
+          <div className="flex items-center gap-2">
+            {changeIsPositive && (
+              <div className="w-2 h-2 rounded-full bg-chart-green animate-pulse shadow-lg shadow-chart-green/50" />
+            )}
+            {changeIsNegative && (
+              <div className="w-2 h-2 rounded-full bg-chart-red animate-pulse shadow-lg shadow-chart-red/50" />
+            )}
+            {!changeIsPositive && !changeIsNegative && (
+              <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
+            )}
+            <span className="text-[9px] uppercase tracking-[0.15em] font-bold text-muted-foreground/70">Session</span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className={`text-2xl font-black tracking-tight transition-colors ${
+              changeIsPositive 
+                ? "text-chart-green" 
+                : changeIsNegative 
+                  ? "text-chart-red" 
+                  : "text-muted-foreground"
+            }`}>
+              {stats.sessionChangePct !== null 
+                ? `${stats.sessionChangePct >= 0 ? '+' : ''}${stats.sessionChangePct.toFixed(2)}%` 
+                : "—"}
+            </span>
+          </div>
+          {/* Mini trend indicator bar */}
+          {stats.sessionChangePct !== null && Math.abs(stats.sessionChangePct) > 0.01 && (
+            <div className="h-1 w-full bg-muted/30 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-700 ${
+                  changeIsPositive ? "bg-gradient-to-r from-chart-green to-chart-green/50" : "bg-gradient-to-r from-chart-red to-chart-red/50"
+                }`}
+                style={{ 
+                  width: `${Math.min(Math.abs(stats.sessionChangePct) * 10, 100)}%` 
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Session High */}
+        <div className="group flex flex-col gap-2 p-3 rounded-lg bg-gradient-to-br from-muted/30 to-transparent hover:from-muted/50 transition-all duration-300 hover:scale-105">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-chart-green/60" />
+            <span className="text-[9px] uppercase tracking-[0.15em] font-bold text-muted-foreground/70">High</span>
+          </div>
+          <span className="text-xl font-bold text-foreground tracking-tight">
+            {stats.high !== null ? `$${stats.high.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+          </span>
+        </div>
+
+        {/* Session Low */}
+        <div className="group flex flex-col gap-2 p-3 rounded-lg bg-gradient-to-br from-muted/30 to-transparent hover:from-muted/50 transition-all duration-300 hover:scale-105">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-chart-red/60" />
+            <span className="text-[9px] uppercase tracking-[0.15em] font-bold text-muted-foreground/70">Low</span>
+          </div>
+          <span className="text-xl font-bold text-foreground tracking-tight">
+            {stats.low !== null ? `$${stats.low.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+          </span>
+        </div>
+      </div>
+
+      {/* Price Range Visualization Bar */}
+      {hasRange && (
+        <div className="relative px-6 pb-4">
+          <div className="h-2 w-full bg-gradient-to-r from-chart-red/20 via-muted/20 to-chart-green/20 rounded-full overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-1 h-3 bg-primary rounded-full shadow-lg shadow-primary/50 animate-pulse" 
+                   style={{ 
+                     marginLeft: `${stats.sessionChangePct !== null ? (50 + (stats.sessionChangePct * 2)) : 50}%` 
+                   }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -134,5 +134,24 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    function({ addUtilities }: any) {
+      const newUtilities = {
+        '.scrollbar-thin': {
+          'scrollbar-width': 'thin',
+        },
+        '.scrollbar-track-transparent': {
+          'scrollbar-color': 'transparent transparent',
+        },
+        '.scrollbar-thumb-border\\/40': {
+          'scrollbar-color': 'hsl(var(--border) / 0.4) transparent',
+        },
+        '.scrollbar-thumb-border\\/60:hover': {
+          'scrollbar-color': 'hsl(var(--border) / 0.6) transparent',
+        },
+      }
+      addUtilities(newUtilities)
+    }
+  ],
 } satisfies Config;
