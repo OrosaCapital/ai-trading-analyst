@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,21 +19,29 @@ interface ExchangePairsResponse {
 }
 
 export const ExchangeCoverage = () => {
-  const { data, isLoading } = useQuery({
-    queryKey: ["exchange-pairs"],
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke<ExchangePairsResponse>(
-        "fetch-exchange-pairs"
-      );
+  const [data, setData] = useState<ExchangePairsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Failed to fetch exchange pairs");
+  useEffect(() => {
+    const fetchExchangePairs = async () => {
+      try {
+        const { data: result, error } = await supabase.functions.invoke<ExchangePairsResponse>(
+          "fetch-exchange-pairs"
+        );
 
-      return data;
-    },
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour
-    retry: 2,
-  });
+        if (error) throw error;
+        if (result?.success) {
+          setData(result);
+        }
+      } catch (err) {
+        console.error("Failed to fetch exchange pairs:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExchangePairs();
+  }, []);
 
   if (isLoading) {
     return (
