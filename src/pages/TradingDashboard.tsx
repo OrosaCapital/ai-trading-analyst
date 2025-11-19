@@ -8,7 +8,6 @@ import { calculateTradeSignal } from "@/lib/signalEngine";
 
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
-  const [timeframe, setTimeframe] = useState<"1m" | "5m" | "15m" | "1h" | "4h" | "1d">("1h");
 
   const normalizeSymbol = (sym: string) => {
     const clean = sym.toUpperCase().replace(/\//g, "").trim();
@@ -44,8 +43,6 @@ export default function TradingDashboard() {
       <TradingCommandCenter
         symbol={symbol}
         onSymbolChange={setSymbol}
-        timeframe={timeframe}
-        onTimeframeChange={setTimeframe}
         currentPrice={currentPrice}
       />
 
