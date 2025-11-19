@@ -441,6 +441,90 @@ export function MarketInsightsPanel({
 
 ---
 
+### Handling CoinGlass API 404 Errors (Symbol Not Supported)
+
+**Problem**: CoinGlass API returns 404 "Not Found" for many symbols (LINKUSDT, XLMUSDT, etc.), causing edge functions to fail with 502 errors and blank trading dashboard.
+
+**Root Cause**: CoinGlass only supports ~200 major symbols, but our trading pairs list has 900+ symbols. When users select unsupported symbols, CoinGlass returns 404.
+
+**Solution**: Implement Binance API as fallback for unsupported symbols.
+
+**Edge Function Fix Pattern**:
+
+```typescript
+// supabase/functions/fetch-current-funding/index.ts
+if (!cgResponse.ok) {
+  // CoinGlass doesn't support this symbol, try Binance directly
+  console.log(`CoinGlass doesn't support ${formattedSymbol}, trying Binance API...`);
+  
+  const binanceUrl = `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${formattedSymbol}`;
+  const binanceResponse = await safeFetch(binanceUrl, {
+    headers: { 'accept': 'application/json' }
+  });
+
+  if (binanceResponse.ok && binanceResponse.data) {
+    const fundingRate = parseFloat(binanceResponse.data.lastFundingRate || '0');
+    // Store in database and return success
+  }
+  
+  // Both APIs failed - return 404 (not 502) so UI doesn't crash
+  return new Response(JSON.stringify({
+    error: 'SYMBOL_NOT_SUPPORTED',
+    message: `${formattedSymbol} not available`,
+    symbol: formattedSymbol
+  }), { status: 404 });
+}
+```
+
+**For Historical Candles**:
+```typescript
+// supabase/functions/fetch-historical-candles/index.ts
+if (candles.length === 0) {
+  console.log(`Trying Binance API for ${formattedSymbol}...`);
+  
+  const binanceUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${formattedSymbol}&interval=1h&limit=${limit}`;
+  const binanceResponse = await safeFetch(binanceUrl, { headers: { 'accept': 'application/json' } });
+
+  if (binanceResponse.ok && Array.isArray(binanceResponse.data)) {
+    candles = binanceResponse.data.map((k: any) => ({
+      time: Math.floor(k[0] / 1000),
+      open: parseFloat(k[1]),
+      high: parseFloat(k[2]),
+      low: parseFloat(k[3]),
+      close: parseFloat(k[4]),
+      volume: parseFloat(k[5])
+    }));
+  }
+}
+```
+
+**Benefits**:
+- ✅ Binance supports 200+ symbols (more than CoinGlass)
+- ✅ No 502 errors crashing the UI
+- ✅ Graceful 404 response for truly unsupported symbols
+- ✅ Automatic fallback - no user intervention needed
+- ✅ Data still gets stored in database for caching
+
+**Binance API Endpoints Used**:
+- Funding Rates: `https://fapi.binance.com/fapi/v1/premiumIndex?symbol={SYMBOL}`
+- Candles: `https://fapi.binance.com/fapi/v1/klines?symbol={SYMBOL}&interval=1h&limit=200`
+- No API key required (public endpoints)
+- High rate limits (1200 requests/min)
+
+**Error Handling Hierarchy**:
+1. Try CoinGlass (if API key exists)
+2. On 404: Try Binance API (public, no key needed)
+3. On Binance success: Store in database, return success
+4. On both failed: Return 404 (not 502) with helpful message
+
+**When to Use This Pattern**:
+- Any edge function calling CoinGlass API
+- Functions that need broad symbol coverage
+- APIs with limited symbol support
+- When user experience requires high availability
+
+---
+
 ### Auto-Fetch Fresh Data on Symbol Change
 
 **Pattern**: Automatically populate fresh data when user selects a new trading symbol
