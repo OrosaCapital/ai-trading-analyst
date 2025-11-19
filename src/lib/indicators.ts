@@ -288,12 +288,12 @@ export function buildCandleFromPriceUpdates(
   candles: Candle[],
   currentPrice: number,
   volume: number,
-  timestamp: number,
+  timestamp: number, // Expected in seconds
 ): Candle[] {
   candles = safeArray(candles);
 
-  // FIXED: timestamps must be milliseconds
-  const bucketTime = Math.floor(timestamp / 60000) * 60000;
+  // Bucket time to nearest minute in seconds
+  const bucketTime = Math.floor(timestamp / 60) * 60;
 
   const out = [...candles];
   const last = out[out.length - 1];
@@ -323,10 +323,10 @@ export function buildCandleFromPriceUpdates(
 export function generateSampleCandles(basePrice: number, count: number): Candle[] {
   const output: Candle[] = [];
   let price = basePrice;
-  const now = Date.now();
+  const now = Math.floor(Date.now() / 1000); // Convert to seconds for TradingView charts
 
   for (let i = count; i > 0; i--) {
-    const t = now - i * 60000;
+    const t = now - i * 60; // Subtract minutes in seconds
 
     const o = price;
     const c = o + (Math.random() - 0.5) * 0.005 * o;
