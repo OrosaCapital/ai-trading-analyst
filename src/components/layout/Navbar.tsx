@@ -1,9 +1,11 @@
 import { NavLink } from "../NavLink";
 import { Terminal, LayoutDashboard, ListChecks, Settings, Activity, Coins } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useDashboardVersion } from "@/hooks/useDashboardVersion";
 
 export function Navbar() {
   const location = useLocation();
+  const { version } = useDashboardVersion();
   
   const navItems = [
     { to: "/", label: "Admin Dashboard", icon: LayoutDashboard },
@@ -20,7 +22,7 @@ export function Navbar() {
       case "/":
         return "ADMIN PANEL";
       case "/trading":
-        return "TRADING DASHBOARD";
+        return `TRADING DASHBOARD v${version}`;
       case "/watchlist":
         return "WATCHLIST";
       default:
