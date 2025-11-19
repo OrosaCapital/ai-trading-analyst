@@ -4,16 +4,12 @@ import { Search, TrendingUp, Sparkles, X } from "lucide-react";
 interface TradingCommandCenterProps {
   symbol: string;
   onSymbolChange: (symbol: string) => void;
-  timeframe: string;
-  onTimeframeChange: (timeframe: "1m" | "5m" | "15m" | "1h" | "4h" | "1d") => void;
   currentPrice?: number;
 }
 
 export function TradingCommandCenter({
   symbol,
   onSymbolChange,
-  timeframe,
-  onTimeframeChange,
   currentPrice,
 }: TradingCommandCenterProps) {
   const [searchValue, setSearchValue] = useState(symbol);
@@ -75,8 +71,6 @@ export function TradingCommandCenter({
   useEffect(() => {
     setSearchValue(symbol);
   }, [symbol]);
-
-  const timeframes: Array<"1m" | "5m" | "15m" | "1h"> = ["1m", "5m", "15m", "1h"];
 
   return (
     <div className="relative glass-panel border-b border-border/50 p-3 shadow-elevated">
@@ -175,23 +169,6 @@ export function TradingCommandCenter({
               </div>
             </div>
           )}
-        </div>
-
-        {/* Right - Timeframe Selector */}
-        <div className="flex items-center gap-1.5 p-1 glass rounded-lg">
-          {timeframes.map((tf) => (
-            <button
-              key={tf}
-              onClick={() => onTimeframeChange(tf)}
-              className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-all duration-200 ${
-                tf === timeframe
-                  ? "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.5)] scale-105"
-                  : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-              }`}
-            >
-              {tf.toUpperCase()}
-            </button>
-          ))}
         </div>
       </div>
     </div>
