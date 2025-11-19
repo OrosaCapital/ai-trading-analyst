@@ -62,10 +62,15 @@ export default function TradingDashboard() {
         </div>
       </div>
 
-      <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm border-t border-border/50 mt-3 bg-card/30 rounded-lg">
-        <div className="text-center">
-          <p className="font-medium">Simple Data Mode</p>
-          <p className="text-xs mt-1">All analytics are local from your chart stream • No external APIs</p>
+      <div className="h-[200px] flex items-center justify-center border-t border-border/30 mt-3 bg-gradient-to-br from-card/50 via-card/30 to-transparent rounded-xl backdrop-blur-sm">
+        <div className="text-center space-y-2">
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <p className="font-bold text-sm text-foreground">Simple Mode Active</p>
+          </div>
+          <p className="text-xs text-muted-foreground font-medium">
+            All analytics computed locally • Zero external dependencies
+          </p>
         </div>
       </div>
     </AppShell>
@@ -78,26 +83,35 @@ function AlertStrip({ alerts, isLoading }: { alerts: AlertBadge[]; isLoading: bo
   return (
     <div className="mb-3 flex flex-wrap gap-2 items-center text-xs">
       {isLoading && (
-        <span className="px-3 py-1.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-medium">
-          Syncing candles…
+        <span className="px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/30 font-semibold flex items-center gap-2 animate-pulse">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+          Synchronizing live data
         </span>
       )}
       {alerts.length === 0 && !isLoading && (
-        <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-medium">
-          No active alerts • Market neutral
+        <span className="px-3 py-1.5 rounded-full bg-chart-green/10 text-chart-green border border-chart-green/30 font-semibold flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-chart-green" />
+          Market neutral • No alerts
         </span>
       )}
       {alerts.map((a) => (
         <span
           key={a.id}
-          className={`px-3 py-1.5 rounded-full border font-medium ${
+          className={`px-3 py-1.5 rounded-full border font-semibold flex items-center gap-2 transition-all hover:scale-105 ${
             a.severity === "danger"
-              ? "bg-red-500/10 text-red-400 border-red-500/30"
+              ? "bg-chart-red/10 text-chart-red border-chart-red/30"
               : a.severity === "warn"
-                ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
-                : "bg-sky-500/10 text-sky-300 border-sky-500/30"
+                ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                : "bg-sky-500/10 text-sky-400 border-sky-500/30"
           }`}
         >
+          <div className={`w-1.5 h-1.5 rounded-full ${
+            a.severity === "danger"
+              ? "bg-chart-red animate-pulse"
+              : a.severity === "warn"
+                ? "bg-amber-400"
+                : "bg-sky-400"
+          }`} />
           {a.label}
         </span>
       ))}
@@ -117,30 +131,42 @@ interface SessionStats {
 
 function SessionStatsPanel({ stats, symbol }: { stats: SessionStats; symbol: string }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-card border border-border/50 rounded-xl p-4 shadow-sm">
-      <StatItem label="Symbol" value={symbol} accent="text-sky-400" />
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-gradient-to-br from-card via-card to-card/95 border border-border/40 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300">
+      <StatItem 
+        label="Symbol" 
+        value={symbol} 
+        accent="text-primary font-bold" 
+      />
       <StatItem
-        label="Session Change"
-        value={stats.sessionChangePct !== null ? `${stats.sessionChangePct.toFixed(2)}%` : "--"}
+        label="Session Move"
+        value={stats.sessionChangePct !== null ? `${stats.sessionChangePct >= 0 ? '+' : ''}${stats.sessionChangePct.toFixed(2)}%` : "—"}
         accent={
-          stats.sessionChangePct !== null && stats.sessionChangePct > 0
-            ? "text-emerald-400"
-            : stats.sessionChangePct !== null && stats.sessionChangePct < 0
-              ? "text-red-400"
-              : "text-muted-foreground"
+          stats.sessionChangePct !== null && Math.abs(stats.sessionChangePct) > 0.01
+            ? stats.sessionChangePct > 0
+              ? "text-chart-green font-bold"
+              : "text-chart-red font-bold"
+            : "text-muted-foreground"
         }
       />
-      <StatItem label="Session High" value={stats.high !== null ? stats.high.toFixed(2) : "--"} />
-      <StatItem label="Session Low" value={stats.low !== null ? stats.low.toFixed(2) : "--"} />
+      <StatItem 
+        label="Session High" 
+        value={stats.high !== null ? `$${stats.high.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : "—"} 
+        accent="text-foreground font-semibold"
+      />
+      <StatItem 
+        label="Session Low" 
+        value={stats.low !== null ? `$${stats.low.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : "—"} 
+        accent="text-foreground font-semibold"
+      />
     </div>
   );
 }
 
 function StatItem({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
-      <span className={`text-sm font-semibold ${accent ?? "text-foreground"}`}>{value}</span>
+    <div className="flex flex-col gap-1.5 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground/80 font-bold">{label}</span>
+      <span className={`text-base ${accent ?? "text-foreground font-semibold"}`}>{value}</span>
     </div>
   );
 }
@@ -155,7 +181,24 @@ function MicroTimeframePanel({
   candles15m: { open: number; high: number; low: number; close: number; volume: number }[];
 }) {
   if (!candles1m.length) {
-    return <div className="p-4 rounded-xl bg-card border border-border/50 text-sm text-muted-foreground">Waiting for intraday price stream…</div>;
+    return (
+      <div className="flex flex-col gap-3 p-6 rounded-xl bg-gradient-to-br from-card via-card to-card/95 border border-border/40 shadow-lg">
+        <div className="flex items-center justify-center gap-3">
+          <div className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-primary" />
+          </div>
+          <span className="text-sm font-medium text-muted-foreground">
+            Initializing price stream
+          </span>
+        </div>
+        <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground/70">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: '0ms' }} />
+          <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: '150ms' }} />
+          <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: '300ms' }} />
+        </div>
+      </div>
+    );
   }
 
   const last1m = candles1m[candles1m.length - 1];
@@ -168,25 +211,30 @@ function MicroTimeframePanel({
   const bodyRatio = wick ? Math.abs(body / wick) : 0;
 
   return (
-    <div className="flex flex-col gap-3 p-4 rounded-xl bg-card border border-border/50 text-xs shadow-sm">
-      <div className="flex justify-between mb-1">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Intraday Tape</span>
-        <span className="text-[10px] text-muted-foreground">1m / 15m micro-view</span>
+    <div className="flex flex-col gap-3 p-4 rounded-xl bg-gradient-to-br from-card via-card to-card/95 border border-border/40 hover:border-border/60 transition-all duration-300 shadow-lg hover:shadow-xl">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Intraday Tape</span>
+        <span className="text-[10px] text-muted-foreground/70 font-medium">1m / 15m</span>
       </div>
 
       <MiniRow
         label="1m Pulse"
-        value={`${microChange.toFixed(2)}%`}
-        hint={microChange > 0 ? "Bid lifting" : microChange < 0 ? "Selling pressure" : "Flat"}
-        positive={microChange > 0}
-        negative={microChange < 0}
+        value={`${microChange >= 0 ? '+' : ''}${microChange.toFixed(2)}%`}
+        hint={microChange > 0.1 ? "Bid lifting" : microChange < -0.1 ? "Selling pressure" : "Consolidating"}
+        positive={microChange > 0.1}
+        negative={microChange < -0.1}
       />
       <MiniRow
-        label="15m Candle Shape"
-        value={bodyRatio.toFixed(2)}
-        hint={bodyRatio > 0.7 ? "Strong conviction candle" : bodyRatio > 0.3 ? "Balanced" : "Indecision / wick-heavy"}
+        label="15m Body Ratio"
+        value={`${(bodyRatio * 100).toFixed(0)}%`}
+        hint={bodyRatio > 0.7 ? "Strong conviction" : bodyRatio > 0.3 ? "Balanced" : "Indecision"}
+        positive={bodyRatio > 0.7}
       />
-      <MiniRow label="1m Volume" value={last1m.volume.toFixed(0)} hint="Raw last candle volume" />
+      <MiniRow 
+        label="1m Volume" 
+        value={last1m.volume >= 1000 ? `${(last1m.volume / 1000).toFixed(1)}K` : last1m.volume.toFixed(0)} 
+        hint="Last candle" 
+      />
     </div>
   );
 }
@@ -205,18 +253,18 @@ function MiniRow({
   negative?: boolean;
 }) {
   return (
-    <div className="flex flex-col border-b border-border/50 pb-2 last:border-b-0 last:pb-0">
-      <div className="flex justify-between items-center">
-        <span className="text-muted-foreground text-[11px] font-medium">{label}</span>
+    <div className="flex flex-col border-b border-border/30 pb-2.5 last:border-b-0 last:pb-0 transition-colors hover:border-border/50">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-muted-foreground text-[11px] font-semibold">{label}</span>
         <span
-          className={`text-[11px] font-semibold ${
-            positive ? "text-emerald-400" : negative ? "text-red-400" : "text-foreground"
+          className={`text-sm font-bold transition-colors ${
+            positive ? "text-chart-green" : negative ? "text-chart-red" : "text-foreground"
           }`}
         >
           {value}
         </span>
       </div>
-      {hint && <span className="text-[10px] text-muted-foreground mt-1">{hint}</span>}
+      {hint && <span className="text-[10px] text-muted-foreground/80 font-medium">{hint}</span>}
     </div>
   );
 }
