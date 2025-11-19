@@ -18,26 +18,26 @@ export function SystemAlerts() {
   const getAlertStyles = (type: string) => {
     switch (type) {
       case "error":
-        return "border-red-500/50 bg-red-950/20";
+        return "border-chart-red/50 bg-chart-red/10";
       case "warning":
-        return "border-amber-500/50 bg-amber-950/20";
+        return "border-amber-400/50 bg-amber-400/10";
       case "success":
-        return "border-emerald-500/50 bg-emerald-950/20";
+        return "border-chart-green/50 bg-chart-green/10";
       default:
-        return "border-blue-500/50 bg-blue-950/20";
+        return "border-primary/50 bg-primary/10";
     }
   };
 
   const getIconColor = (type: string) => {
     switch (type) {
       case "error":
-        return "text-red-500";
+        return "text-chart-red";
       case "warning":
-        return "text-amber-500";
+        return "text-amber-400";
       case "success":
-        return "text-emerald-500";
+        return "text-chart-green";
       default:
-        return "text-blue-500";
+        return "text-primary";
     }
   };
 
@@ -68,7 +68,7 @@ export function SystemAlerts() {
         <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin">
           {alerts.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-emerald-500" />
+              <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-chart-green" />
               <p>No system alerts</p>
             </div>
           ) : (

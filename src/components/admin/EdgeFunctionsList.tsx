@@ -13,8 +13,9 @@ export function EdgeFunctionsList() {
   ];
 
   return (
-    <Card title="Edge Functions" className="font-mono">
-      <div className="space-y-2">
+    <Card className="p-6 bg-gradient-to-br from-card via-card to-card/95 border border-border/40">
+      <h3 className="text-lg font-semibold mb-4">Edge Functions</h3>
+      <div className="space-y-2 font-mono">
         <div className="flex items-center justify-between text-xs text-muted-foreground pb-2 border-b border-border/50">
           <span>Total Functions: {functions.length}</span>
           <span>All Deployed ✓</span>
@@ -26,7 +27,7 @@ export function EdgeFunctionsList() {
               className="flex items-center justify-between p-2.5 rounded-md bg-muted/20 border border-border/30 hover:bg-muted/40 transition-colors"
             >
               <div className="flex items-center gap-2 flex-1">
-                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                <Zap className="h-3.5 w-3.5 text-amber-400" />
                 <span className="text-xs font-medium">{fn.name}</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -38,10 +39,10 @@ export function EdgeFunctionsList() {
                   <span className="text-primary font-semibold">{fn.calls}</span>
                   <span>calls</span>
                 </div>
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-chart-green" />
               </div>
             </div>
-          ))}
+        ))}
         </div>
       </div>
     </Card>

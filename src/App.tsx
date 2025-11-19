@@ -14,7 +14,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<AdminShell><Dashboard /></AdminShell>} />
+        <Route path="/" element={<Dashboard />} />
         <Route path="/watchlist" element={<AppShell><Watchlist /></AppShell>} />
         <Route path="/ai-trading" element={<AppShell><AITrading /></AppShell>} />
         <Route path="/symbol/:symbolParam" element={<SymbolDetails />} />
