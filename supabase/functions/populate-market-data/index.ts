@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient } from '@supabase/supabase-js';
 
 // 🚨 CRITICAL: CoinMarketCap API Rate Limits
 // - Monthly Limit: 10,000 credits
@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Population error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient } from '@supabase/supabase-js';
 
 // 🚨 CRITICAL: CoinGlass API Rate Limits
 // - Hobbyist Plan: Limited requests per day
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
 
       } catch (symbolError) {
         console.error(`Error processing ${symbol}:`, symbolError);
-        results.errors.push(`${symbol}: ${symbolError.message}`);
+        results.errors.push(`${symbol}: ${symbolError instanceof Error ? symbolError.message : String(symbolError)}`);
       }
     }
 
@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('CoinGlass population error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

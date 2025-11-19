@@ -1,5 +1,5 @@
 import { rateLimiter } from './rateLimiter.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.81.1';
+import { createClient } from '@supabase/supabase-js';
 
 // Cache for endpoint lookups (reduce DB queries)
 const endpointCache = new Map<string, {
