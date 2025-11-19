@@ -5,7 +5,6 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Navbar } from '@/components/layout/Navbar';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -127,10 +126,7 @@ export default function AITrading() {
   };
 
   return (
-    <div className="flex h-screen w-screen bg-gradient-to-br from-black via-slate-950 to-black text-gray-100 flex-col">
-      <Navbar />
-      
-      <div className="flex-1 container mx-auto px-6 py-8 flex flex-col max-w-5xl">
+    <div className="flex-1 container mx-auto px-6 py-8 flex flex-col max-w-5xl">
         <div className="glass rounded-2xl p-6 mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Sparkles className="w-8 h-8 text-accent" />
@@ -223,6 +219,5 @@ export default function AITrading() {
           </div>
         </Card>
       </div>
-    </div>
   );
 }
