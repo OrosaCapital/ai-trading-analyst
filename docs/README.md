@@ -2,6 +2,9 @@
 
 ## Active Documentation
 
+### AI Assistant
+- **LOVABLE_ROLE.md** - AI assistant directives and role definition (auto-heal + auto-optimize mode)
+
 ### Architecture
 - **SIMPLE_MODE_ARCHITECTURE.md** - Core architecture overview, data sources, and development guidelines
 
