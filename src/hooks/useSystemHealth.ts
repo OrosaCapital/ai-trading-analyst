@@ -41,13 +41,12 @@ export const useSystemHealth = () => {
       setError(null);
       
       try {
-        // Get recent alerts (last 50)
-        const recentAlerts = alerts.slice(0, 50).map(alert => ({
+        // Get recent alerts (last 10 only - reduced to save tokens)
+        const recentAlerts = alerts.slice(0, 10).map(alert => ({
           type: alert.type,
           title: alert.title,
-          message: alert.message,
+          message: alert.message.substring(0, 100), // Truncate long messages
           source: alert.source,
-          timestamp: alert.timestamp,
         }));
 
         const { data: result, error: invocationError } = await supabase.functions.invoke<SystemHealthResponse>(
@@ -74,11 +73,11 @@ export const useSystemHealth = () => {
 
     fetchSystemHealth();
     
-    // Refresh every 2 minutes
-    const interval = setInterval(fetchSystemHealth, 2 * 60 * 1000);
+    // Reduced to every 15 minutes to save AI tokens
+    const interval = setInterval(fetchSystemHealth, 15 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [alerts]);
+  }, []); // Removed alerts dependency - only refresh on mount and interval
 
   return { data, isLoading, error };
 };
