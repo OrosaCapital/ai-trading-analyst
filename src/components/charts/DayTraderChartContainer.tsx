@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { DayTraderChart } from "./DayTraderChart";
+import { MarketInsightsPanel } from "./MarketInsightsPanel";
 import type { Candle } from "@/lib/indicators";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -100,16 +101,12 @@ export function DayTraderChartContainer({
       </div>
 
       <div className="mt-4 p-4 bg-card/50 rounded-lg border border-border/40">
-        <h4 className="text-sm font-semibold mb-2">How to Use Live Data</h4>
-        <ul className="text-xs text-muted-foreground space-y-1">
-          <li>• Charts auto-update with real-time data from CoinGlass/CoinMarketCap APIs</li>
-          <li>• Automatic retry with exponential backoff on network errors</li>
-          <li>• Falls back to simulated data if all retries fail</li>
-          <li>• Scroll and zoom to analyze different timeframes</li>
-          <li>• PDH/PDL (cyan/magenta dotted lines) mark previous day high/low</li>
-          <li>• MACD histogram green = bullish momentum, red = bearish</li>
-          <li>• RSI &gt;70 = overbought, &lt;30 = oversold</li>
-        </ul>
+        <h4 className="text-sm font-semibold mb-3">Market Intelligence</h4>
+        <MarketInsightsPanel 
+          symbol={symbol} 
+          currentPrice={candles[candles.length - 1]?.close || 0}
+          candles={candles}
+        />
       </div>
     </Card>
   );
