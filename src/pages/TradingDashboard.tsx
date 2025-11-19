@@ -75,14 +75,22 @@ export default function TradingDashboard() {
     symbol: normalizedSymbol
   });
 
+  // Only pass symbol to AI when we have sufficient candle data
+  const aiSymbol = chartData?.candles1h && chartData.candles1h.length >= 10 ? normalizedSymbol : "";
+  
   const { analysis, isAnalyzing } = useAIAnalysis(
-    normalizedSymbol,
+    aiSymbol,
     chartData?.candles1h || [],
     chartData?.candles15m || [],
     chartData?.indicators || {}
   );
   
-  console.log("TradingDashboard - AI state:", { analysis, isAnalyzing });
+  console.log("TradingDashboard - AI state:", { 
+    analysis, 
+    isAnalyzing,
+    aiSymbol,
+    willAnalyze: !!aiSymbol 
+  });
 
   const sessionStats = useMemo(() => buildSessionStats(candles), [candles]);
   const alerts = useMemo(() => {
