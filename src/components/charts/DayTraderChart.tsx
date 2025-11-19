@@ -218,9 +218,30 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      priceChart.remove();
-      macdChart.remove();
-      rsiChart.remove();
+      try {
+        if (priceChartRef.current) {
+          priceChartRef.current.remove();
+          priceChartRef.current = null;
+        }
+      } catch (e) {
+        console.warn('Price chart already disposed:', e);
+      }
+      try {
+        if (macdChartRef.current) {
+          macdChartRef.current.remove();
+          macdChartRef.current = null;
+        }
+      } catch (e) {
+        console.warn('MACD chart already disposed:', e);
+      }
+      try {
+        if (rsiChartRef.current) {
+          rsiChartRef.current.remove();
+          rsiChartRef.current = null;
+        }
+      } catch (e) {
+        console.warn('RSI chart already disposed:', e);
+      }
     };
   }, [candles, symbol]);
 
