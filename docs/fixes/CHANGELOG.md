@@ -6,6 +6,78 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Watchlist Page Navigation Layout Fix
+
+**Issue**: Watchlist page had duplicate/conflicting navigation elements:
+- Extra logo and "WATCHLIST" title bar (from Navbar component)
+- Unwanted TickerRibbon showing market prices
+- Double navigation causing layout overlap and confusion
+- Layout inconsistent with Trading page pattern
+
+**Root Cause**:
+The Watchlist route in `App.tsx` was wrapped with `AppShell`, which adds:
+1. `<Navbar />` - Logo, page title, and navigation links
+2. `<Topbar />` - TickerRibbon component
+
+However, the Watchlist component ALREADY implements the modern layout pattern with:
+- `SidebarProvider` + `TradingNavigation` (collapsible sidebar)
+- Its own header with `SidebarTrigger`
+
+This caused double navigation - both the old AppShell navigation AND the new sidebar navigation were rendering simultaneously.
+
+**Solution**:
+Removed `AppShell` wrapper from Watchlist route to match Trading page pattern:
+
+```tsx
+// Before:
+<Route path="/watchlist" element={<ProtectedRoute><AppShell><Watchlist /></AppShell></ProtectedRoute>} />
+
+// After:
+<Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
+```
+
+**Layout Pattern Documentation**:
+
+**Modern Pattern** (Trading, Watchlist):
+```tsx
+<SidebarProvider>
+  <div className="flex min-h-screen w-full">
+    <TradingNavigation />  {/* Collapsible sidebar */}
+    <div className="flex-1 flex flex-col">
+      <header>  {/* Simple header */}
+        <SidebarTrigger />
+        {/* Page-specific content */}
+      </header>
+      <main>{/* Content */}</main>
+    </div>
+  </div>
+</SidebarProvider>
+```
+
+**Legacy Pattern** (Admin pages):
+```tsx
+<AdminShell>  {/* or AppShell */}
+  <Navbar />  {/* Logo + title + links */}
+  <Topbar />  {/* TickerRibbon */}
+  <main>{/* Content */}</main>
+</AdminShell>
+```
+
+**Files Changed**:
+- Modified: `src/App.tsx` (line 23 - removed AppShell wrapper)
+
+**Impact**:
+- Removed duplicate navigation elements
+- Removed unwanted TickerRibbon from Watchlist
+- Clean, uniform header matching Trading page
+- Consistent sidebar navigation across pages
+- No more overlapping UI elements
+- Professional, unified layout
+
+---
+
+## 2025-11-20
+
 ### Watchlist Page Layout and Real-Time Price Fix
 
 **Issue**: Watchlist page had multiple layout and UX issues:
