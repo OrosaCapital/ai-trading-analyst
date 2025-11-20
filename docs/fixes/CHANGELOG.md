@@ -11,27 +11,24 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 **Issue**: WebSocket showing "Connecting..." status indefinitely. Edge function connected to Kraken but no price data flowing through to frontend.
 
 **Root Cause**:
-- Edge function was using **Kraken WebSocket v2 API** (`wss://ws.kraken.com/v2`)
-- v2 API uses different message format than expected
-- Subscription format: `{ method: 'subscribe', params: { channel: 'ticker', symbol: [...] } }`
-- Response format: `{ channel: 'ticker', data: [...] }`
-- Code was waiting for this format but Kraken v2 wasn't responding as expected
+Multiple issues with Kraken API integration:
+1. **Wrong API version**: Using Kraken WebSocket v2 (`wss://ws.kraken.com/v2`) which has different message format
+2. **Wrong symbol format**: Sending `XXBTZUSD` without slash, but Kraken v1 requires `XBT/USD` with slash
+3. **Missing symbol translation**: No conversion from REST API format to WebSocket format
 
 **Correct Implementation (v1 API)**:
-- Use **Kraken WebSocket v1 API** (`wss://ws.kraken.com/`)
-- Subscription format: `{ event: 'subscribe', pair: [...], subscription: { name: 'ticker' } }`
-- Response format: **Array** `[channelID, { c: [price], v: [volume] }, channelName, pair]`
-- Price in: `data[1].c[0]`
-- Volume in: `data[1].v[1]`
-
-**Solution**:
 ```typescript
-// Changed from v2 to v1 API
-const ws = new WebSocket('wss://ws.kraken.com/');  // Not /v2
+// Endpoint: Use v1, not v2
+const ws = new WebSocket('wss://ws.kraken.com/');
 
+// Symbol translation (two steps required)
+const krakenSymbol = translateToKraken('BTCUSDT');    // → XXBTZUSD
+const wsSymbol = toKrakenWSFormat(krakenSymbol);      // → XBT/USD
+
+// Subscription: v1 format with slash
 ws.send(JSON.stringify({
-  event: 'subscribe',        // Not 'method'
-  pair: [krakenSymbol],      // Not in 'params'
+  event: 'subscribe',        
+  pair: [wsSymbol],          // Must include slash!
   subscription: { name: 'ticker' }
 }));
 
@@ -42,16 +39,48 @@ if (Array.isArray(data) && data[1]?.c) {
 }
 ```
 
+**Symbol Format Requirements**:
+- **REST API**: `XXBTZUSD` (no slash)
+- **WebSocket v1**: `XBT/USD` (WITH slash) ← Critical!
+- **Our app**: `BTCUSDT` (standard format)
+
+**Solution Implemented**:
+1. Changed endpoint from v2 to v1: `wss://ws.kraken.com/`
+2. Created `toKrakenWSFormat()` function to add slashes
+3. Updated subscription message format for v1 API
+4. Updated response parsing for v1 array format
+
 **Impact**:
 - WebSocket now receives actual price updates from Kraken
 - Live prices display correctly in Trading Dashboard
-- "Connecting..." status changes to live price data
-- Real-time price streaming functional
+- "Connecting..." status changes to live price data within 1-2 seconds
+- Real-time price streaming fully functional
 
 **Files Changed**:
 - Modified: `supabase/functions/websocket-price-stream/index.ts` (switched to v1 API, updated message parsing)
+- Modified: `supabase/functions/_shared/krakenSymbols.ts` (added `toKrakenWSFormat()` function)
+- Modified: `supabase/config.toml` (added websocket-price-stream configuration)
 
-**Credit**: User research identified correct Kraken v1 API format
+**Documentation Created**:
+- Created: `docs/architecture/WEBSOCKET_PRICE_STREAMING.md` - Complete WebSocket architecture guide
+- Created: `docs/guides/KRAKEN_SYMBOLS.md` - Symbol translation reference
+- Created: `docs/automation/WEBSOCKET_AUTOMATION.md` - Automation and monitoring guide
+- Updated: `docs/architecture/LIVE_PRICE_ARCHITECTURE.md` - Live price data flow
+
+**Automation Status**: ✅ Fully automated
+- WebSocket connects automatically on Trading Dashboard load
+- Auto-reconnects on disconnect (max 5 attempts, exponential backoff)
+- Edge function deploys automatically on code changes
+- Symbol translation happens transparently
+- No manual intervention required for normal operation
+
+**Testing**:
+- Verified WebSocket connects to Kraken v1 API
+- Confirmed subscription accepted (no more "subscriptionStatus error")
+- Confirmed price updates streaming every ~1 second
+- All symbols (BTC, ETH, XRP, SOL, etc.) working
+
+**Credit**: User research identified correct Kraken v1 API format and slash requirement
 
 ---
 
