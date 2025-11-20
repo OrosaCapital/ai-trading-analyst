@@ -47,6 +47,16 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
         barSpacing: 8,
         timeVisible: true,
       },
+      localization: {
+        timeFormatter: (time: number) => {
+          const date = new Date(time * 1000);
+          return date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        },
+      },
     };
 
     const priceChart = createChart(priceContainer, {
