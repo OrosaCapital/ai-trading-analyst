@@ -147,11 +147,13 @@ Deno.serve(async (req) => {
         }
 
         // Generate simulated candles based on current price
+        // Round to the nearest hour boundary to ensure consistent timestamps for deduplication
         const now = Math.floor(Date.now() / 1000);
+        const currentHour = Math.floor(now / 3600) * 3600; // Round down to hour
         const candles: Candle[] = [];
         
         for (let i = limit - 1; i >= 0; i--) {
-          const timestamp = now - (i * 3600); // 1 hour intervals
+          const timestamp = currentHour - (i * 3600); // 1 hour intervals from rounded hour
           const variance = 0.02;
           const open = currentPrice * (1 + (Math.random() - 0.5) * variance);
           const close = currentPrice * (1 + (Math.random() - 0.5) * variance);
