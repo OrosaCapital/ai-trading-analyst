@@ -33,7 +33,7 @@ export const useRealtimePriceStream = (symbol: string | null, enabled: boolean =
   const heartbeatRef = useRef<number | null>(null);
   const currentSymbolRef = useRef<string | null>(null);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!enabled || !symbol) return;
 
     if (wsRef.current) wsRef.current.close();
@@ -41,7 +41,22 @@ export const useRealtimePriceStream = (symbol: string | null, enabled: boolean =
     currentSymbolRef.current = symbol;
     setConnectionStatus("connecting");
 
-    const ws = new WebSocket("wss://alzxeplijnbpuqkfnpjk.supabase.co/functions/v1/websocket-price-stream");
+    // Get Supabase auth token
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || '';
+    
+    // Get anon key from env
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+    
+    // Include auth as query param for WebSocket connection
+    const wsUrl = new URL("wss://alzxeplijnbpuqkfnpjk.supabase.co/functions/v1/websocket-price-stream");
+    wsUrl.searchParams.set('apikey', anonKey);
+    if (token) {
+      wsUrl.searchParams.set('authorization', `Bearer ${token}`);
+    }
+    
+    console.log(`🔌 Connecting WebSocket for ${symbol}...`);
+    const ws = new WebSocket(wsUrl.toString());
     wsRef.current = ws;
 
     ws.onopen = () => {
