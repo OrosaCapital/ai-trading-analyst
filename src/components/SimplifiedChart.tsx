@@ -130,134 +130,172 @@ export function SimplifiedChart({ symbol, priceData, emas }: SimplifiedChartProp
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { color: 'transparent' },
-        textColor: 'hsl(197, 100%, 44%)',
-      },
-      grid: {
-        vertLines: { color: 'rgba(0, 255, 255, 0.08)' },
-        horzLines: { color: 'rgba(0, 255, 255, 0.08)' },
-      },
-      width: chartContainerRef.current.clientWidth,
-      height: 650,
-      crosshair: {
-        mode: 1,
-        vertLine: {
-          color: 'hsl(75, 100%, 50%)',
-          width: 1,
-          style: 3,
+    try {
+      const chart = createChart(chartContainerRef.current, {
+        layout: {
+          background: { color: 'transparent' },
+          textColor: 'hsl(197, 100%, 44%)',
         },
-        horzLine: {
-          color: 'hsl(75, 100%, 50%)',
-          width: 1,
-          style: 3,
+        grid: {
+          vertLines: { color: 'rgba(0, 255, 255, 0.08)' },
+          horzLines: { color: 'rgba(0, 255, 255, 0.08)' },
         },
-      },
-      timeScale: {
-        borderColor: 'rgba(0, 255, 255, 0.2)',
-        timeVisible: true,
-        secondsVisible: false,
-        barSpacing: 8,
-        minBarSpacing: 4,
-        rightOffset: 12,
-        fixLeftEdge: false,
-        fixRightEdge: false,
-        lockVisibleTimeRangeOnResize: true,
-      },
-      rightPriceScale: {
-        borderColor: 'rgba(0, 255, 255, 0.2)',
-      },
-    });
+        width: chartContainerRef.current.clientWidth,
+        height: 650,
+        crosshair: {
+          mode: 1,
+          vertLine: {
+            color: 'hsl(75, 100%, 50%)',
+            width: 1,
+            style: 3,
+          },
+          horzLine: {
+            color: 'hsl(75, 100%, 50%)',
+            width: 1,
+            style: 3,
+          },
+        },
+        timeScale: {
+          borderColor: 'rgba(0, 255, 255, 0.2)',
+          timeVisible: true,
+          secondsVisible: false,
+          barSpacing: 8,
+          minBarSpacing: 4,
+          rightOffset: 12,
+          fixLeftEdge: false,
+          fixRightEdge: false,
+          lockVisibleTimeRangeOnResize: true,
+        },
+        rightPriceScale: {
+          borderColor: 'rgba(0, 255, 255, 0.2)',
+        },
+      });
 
-    const candleSeries = chart.addSeries('Candlestick' as any, {
-      upColor: 'hsl(75, 100%, 50%)',
-      downColor: 'hsl(5, 85%, 60%)',
-      borderUpColor: 'hsl(75, 100%, 50%)',
-      borderDownColor: 'hsl(5, 85%, 60%)',
-      wickUpColor: 'hsl(75, 100%, 50%)',
-      wickDownColor: 'hsl(5, 85%, 60%)',
-      priceLineVisible: false,
-    });
+      const candleSeries = chart.addSeries('Candlestick' as any, {
+        upColor: 'hsl(75, 100%, 50%)',
+        downColor: 'hsl(5, 85%, 60%)',
+        borderUpColor: 'hsl(75, 100%, 50%)',
+        borderDownColor: 'hsl(5, 85%, 60%)',
+        wickUpColor: 'hsl(75, 100%, 50%)',
+        wickDownColor: 'hsl(5, 85%, 60%)',
+        priceLineVisible: false,
+      });
 
-    const emaSeries = chart.addSeries('Line' as any, {
-      color: 'hsl(197, 100%, 54%)',
-      lineWidth: 2,
-      title: 'EMA 50',
-    });
+      const emaSeries = chart.addSeries('Line' as any, {
+        color: 'hsl(197, 100%, 54%)',
+        lineWidth: 2,
+        title: 'EMA 50',
+      });
 
-    // Add volume histogram series
-    const volumeSeries = chart.addSeries('Histogram' as any, {
-      color: 'rgba(0, 255, 255, 0.3)',
-      priceFormat: {
-        type: 'volume',
-      },
-      priceScaleId: '',
-      scaleMargins: {
-        top: 0.8,
-        bottom: 0,
-      },
-    } as any);
+      // Add volume histogram series
+      const volumeSeries = chart.addSeries('Histogram' as any, {
+        color: 'rgba(0, 255, 255, 0.3)',
+        priceFormat: {
+          type: 'volume',
+        },
+        priceScaleId: '',
+        scaleMargins: {
+          top: 0.8,
+          bottom: 0,
+        },
+      } as any);
 
-    chartRef.current = chart;
-    candleSeriesRef.current = candleSeries;
-    emaSeriesRef.current = emaSeries;
-    volumeSeriesRef.current = volumeSeries;
+      chartRef.current = chart;
+      candleSeriesRef.current = candleSeries;
+      emaSeriesRef.current = emaSeries;
+      volumeSeriesRef.current = volumeSeries;
 
-    const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
-      }
-    };
+      const handleResize = () => {
+        if (chartContainerRef.current) {
+          chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+        }
+      };
 
-    window.addEventListener('resize', handleResize);
+      window.addEventListener('resize', handleResize);
 
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      chart.remove();
-    };
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        try {
+          chart.remove();
+        } catch (e) {
+          console.warn('Chart cleanup skipped:', e);
+        }
+      };
+    } catch (e) {
+      console.warn('Chart initialization skipped:', e);
+    }
   }, []);
 
   // Update chart data when timeframe or data changes
   useEffect(() => {
     if (!candleSeriesRef.current || !emaSeriesRef.current || !volumeSeriesRef.current) return;
+    if (!chartRef.current) return;
 
-    const chartData = getChartData();
-    const emaData = getEmaData();
+    try {
+      const chartData = getChartData();
+      const emaData = getEmaData();
 
-    if (chartData.length > 0) {
-      candleSeriesRef.current.setData(chartData);
-      
-      // Show limited visible range based on timeframe
-      const visibleBars = selectedTimeframe === '1h' ? 48 : 96;
-      const from = Math.max(0, chartData.length - visibleBars);
-      
-      chartRef.current?.timeScale().setVisibleLogicalRange({
-        from: from,
-        to: chartData.length - 1
-      });
+      if (chartData && chartData.length > 0) {
+        // Filter out null/invalid candles
+        const safeCandles = chartData.filter(
+          (c: any) =>
+            c &&
+            c.time != null &&
+            c.open != null &&
+            c.high != null &&
+            c.low != null &&
+            c.close != null
+        );
 
-      // Update volume data
-      const volumeData = chartData.map((candle: any) => {
-        const rawData = selectedTimeframe === '1h' 
-          ? priceData?.['1h']?.find((d: any) => d.time === candle.time)
-          : null;
+        if (safeCandles.length === 0) return;
+
+        candleSeriesRef.current.setData(safeCandles);
         
-        return {
-          time: candle.time,
-          value: rawData?.volume || 0,
-          color: candle.close >= candle.open 
-            ? 'rgba(126, 255, 51, 0.4)'
-            : 'rgba(255, 77, 77, 0.4)'
-        };
-      });
-      volumeSeriesRef.current.setData(volumeData);
-    }
+        // Show limited visible range based on timeframe
+        const visibleBars = selectedTimeframe === '1h' ? 48 : 96;
+        const from = Math.max(0, safeCandles.length - visibleBars);
+        
+        if (chartRef.current && from >= 0 && safeCandles.length > 0) {
+          chartRef.current.timeScale().setVisibleLogicalRange({
+            from: from,
+            to: safeCandles.length - 1
+          });
+        }
 
-    if (emaData.length > 0) {
-      emaSeriesRef.current.setData(emaData);
-    } else {
-      emaSeriesRef.current.setData([]);
+        // Update volume data
+        const volumeData = safeCandles
+          .map((candle: any) => {
+            const rawData = selectedTimeframe === '1h' 
+              ? priceData?.['1h']?.find((d: any) => d.time === candle.time)
+              : null;
+            
+            return {
+              time: candle.time,
+              value: rawData?.volume || 0,
+              color: candle.close >= candle.open 
+                ? 'rgba(126, 255, 51, 0.4)'
+                : 'rgba(255, 77, 77, 0.4)'
+            };
+          })
+          .filter((v: any) => v.time != null && v.value != null);
+
+        if (volumeData.length > 0) {
+          volumeSeriesRef.current.setData(volumeData);
+        }
+      }
+
+      if (emaData && emaData.length > 0) {
+        const safeEmaData = emaData.filter((e: any) => e && e.time != null && e.value != null);
+        if (safeEmaData.length > 0) {
+          emaSeriesRef.current.setData(safeEmaData);
+        } else {
+          emaSeriesRef.current.setData([]);
+        }
+      } else {
+        emaSeriesRef.current.setData([]);
+      }
+    } catch (e) {
+      console.warn('Chart update skipped:', e);
     }
   }, [selectedTimeframe, priceData, emas]);
 

@@ -18,9 +18,10 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
   const seriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
 
   useEffect(() => {
-    if (!chartContainerRef.current || !candles.length) return;
+    if (!chartContainerRef.current || !candles || !candles.length) return;
 
-    const chart = createChart(chartContainerRef.current, {
+    try {
+      const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 200,
       layout: {
@@ -48,8 +49,18 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
       },
     });
 
+    // Filter out null/invalid candles
+    const safeCandles = candles.filter(
+      (c) => c && c.time != null && c.close != null
+    );
+
+    if (safeCandles.length === 0) {
+      chart.remove();
+      return;
+    }
+
     // Timestamps should already be in seconds (UNIX epoch format)
-    const chartData: LineData[] = candles.map((candle) => ({
+    const chartData: LineData[] = safeCandles.map((candle) => ({
       time: candle.time as any,
       value: candle.close,
     }));
@@ -72,8 +83,15 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      chart.remove();
+      try {
+        chart.remove();
+      } catch (e) {
+        console.warn('Chart cleanup skipped:', e);
+      }
     };
+    } catch (e) {
+      console.warn('Chart initialization skipped:', e);
+    }
   }, [candles]);
 
   if (isLoading) {
