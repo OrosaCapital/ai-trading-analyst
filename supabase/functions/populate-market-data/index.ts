@@ -72,6 +72,24 @@ Deno.serve(async (req) => {
 
     for (const symbol of symbols) {
       try {
+        // Rate limit: Don't allow populating same symbol more than once per 30 minutes
+        const { data: recentPopulate } = await supabaseClient
+          .from('market_candles')
+          .select('created_at')
+          .eq('symbol', symbol)
+          .eq('timeframe', '1h')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (recentPopulate) {
+          const ageMinutes = (Date.now() - new Date(recentPopulate.created_at).getTime()) / 1000 / 60;
+          if (ageMinutes < 30) {
+            console.log(`⏭️ Skipping ${symbol}, populated ${ageMinutes.toFixed(1)} minutes ago`);
+            continue;
+          }
+        }
+
         const cleanSymbol = symbol.replace('USDT', '');
         let currentPrice = 50000;
         let priceSource = 'fallback';

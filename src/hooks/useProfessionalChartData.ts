@@ -169,7 +169,17 @@ export function useProfessionalChartData(symbol: string | null) {
         if (error) throw error;
 
         if (dbCandles && dbCandles.length > 0) {
-          console.log(`Loaded ${dbCandles.length} 1h candles for ${symbol} from database`);
+          console.log(`✅ Loaded ${dbCandles.length} 1h candles for ${symbol} from database`);
+          
+          // Check if we have enough recent data (at least 24 hours)
+          const newestTimestamp = dbCandles[0].timestamp;
+          const now = Math.floor(Date.now() / 1000);
+          const ageInHours = (now - newestTimestamp) / 3600;
+          
+          if (ageInHours > 24) {
+            console.warn(`⚠️ Most recent candle for ${symbol} is ${ageInHours.toFixed(1)} hours old, data may be stale`);
+          }
+          
           // Reverse to chronological order for chart (newest candles loaded first, then reversed)
           candles1hRef.current = dbCandles
             .reverse()

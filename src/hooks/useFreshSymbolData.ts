@@ -24,21 +24,37 @@ export function useFreshSymbolData(symbol: string) {
   const queryClient = useQueryClient();
   const lastCheckRef = useRef<Record<string, number>>({});
 
+  // Load last check times from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('freshDataChecks');
+    if (stored) {
+      try {
+        lastCheckRef.current = JSON.parse(stored);
+      } catch (e) {
+        console.error('Failed to parse stored check times');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
     async function ensureFreshData() {
       if (!symbol || symbol === 'USDT' || symbol === 'USD') return;
 
-      // Don't check more than once per 5 minutes per symbol to reduce edge function calls
+      // Don't check more than once per 30 minutes per symbol to reduce edge function calls
       const now = Date.now();
       const lastCheck = lastCheckRef.current[symbol] || 0;
-      if (now - lastCheck < 5 * 60 * 1000) {
+      const DEBOUNCE_TIME = 30 * 60 * 1000; // 30 minutes
+      
+      if (now - lastCheck < DEBOUNCE_TIME) {
         console.log(`⏭️ Skipping fresh data check for ${symbol}, checked ${Math.floor((now - lastCheck) / 1000)}s ago`);
         return;
       }
 
+      // Update both ref and localStorage
       lastCheckRef.current[symbol] = now;
+      localStorage.setItem('freshDataChecks', JSON.stringify(lastCheckRef.current));
       setState(prev => ({ ...prev, isFetching: true, error: null }));
 
       try {
@@ -78,6 +94,12 @@ export function useFreshSymbolData(symbol: string) {
 
         // If data is missing or stale, trigger populate-market-data
         if (!hasRecentCandles || !hasRecentFunding) {
+          console.log(`📊 Data freshness check for ${symbol}:`, {
+            hasRecentCandles,
+            hasRecentFunding,
+            willTriggerAPI: true,
+            lastCheckAgo: Math.floor((Date.now() - lastCheck) / 1000) + 's'
+          });
           console.log(`Triggering fresh data fetch for ${symbol} via populate-market-data`);
           
           // Use populate-market-data (CoinMarketCap) for price + candles - per LOVABLE_ROLE.md

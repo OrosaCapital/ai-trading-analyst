@@ -71,13 +71,13 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
       // const cached = getCachedCandles(symbol);
       // if (cached) { ... }
 
-      // Fetch from database
+      // Fetch from database (get newest 200 candles)
       const { data: dbCandles, error: dbError } = await supabase
         .from('market_candles')
         .select('*')
         .eq('symbol', symbol)
         .eq('timeframe', '1h')
-        .order('timestamp', { ascending: true })
+        .order('timestamp', { ascending: false })
         .limit(200);
 
       if (dbError) {
@@ -86,7 +86,8 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
       }
 
       if (dbCandles && dbCandles.length > 0) {
-        const formattedCandles = dbCandles.map((c: any) => ({
+        // Reverse to chronological order (newest fetched first, need oldest first for display)
+        const formattedCandles = dbCandles.reverse().map((c: any) => ({
           time: c.timestamp,
           open: parseFloat(c.open),
           high: parseFloat(c.high),
