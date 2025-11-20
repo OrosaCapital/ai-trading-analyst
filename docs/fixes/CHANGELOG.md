@@ -6,6 +6,31 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Volume Panel Repositioned
+
+**Enhancement**: Moved volume bars to a dedicated panel at the bottom of the chart, following standard trading chart layout.
+
+**Implementation**:
+- Volume now occupies bottom 20% of chart area in a separate scale
+- Price candlesticks use top 80% of chart space without volume overlay
+- Configured `priceScaleId: 'volume'` with scale margins `{ top: 0.8, bottom: 0 }`
+- Volume bars no longer conflict with price action and indicators
+- Applied to both DayTraderChart and ProfessionalTradingChart
+
+**Files Changed**:
+- Modified: `src/components/charts/DayTraderChart.tsx` (lines 84-93)
+- Modified: `src/components/ProfessionalTradingChart.tsx` (lines 166-176)
+
+**Impact**:
+- Clearer price action visibility without volume overlay interference
+- Standard professional trading chart layout
+- Volume bars easily visible in dedicated bottom section
+- Better separation between price and volume data
+
+---
+
+## 2025-11-20
+
 ### Volume Bar Color Enhancement
 
 **Enhancement**: Improved volume bar visibility with brighter, more distinct colors following trading standards.

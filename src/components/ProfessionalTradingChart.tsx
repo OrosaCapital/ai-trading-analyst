@@ -173,15 +173,18 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
         wickDownColor: '#ef4444',
       });
 
-      // Add volume series second (renders behind EMAs)
+      // Add volume series second (renders behind EMAs) in separate bottom panel
       const volumeSeries = chart.addSeries(HistogramSeries, {
-        color: '#3b82f680',
         priceFormat: { type: 'volume' },
         priceScaleId: 'volume',
       });
 
+      // Configure volume to occupy bottom 20% of chart
       chart.priceScale('volume').applyOptions({
-        scaleMargins: { top: 0.8, bottom: 0 },
+        scaleMargins: {
+          top: 0.8,    // Volume starts at 80% from top
+          bottom: 0,   // Volume ends at bottom
+        },
       });
 
       // Add EMA series last (renders on top)
