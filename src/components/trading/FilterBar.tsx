@@ -45,6 +45,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { LiveClock } from "./LiveClock";
 
 interface FilterBarProps {
   symbol: string;
@@ -309,38 +310,38 @@ export function FilterBar({
           <SheetHeader>
             <SheetTitle>Advanced Filters</SheetTitle>
             <SheetDescription>
-              Customize your trading data view with additional filters
+              Filter chart data by volume and trading signals
             </SheetDescription>
           </SheetHeader>
           <div className="space-y-6 py-6">
-            {/* Volume Filters */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium">Volume Range</h3>
-              <div className="space-y-3">
+            {/* Volume Range */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Volume Range</Label>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="minVolume">Minimum Volume</Label>
+                  <Label htmlFor="min-volume" className="text-xs text-muted-foreground">
+                    Minimum Volume
+                  </Label>
                   <Input
-                    id="minVolume"
+                    id="min-volume"
                     type="number"
                     value={tempFilters.minVolume}
-                    onChange={(e) => setTempFilters(prev => ({
-                      ...prev,
-                      minVolume: Number(e.target.value) || 0
-                    }))}
-                    placeholder="0"
+                    onChange={(e) => setTempFilters({ ...tempFilters, minVolume: Number(e.target.value) })}
                     className="bg-background"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="maxVolume">Maximum Volume</Label>
+                  <Label htmlFor="max-volume" className="text-xs text-muted-foreground">
+                    Maximum Volume
+                  </Label>
                   <Input
-                    id="maxVolume"
+                    id="max-volume"
                     type="number"
-                    value={tempFilters.maxVolume === Infinity ? "" : tempFilters.maxVolume}
-                    onChange={(e) => setTempFilters(prev => ({
-                      ...prev,
-                      maxVolume: e.target.value ? Number(e.target.value) : Infinity
-                    }))}
+                    value={tempFilters.maxVolume === Infinity ? '' : tempFilters.maxVolume}
+                    onChange={(e) => setTempFilters({ 
+                      ...tempFilters, 
+                      maxVolume: e.target.value === '' ? Infinity : Number(e.target.value) 
+                    })}
                     placeholder="No limit"
                     className="bg-background"
                   />
@@ -348,19 +349,22 @@ export function FilterBar({
               </div>
             </div>
 
-            {/* Signal Filters */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium">Signal Options</h3>
+            {/* Signal Filter */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Signal Display</Label>
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="showOnlySignals"
+                  id="signals-only"
                   checked={tempFilters.showOnlySignals}
                   onCheckedChange={(checked) => 
-                    setTempFilters(prev => ({ ...prev, showOnlySignals: !!checked }))
+                    setTempFilters({ ...tempFilters, showOnlySignals: checked as boolean })
                   }
                 />
-                <Label htmlFor="showOnlySignals" className="cursor-pointer">
-                  Show only candles with trading signals
+                <Label
+                  htmlFor="signals-only"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Show only candles with high volume or significant price movement
                 </Label>
               </div>
             </div>
@@ -384,6 +388,9 @@ export function FilterBar({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Live Clock */}
+      <LiveClock />
     </div>
   );
 }
