@@ -6,6 +6,55 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### WebSocket Using Wrong Kraken API Version
+
+**Issue**: WebSocket showing "Connecting..." status indefinitely. Edge function connected to Kraken but no price data flowing through to frontend.
+
+**Root Cause**:
+- Edge function was using **Kraken WebSocket v2 API** (`wss://ws.kraken.com/v2`)
+- v2 API uses different message format than expected
+- Subscription format: `{ method: 'subscribe', params: { channel: 'ticker', symbol: [...] } }`
+- Response format: `{ channel: 'ticker', data: [...] }`
+- Code was waiting for this format but Kraken v2 wasn't responding as expected
+
+**Correct Implementation (v1 API)**:
+- Use **Kraken WebSocket v1 API** (`wss://ws.kraken.com/`)
+- Subscription format: `{ event: 'subscribe', pair: [...], subscription: { name: 'ticker' } }`
+- Response format: **Array** `[channelID, { c: [price], v: [volume] }, channelName, pair]`
+- Price in: `data[1].c[0]`
+- Volume in: `data[1].v[1]`
+
+**Solution**:
+```typescript
+// Changed from v2 to v1 API
+const ws = new WebSocket('wss://ws.kraken.com/');  // Not /v2
+
+ws.send(JSON.stringify({
+  event: 'subscribe',        // Not 'method'
+  pair: [krakenSymbol],      // Not in 'params'
+  subscription: { name: 'ticker' }
+}));
+
+// Parse v1 array response
+if (Array.isArray(data) && data[1]?.c) {
+  const price = parseFloat(data[1].c[0]);
+  const volume = parseFloat(data[1].v[1] || 0);
+}
+```
+
+**Impact**:
+- WebSocket now receives actual price updates from Kraken
+- Live prices display correctly in Trading Dashboard
+- "Connecting..." status changes to live price data
+- Real-time price streaming functional
+
+**Files Changed**:
+- Modified: `supabase/functions/websocket-price-stream/index.ts` (switched to v1 API, updated message parsing)
+
+**Credit**: User research identified correct Kraken v1 API format
+
+---
+
 ### Removed Legacy Frontend API Key References (Security Fix)
 
 **Issue**: Console showing errors about missing environment variables `VITE_COINGLASS_API_KEY`, `VITE_COINMARKETCAP_API_KEY`, and `VITE_API_NINJAS_KEY`.
