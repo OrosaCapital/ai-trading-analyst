@@ -181,8 +181,8 @@ export function calculateVolumeSeries(candles: Candle[]): { time: number; value:
     time: candle.time,
     value: candle.volume || 0,
     color: candle.close >= candle.open 
-      ? 'hsla(var(--chart-green), 0.8)' 
-      : 'hsla(var(--chart-red), 0.8)',
+      ? 'hsl(150, 100%, 45%)' // Bright green for bullish volume
+      : 'hsl(0, 85%, 60%)',   // Bright red for bearish volume
   }));
 }
 
