@@ -79,7 +79,13 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       wickDownColor: 'hsl(var(--chart-red))',
     });
 
-    // EMAs with bright, distinct colors for high visibility
+    // Add volume first so it renders behind EMAs
+    const volumeSeries = priceChart.addSeries(HistogramSeries, {
+      priceScaleId: '',
+      priceFormat: { type: 'volume' },
+    });
+
+    // EMAs with bright, distinct colors for high visibility - added after volume to render on top
     const ema9Series = priceChart.addSeries(LineSeries, { 
       color: 'hsl(30, 100%, 60%)',  // Orange/Amber - Fast EMA
       lineWidth: 3,
@@ -99,11 +105,6 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       priceLineVisible: false,
     });
     const vwapSeries = priceChart.addSeries(LineSeries, { color: 'hsl(var(--cyber-purple))', lineWidth: 2 });
-
-    const volumeSeries = priceChart.addSeries(HistogramSeries, {
-      priceScaleId: '',
-      priceFormat: { type: 'volume' },
-    });
 
     const prevHighSeries = priceChart.addSeries(LineSeries, {
       color: 'hsla(var(--cyber-cyan), 0.4)',
