@@ -6,6 +6,33 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Funding Rate Chart Timestamp Fix
+
+**Issue**: Funding rate history chart displayed incorrect dates (1954, 2020, August instead of current dates).
+
+**Root Cause**: 
+- Double timestamp conversion was occurring:
+  1. `useFundingHistory.ts` multiplied database timestamp by 1000 (seconds → milliseconds)
+  2. `FundingRateChart.tsx` divided by 1000 again (milliseconds → seconds)
+- This resulted in incorrect timestamp values being passed to the chart
+
+**Solution**:
+- Removed unnecessary timestamp conversions
+- Database stores timestamps in seconds (UNIX epoch format)
+- Lightweight Charts expects timestamps in seconds
+- Now timestamps pass through without conversion, maintaining correct values
+
+**Files Changed**:
+- Modified: `src/hooks/useFundingHistory.ts` (line 113-120, removed multiplication)
+- Modified: `src/components/trading/FundingRateChart.tsx` (line 53-56, removed division)
+
+**Impact**:
+- Funding rate chart now displays correct dates
+- Timeline matches actual funding rate data collection
+- Historical data visualization is accurate
+
+---
+
 ### EMA Line Visibility Fix
 
 **Issue**: EMA lines (9, 21, 50) were invisible or barely visible on the trading chart despite being rendered.
