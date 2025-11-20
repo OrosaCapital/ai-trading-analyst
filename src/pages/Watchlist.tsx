@@ -3,18 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useWatchlist, WatchlistItem } from '@/hooks/useWatchlist';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Trash2, Eye, Sparkles, Search, Star, BarChart3, Plus } from 'lucide-react';
+import { Loader2, Sparkles, Search, Star, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
 import { formatPrice } from '@/lib/priceFormatter';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { TradingNavigation } from '@/components/trading/TradingNavigation';
+import { WatchlistCard } from '@/components/watchlist/WatchlistCard';
 
 const Watchlist = () => {
   const navigate = useNavigate();
@@ -84,13 +83,13 @@ const Watchlist = () => {
         <TradingNavigation />
         
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header with trigger */}
-          <header className="flex items-center justify-between border-b border-border/40 bg-card/30 backdrop-blur-sm sticky top-0 z-10 px-4 h-14">
-            <div className="flex items-center gap-4">
+          {/* Header */}
+          <header className="flex items-center border-b border-border/40 bg-card/30 backdrop-blur-sm sticky top-0 z-10 h-14">
+            <div className="flex items-center gap-4 px-4 flex-1">
               <SidebarTrigger />
               <h1 className="text-xl font-semibold">Watchlist</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-4">
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-2">
@@ -149,49 +148,47 @@ const Watchlist = () => {
 
           {/* Main content */}
           <main className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Stats and Actions */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 flex-1">
-                <Card className="bg-card/50 backdrop-blur-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-muted-foreground">Total Symbols</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{watchlist.length}</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-card/50 backdrop-blur-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-muted-foreground">Avg Price</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {watchlist.length > 0
-                        ? formatPrice(
-                            watchlist.reduce((sum, item) => sum + (item.current_price || 0), 0) /
-                              watchlist.length
-                          )
-                        : '$0.00'}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-card/50 backdrop-blur-sm md:col-span-1 col-span-2">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-muted-foreground">Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Button 
-                      onClick={analyzeAllSymbols} 
-                      disabled={watchlist.length === 0 || isLoading}
-                      className="w-full"
-                      size="sm"
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Analyze All
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
+            {/* Stats Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Symbols</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{watchlist.length}</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Average Price</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {watchlist.length > 0
+                      ? formatPrice(
+                          watchlist.reduce((sum, item) => sum + (item.current_price || 0), 0) /
+                            watchlist.length
+                        )
+                      : '$0.00'}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={analyzeAllSymbols} 
+                    disabled={watchlist.length === 0 || isLoading}
+                    className="w-full"
+                    size="sm"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Analyze All
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Search Bar */}
@@ -208,20 +205,24 @@ const Watchlist = () => {
             {/* Watchlist Grid */}
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-accent" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             ) : filteredWatchlist.length === 0 ? (
-              <Card className="bg-card/50 backdrop-blur-sm">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Star className="w-12 h-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground text-center">
-                    {searchQuery ? 'No symbols match your search' : 'Your watchlist is empty'}
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+                <CardContent className="flex flex-col items-center justify-center py-16">
+                  <Star className="w-16 h-16 text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">
+                    {searchQuery ? 'No symbols found' : 'Your watchlist is empty'}
+                  </h3>
+                  <p className="text-muted-foreground text-center mb-6">
+                    {searchQuery 
+                      ? 'Try adjusting your search terms' 
+                      : 'Start tracking your favorite cryptocurrencies'}
                   </p>
                   {!searchQuery && (
                     <Button
                       onClick={() => setIsAddDialogOpen(true)}
-                      variant="outline"
-                      className="mt-4"
+                      size="lg"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Your First Symbol
@@ -230,68 +231,15 @@ const Watchlist = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredWatchlist.map((item) => (
-                  <Card key={item.id} className="bg-card/50 backdrop-blur-sm hover:bg-card/70 transition-colors">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="flex items-center gap-2">
-                            {item.symbol}
-                            {item.nickname && (
-                              <Badge variant="secondary" className="text-xs">
-                                {item.nickname}
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          <CardDescription className="mt-1">
-                            Added {formatDistanceToNow(new Date(item.added_at))} ago
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {item.current_price && (
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-2xl font-bold">{formatPrice(item.current_price)}</span>
-                        </div>
-                      )}
-                      {item.notes && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">{item.notes}</p>
-                      )}
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate(`/symbol/${item.symbol}`)}
-                          className="flex-1"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleAnalyze(item)}
-                          disabled={analyzingId === item.id}
-                          className="flex-1"
-                        >
-                          {analyzingId === item.id ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <BarChart3 className="w-4 h-4 mr-2" />
-                          )}
-                          Analyze
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeFromWatchlist(item.id, item.symbol)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <WatchlistCard
+                    key={item.id}
+                    item={item}
+                    onAnalyze={handleAnalyze}
+                    onRemove={removeFromWatchlist}
+                    isAnalyzing={analyzingId === item.id}
+                  />
                 ))}
               </div>
             )}
