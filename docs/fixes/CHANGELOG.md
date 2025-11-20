@@ -6,6 +6,28 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Added Login Link to Navigation
+
+**Enhancement**: Added Login/Auth page link to the sidebar navigation for easy access.
+
+**Changes**:
+- Added "Login" navigation item to TradingNavigation sidebar
+- Points to `/auth` route
+- Uses LogIn icon from lucide-react
+- Accessible from Dashboard, Trading, and Watchlist pages
+
+**Files Changed**:
+- Modified: `src/components/trading/TradingNavigation.tsx` (lines 1-20)
+
+**Impact**:
+- Users can easily navigate to login/signup page
+- Consistent navigation across all pages
+- Better UX for authentication flows
+
+---
+
+## 2025-11-20
+
 ### Watchlist Page Navigation Layout Fix
 
 **Issue**: Watchlist page had duplicate/conflicting navigation elements:
