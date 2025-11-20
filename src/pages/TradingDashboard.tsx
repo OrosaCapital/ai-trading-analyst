@@ -76,8 +76,9 @@ export default function TradingDashboard() {
     }
   }, [chartData]);
 
-  // Use real-time price from WebSocket, fallback to most recent candle (candles are DESC, so [0] = newest)
-  const currentPrice = priceData?.price ?? (candles.length > 0 ? candles[0].close : null);
+  // CRITICAL: Use ONLY WebSocket price for live display - no database fallback!
+  // Candles are for charts/AI only, not live price display
+  const currentPrice = priceData?.price ?? null;
 
   console.log("TradingDashboard - chartData:", {
     has1h: !!chartData?.candles1h?.length,
@@ -176,7 +177,7 @@ export default function TradingDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KPICard
                   label="Current Price"
-                  value={currentPrice ? formatPrice(currentPrice) : "Loading..."}
+                  value={currentPrice ? formatPrice(currentPrice) : (isConnected ? "Connecting..." : "WebSocket Offline")}
                   change={kpis.dayChange}
                   trend={kpis.dayChange > 0 ? "up" : "down"}
                   subtitle={normalizedSymbol}

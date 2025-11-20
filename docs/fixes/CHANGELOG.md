@@ -6,6 +6,53 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Live Price Architecture: WebSocket-Only, No Database Fallback
+
+**Issue**: Despite having WebSocket connections for live prices, system kept falling back to database candles for current price display, showing stale data and defeating the purpose of real-time WebSocket feeds.
+
+**Root Cause**:
+- Components used `priceData?.price ?? candles[0]?.close` fallback pattern
+- While intended to be "helpful", this caused live prices to show stale database data whenever WebSocket temporarily unavailable or not yet connected
+- User kept discovering database prices being shown instead of WebSocket prices after each code change
+- Architectural confusion: mixing real-time data source (WebSocket) with historical data source (database) for same purpose
+
+**Architectural Decision**:
+```typescript
+// ❌ WRONG - Mixes real-time and historical data
+const currentPrice = priceData?.price ?? candles[0]?.close;
+
+// ✅ CORRECT - WebSocket ONLY for live prices
+const currentPrice = priceData?.price ?? null;
+// Show "Connecting..." or loading state when null
+```
+
+**Clear Separation of Data Sources**:
+1. **WebSocket (`useRealtimePriceStream`)**: 
+   - ONLY source for current/live price display
+   - Used in: Trading Dashboard KPIs, DayTrader Chart live price
+   - No database fallback allowed
+
+2. **Database Candles**:
+   - ONLY for historical chart rendering
+   - ONLY for AI analysis of past patterns
+   - NEVER for "current price" display
+
+**Impact**:
+- Live prices now ONLY come from WebSocket - no stale database data
+- When WebSocket not connected, shows proper loading state instead of misleading old prices
+- Eliminates price confusion (e.g., showing 2.15 from database when WebSocket has 2.13)
+- Clear architectural boundaries prevent future regressions
+
+**Files Changed**:
+- Modified: `src/pages/TradingDashboard.tsx` (line 79-80, 179)
+- Modified: `src/components/charts/DayTraderChartContainer.tsx` (line 28-29)
+- Created: `docs/architecture/LIVE_PRICE_ARCHITECTURE.md` - Permanent architectural guide
+
+**Developer Note**:
+DO NOT add candle fallbacks to live price displays in future changes. If WebSocket price unavailable, show loading/connecting state, not database data.
+
+---
+
 ### AI Analysis Using Wrong Candle Data
 
 **Issue**: AI was giving completely incorrect price targets (e.g., $48k for XRP when real price was $2.13) because it was analyzing old historical candle data instead of current data. **This same bug also affected the Trading Dashboard price display**, showing stale prices (2.15) instead of current WebSocket price (2.13).
