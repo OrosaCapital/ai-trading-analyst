@@ -183,7 +183,7 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
     macdHistSeries.setData(histogram.map(h => ({ time: h.time as any, value: h.value, color: h.color })));
 
     if (rsi.length > 0) {
-      const rsiData = candles.slice(14).map((c, i) => ({ time: c.time as any, value: rsi[i + 14] }));
+      const rsiData = candles.slice(14).map((c, i) => ({ time: c.time as any, value: rsi[i] }));
       rsiSeries.setData(rsiData);
 
       const ob = rsiData.map(r => ({ time: r.time, value: 70 }));

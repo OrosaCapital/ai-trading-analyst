@@ -6,6 +6,32 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### RSI Data Mapping Fix
+
+**Issue**: RSI indicator was displaying incorrect values due to array indexing error in chart rendering.
+
+**Root Cause**: 
+- Line 186 of `DayTraderChart.tsx` accessed `rsi[i + 14]` after slicing candles at position 14
+- RSI calculation returns array starting at index `period` (14), so after slicing candles, the index should map directly
+- Double offset caused reading wrong RSI values or accessing out-of-bounds array positions
+
+**Solution**:
+- Changed RSI data mapping from `rsi[i + 14]` to `rsi[i]`
+- Now correctly aligns RSI values with corresponding candle timestamps
+- RSI values now accurately reflect price momentum for each time period
+
+**Files Changed**:
+- Modified: `src/components/charts/DayTraderChart.tsx` (line 186)
+
+**Impact**:
+- RSI indicator now displays accurate overbought/oversold readings
+- Proper alignment between RSI values and price action
+- More reliable momentum analysis for trading decisions
+
+---
+
+## 2025-11-20
+
 ### Added 15-Minute Timeframe
 
 **Enhancement**: Added 15-minute timeframe option to chart filters for more granular intraday analysis.
