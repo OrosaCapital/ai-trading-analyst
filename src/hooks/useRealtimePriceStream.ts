@@ -34,12 +34,21 @@ export const useRealtimePriceStream = (symbol: string | null, enabled: boolean =
   const currentSymbolRef = useRef<string | null>(null);
 
   const connect = useCallback(async () => {
-    if (!enabled || !symbol) return;
+    console.log('🚀 connect() called with:', { enabled, symbol });
+    
+    if (!enabled || !symbol) {
+      console.log('⚠️ Aborting connect: enabled=' + enabled + ' symbol=' + symbol);
+      return;
+    }
 
-    if (wsRef.current) wsRef.current.close();
+    if (wsRef.current) {
+      console.log('🔄 Closing existing WebSocket');
+      wsRef.current.close();
+    }
 
     currentSymbolRef.current = symbol;
     setConnectionStatus("connecting");
+    console.log('📡 Set status to connecting');
 
     // Get Supabase auth token
     const { data: { session } } = await supabase.auth.getSession();
@@ -113,7 +122,14 @@ export const useRealtimePriceStream = (symbol: string | null, enabled: boolean =
   }, [symbol, enabled]);
 
   useEffect(() => {
-    if (enabled && symbol) connect();
+    console.log('🔍 useRealtimePriceStream effect:', { enabled, symbol, hasConnect: !!connect });
+    
+    if (enabled && symbol) {
+      console.log('✅ Conditions met, calling connect()');
+      connect();
+    } else {
+      console.log('❌ Conditions not met:', { enabled, hasSymbol: !!symbol });
+    }
 
     return () => {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
