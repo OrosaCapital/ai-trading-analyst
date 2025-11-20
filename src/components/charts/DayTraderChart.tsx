@@ -79,9 +79,25 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       wickDownColor: 'hsl(var(--chart-red))',
     });
 
-    const ema9Series = priceChart.addSeries(LineSeries, { color: 'hsl(var(--chart-yellow))', lineWidth: 2 });
-    const ema21Series = priceChart.addSeries(LineSeries, { color: 'hsl(var(--chart-orange))', lineWidth: 2 });
-    const ema50Series = priceChart.addSeries(LineSeries, { color: 'hsl(var(--chart-blue))', lineWidth: 2 });
+    // EMAs with bright, distinct colors for high visibility
+    const ema9Series = priceChart.addSeries(LineSeries, { 
+      color: 'hsl(30, 100%, 60%)',  // Orange/Amber - Fast EMA
+      lineWidth: 3,
+      lastValueVisible: true,
+      priceLineVisible: false,
+    });
+    const ema21Series = priceChart.addSeries(LineSeries, { 
+      color: 'hsl(180, 70%, 50%)',  // Cyan - Medium EMA
+      lineWidth: 2,
+      lastValueVisible: true,
+      priceLineVisible: false,
+    });
+    const ema50Series = priceChart.addSeries(LineSeries, { 
+      color: 'hsl(270, 60%, 55%)',  // Purple - Slow EMA
+      lineWidth: 2,
+      lastValueVisible: true,
+      priceLineVisible: false,
+    });
     const vwapSeries = priceChart.addSeries(LineSeries, { color: 'hsl(var(--cyber-purple))', lineWidth: 2 });
 
     const volumeSeries = priceChart.addSeries(HistogramSeries, {

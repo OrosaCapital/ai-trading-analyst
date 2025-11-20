@@ -70,6 +70,11 @@ All colors MUST be HSL.
     --chart-orange: 25 100% 60%;
     --chart-blue: 200 100% 55%;
     --chart-grid: 220 20% 18%;
+    
+    /* EMA colors - bright and distinct for visibility */
+    --ema-fast: 30 100% 60%;      /* Orange/Amber - EMA 9 */
+    --ema-medium: 180 70% 50%;    /* Cyan - EMA 21 */
+    --ema-slow: 270 60% 55%;      /* Purple - EMA 50 */
 
     /* Futuristic Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(200 100% 55%), hsl(180 100% 50%));

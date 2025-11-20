@@ -6,6 +6,39 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### EMA Line Visibility Fix
+
+**Issue**: EMA lines (9, 21, 50) were invisible or barely visible on the trading chart despite being rendered.
+
+**Root Cause**: 
+- EMAs were using generic chart color variables that blended into the background
+- No distinct color differentiation between the three EMAs
+- Line widths were too thin (2px) to be easily visible
+
+**Solution**:
+- Applied bright, distinct HSL colors directly to each EMA:
+  - **EMA 9** (Fast): `hsl(30, 100%, 60%)` - Orange/Amber - Most reactive to price
+  - **EMA 21** (Medium): `hsl(180, 70%, 50%)` - Cyan - Balanced response
+  - **EMA 50** (Slow): `hsl(270, 60%, 55%)` - Purple/Violet - Smoothest trend
+- Increased EMA 9 line width to 3px for prominence
+- EMAs 21 and 50 remain at 2px
+- Added `lastValueVisible: true` and `priceLineVisible: false` for cleaner display
+- Defined new CSS variables for consistency: `--ema-fast`, `--ema-medium`, `--ema-slow`
+
+**Files Changed**:
+- Modified: `src/components/charts/DayTraderChart.tsx` (lines 84-86, EMA series configuration)
+- Modified: `src/index.css` (added EMA color variables)
+
+**Impact**:
+- EMAs now clearly visible with professional color coding
+- Easy to distinguish between fast/medium/slow moving averages
+- Better trend analysis capability
+- Standard trading color scheme (warm = fast, cool = slow)
+
+**Next Phase**: Add chart type toggle (Candles/Line/Area) for alternative visualization modes.
+
+---
+
 ### Watchlist Page Layout Unification
 
 **Issue**: Watchlist page had a different layout structure compared to Trading and Dashboard pages.
