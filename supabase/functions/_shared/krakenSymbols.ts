@@ -20,6 +20,7 @@ export const KRAKEN_SYMBOL_MAP: Record<string, string> = {
   'LTCUSDT': 'XLTCZUSD',
   'ETCUSDT': 'XETCZUSD',
   'XLMUSDT': 'XXLMZUSD',
+  'PAXGUSDT': 'PAXGUSD',  // Paxos Gold
 };
 
 // Reverse map for Kraken -> Standard format
