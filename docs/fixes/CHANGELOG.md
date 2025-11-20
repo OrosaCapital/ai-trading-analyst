@@ -6,6 +6,45 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Real-Time Price Display Fix
+
+**Issue**: Trading dashboard showed stale prices from historical candle data instead of live prices from Kraken WebSocket.
+
+**Root Cause**:
+- `TradingDashboard` was using `candles[candles.length - 1].close` for current price
+- This pulled the last historical candle's close price, which could be minutes or hours old
+- Real-time WebSocket stream (`useRealtimePriceStream`) was running but not being used for price display
+- Example: Dashboard showed XRP at $2.07 while Kraken live price was $2.13
+
+**Solution**:
+- Integrated `useRealtimePriceStream` hook into `TradingDashboard`
+- Changed current price to use real-time WebSocket data: `priceData?.price`
+- Added fallback to last candle price if WebSocket not yet connected
+- Real-time price updates now reflect live market prices instantly
+
+**Files Changed**:
+- Modified: `src/pages/TradingDashboard.tsx` (lines 17-19, 45-48, 77-80)
+
+**Technical Details**:
+```typescript
+// Before:
+const currentPrice = candles.length > 0 ? candles[candles.length - 1].close : null;
+
+// After:
+const { priceData, isConnected } = useRealtimePriceStream(normalizedSymbol, true);
+const currentPrice = priceData?.price ?? (candles.length > 0 ? candles[candles.length - 1].close : null);
+```
+
+**Impact**:
+- Current price now updates in real-time (every few seconds)
+- Eliminates price discrepancies between dashboard and exchange
+- Users see accurate live market prices
+- Maintains graceful fallback to historical data during WebSocket connection delays
+
+---
+
+## 2025-11-20
+
 ### Chart Data Availability Message Update
 
 **Enhancement**: Updated chart warning message to more accurately reflect data availability for selected timeframe.
