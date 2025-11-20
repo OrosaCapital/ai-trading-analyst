@@ -6,6 +6,37 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Date Range Filter Implementation
+
+**Issue**: Date range selector in FilterBar was not filtering chart data - selecting custom date ranges had no effect on displayed candles.
+
+**Root Cause**: 
+- `dateRange` state was being set in `TradingDashboard.tsx` but never passed to data fetching hooks
+- `useChartData` and `useProfessionalChartData` had no date range parameter
+- Database queries were fetching last 200 candles regardless of user-selected date range
+
+**Solution**:
+- Added `dateRange` parameter to `useChartData` hook signature
+- Added `dateRange` parameter to `useProfessionalChartData` hook signature
+- Modified database queries to apply `.gte()` and `.lte()` filters on timestamp when date range is provided
+- Convert JavaScript `Date` objects to UNIX timestamps (seconds) for database query
+- Increased query limit from 200 to 10000 when date range is active (to allow longer historical ranges)
+- Pass `dateRange` from `TradingDashboard` to both hooks
+
+**Files Changed**:
+- Modified: `src/hooks/useChartData.ts` (lines 58-81, 144-148)
+- Modified: `src/hooks/useProfessionalChartData.ts` (lines 45-54, 172-188, 257-260)
+- Modified: `src/pages/TradingDashboard.tsx` (lines 39-43)
+
+**Impact**:
+- Date range selector now correctly filters all chart data
+- Users can view historical data for specific time periods
+- Both main chart and professional chart respect date range selection
+
+---
+
+## 2025-11-20
+
 ### Funding Rate Chart Timestamp Fix (FINAL)
 
 **Issue**: Funding rate history chart displayed incorrect dates (January 21st, 1970).

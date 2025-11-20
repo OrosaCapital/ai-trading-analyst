@@ -55,7 +55,11 @@ function setCachedCandles(symbol: string, candles: Candle[]): void {
   CACHE[symbol] = { candles, timestamp: Date.now() };
 }
 
-export function useChartData(symbol: string, basePrice: number = 50000) {
+export function useChartData(
+  symbol: string, 
+  basePrice: number = 50000,
+  dateRange?: { from: Date; to: Date } | null
+) {
   const [state, setState] = useState<ChartDataState>({
     candles: [],
     isLoading: true,
@@ -71,14 +75,26 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
       // const cached = getCachedCandles(symbol);
       // if (cached) { ... }
 
-      // Fetch from database (get newest 200 candles)
-      const { data: dbCandles, error: dbError } = await supabase
+      // Build query
+      let query = supabase
         .from('market_candles')
         .select('*')
         .eq('symbol', symbol)
-        .eq('timeframe', '1h')
+        .eq('timeframe', '1h');
+
+      // Apply date range filter if provided
+      if (dateRange?.from && dateRange?.to) {
+        const fromTimestamp = Math.floor(dateRange.from.getTime() / 1000);
+        const toTimestamp = Math.floor(dateRange.to.getTime() / 1000);
+        query = query
+          .gte('timestamp', fromTimestamp)
+          .lte('timestamp', toTimestamp);
+      }
+
+      // Fetch from database
+      const { data: dbCandles, error: dbError } = await query
         .order('timestamp', { ascending: false })
-        .limit(200);
+        .limit(dateRange ? 10000 : 200); // Higher limit when date range is set
 
       if (dbError) {
         console.error("Database fetch error:", dbError);
@@ -142,7 +158,7 @@ export function useChartData(symbol: string, basePrice: number = 50000) {
         isUsingFallback: true,
       });
     }
-  }, [symbol, basePrice]);
+  }, [symbol, basePrice, dateRange]);
 
   useEffect(() => {
     fetchCandles();
