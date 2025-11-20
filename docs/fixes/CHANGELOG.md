@@ -6,6 +6,38 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### WebSocket Edge Function Configuration Missing
+
+**Issue**: WebSocket showing "WebSocket Offline" and console showing "failed: There was a bad response from the server" when attempting to connect to `websocket-price-stream` edge function.
+
+**Root Cause**:
+- The `websocket-price-stream` edge function existed and was deployed
+- However, it was missing from `supabase/config.toml` configuration
+- Without the `verify_jwt = false` setting, Supabase blocked WebSocket connections
+- WebSocket upgrade handshakes don't work with JWT verification like regular HTTP requests
+
+**Solution**:
+Added configuration to `supabase/config.toml`:
+```toml
+[functions.websocket-price-stream]
+verify_jwt = false
+```
+
+**Impact**:
+- WebSocket connections now allowed to establish
+- Real-time price streaming functional
+- "WebSocket Offline" status resolved
+
+**Files Changed**:
+- Modified: `supabase/config.toml` (added websocket-price-stream configuration)
+
+**Testing**:
+- Verify WebSocket shows "connected" status
+- Confirm live price updates streaming from Kraken
+- Check console for successful WebSocket connection logs
+
+---
+
 ### Live Price Architecture: WebSocket-Only, No Database Fallback
 
 **Issue**: Despite having WebSocket connections for live prices, system kept falling back to database candles for current price display, showing stale data and defeating the purpose of real-time WebSocket feeds.
