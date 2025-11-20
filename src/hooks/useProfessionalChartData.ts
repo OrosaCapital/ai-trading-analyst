@@ -61,10 +61,10 @@ export function useProfessionalChartData(symbol: string | null) {
     // Generate 15m candles by interpolating 1h candles (4x15m = 1h)
     const candles15m: Candle[] = [];
     candles1h.forEach((candle1h) => {
-      const intervalMs = 15 * 60 * 1000;
+      const intervalSec = 15 * 60; // 900 seconds
       for (let i = 0; i < 4; i++) {
         candles15m.push({
-          time: candle1h.time + (i * intervalMs),
+          time: candle1h.time + (i * intervalSec),
           open: candle1h.open + (candle1h.close - candle1h.open) * (i / 4),
           high: candle1h.high,
           low: candle1h.low,
@@ -77,10 +77,10 @@ export function useProfessionalChartData(symbol: string | null) {
     // Generate 5m and 1m candles similarly
     const candles5m: Candle[] = [];
     candles15m.forEach((candle15m) => {
-      const intervalMs = 5 * 60 * 1000;
+      const intervalSec = 5 * 60; // 300 seconds
       for (let i = 0; i < 3; i++) {
         candles5m.push({
-          time: candle15m.time + (i * intervalMs),
+          time: candle15m.time + (i * intervalSec),
           open: candle15m.open + (candle15m.close - candle15m.open) * (i / 3),
           high: candle15m.high,
           low: candle15m.low,
@@ -92,10 +92,10 @@ export function useProfessionalChartData(symbol: string | null) {
 
     const candles1m: Candle[] = [];
     candles5m.forEach((candle5m) => {
-      const intervalMs = 60 * 1000;
+      const intervalSec = 60; // 60 seconds
       for (let i = 0; i < 5; i++) {
         candles1m.push({
-          time: candle5m.time + (i * intervalMs),
+          time: candle5m.time + (i * intervalSec),
           open: candle5m.open + (candle5m.close - candle5m.open) * (i / 5),
           high: candle5m.high,
           low: candle5m.low,
