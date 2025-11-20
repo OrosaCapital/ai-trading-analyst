@@ -6,6 +6,58 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### WebSocket Authentication for Real-Time Price Streaming
+
+**Issue**: WebSocket connections to the price stream were failing silently - no real-time price updates were being received even though the edge function was deployed.
+
+**Root Cause**:
+- WebSocket connection to Supabase Edge Functions requires authentication
+- The connection URL was missing required `apikey` and `authorization` query parameters
+- Without auth, Supabase rejected the WebSocket upgrade request
+- No error was logged because the connection attempt failed before reaching the edge function
+
+**Solution**:
+1. Made `connect` callback async to properly fetch Supabase session
+2. Added `apikey` query parameter with anon key from environment
+3. Added `authorization` query parameter with user's access token
+4. Updated WebSocket URL construction to include auth params
+
+**Code Changes**:
+```typescript
+// Before - No auth
+const ws = new WebSocket("wss://alzxeplijnbpuqkfnpjk.supabase.co/functions/v1/websocket-price-stream");
+
+// After - With auth
+const { data: { session } } = await supabase.auth.getSession();
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const wsUrl = new URL("wss://alzxeplijnbpuqkfnpjk.supabase.co/functions/v1/websocket-price-stream");
+wsUrl.searchParams.set('apikey', anonKey);
+if (session?.access_token) {
+  wsUrl.searchParams.set('authorization', `Bearer ${session.access_token}`);
+}
+const ws = new WebSocket(wsUrl.toString());
+```
+
+**Files Changed**:
+- Modified: `src/hooks/useRealtimePriceStream.ts` (lines 36-58)
+
+**Impact**:
+- WebSocket now properly authenticates with Supabase
+- Real-time price updates stream correctly for all symbols
+- PAXG and other newly added symbols receive live price data
+- No more silent connection failures
+- Console logs confirm successful WebSocket connections
+
+**Testing**:
+Navigate to any symbol in the trading dashboard - you should see:
+- `🔌 Connecting WebSocket for SYMBOL...` in console
+- Real-time price updates every few seconds
+- Live connection indicator in the UI
+
+---
+
+## 2025-11-20
+
 ### Auto-Detection for Missing Kraken Symbol Mappings
 
 **Enhancement**: Added automatic symbol translation fallback to prevent "not supported by Kraken" errors for symbols that exist on Kraken but aren't in our explicit mapping table.
