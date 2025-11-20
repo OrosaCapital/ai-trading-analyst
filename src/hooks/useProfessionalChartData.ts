@@ -42,7 +42,10 @@ export interface ChartData {
   dataSource: "realtime" | "historical" | "sample";
 }
 
-export function useProfessionalChartData(symbol: string | null) {
+export function useProfessionalChartData(
+  symbol: string | null,
+  dateRange?: { from: Date; to: Date } | null
+) {
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error] = useState<string | null>(null);
@@ -158,13 +161,31 @@ export function useProfessionalChartData(symbol: string | null) {
     const loadHistoricalData = async () => {
       setIsLoading(true);
       try {
-        const { data: dbCandles, error } = await supabase
+        // Build query
+        let query = supabase
           .from('market_candles')
           .select('*')
           .eq('symbol', symbol)
-          .eq('timeframe', '1h')
+          .eq('timeframe', '1h');
+
+        // Apply date range filter if provided
+        if (dateRange?.from && dateRange?.to) {
+          const fromTimestamp = Math.floor(dateRange.from.getTime() / 1000);
+          const toTimestamp = Math.floor(dateRange.to.getTime() / 1000);
+          console.log(`[useProfessionalChartData] Applying date range filter:`, {
+            from: dateRange.from.toISOString(),
+            to: dateRange.to.toISOString(),
+            fromTimestamp,
+            toTimestamp
+          });
+          query = query
+            .gte('timestamp', fromTimestamp)
+            .lte('timestamp', toTimestamp);
+        }
+
+        const { data: dbCandles, error } = await query
           .order('timestamp', { ascending: false })
-          .limit(500);
+          .limit(dateRange ? 10000 : 500); // Higher limit when date range is set
 
         if (error) throw error;
 
@@ -213,7 +234,7 @@ export function useProfessionalChartData(symbol: string | null) {
     };
 
     loadHistoricalData();
-  }, [symbol, updateChartData]);
+  }, [symbol, dateRange, updateChartData]);
 
   useEffect(() => {
     if (!symbol) return;
