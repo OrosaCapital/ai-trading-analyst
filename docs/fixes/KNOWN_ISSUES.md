@@ -12,7 +12,16 @@ This document tracks issues that are currently active or have been resolved, pro
 
 ## Resolved Issues ✅
 
-### 1. Auto-Refresh for Tracked Symbols ✅
+### 1. Candle Data Array Index Bug (Systemic) ✅
+**Resolved**: 2025-11-20  
+**See**: `CHANGELOG.md` - "2025-11-20: AI Analysis Using Wrong Candle Data"
+
+**Summary**: 
+Systemic bug where multiple components used wrong array indices to access candle data. Candles sorted DESC (newest first), but code used `[length-1]` and `.slice(-50)` getting OLDEST data instead of newest. Affected AI analysis (giving $48k targets for $2 coins), Trading Dashboard prices (showing 2.15 vs 2.13 actual), and chart fallback prices. Fixed by using `[0]` and `.slice(0, 50)` to get most recent data.
+
+---
+
+### 2. Auto-Refresh for Tracked Symbols ✅
 **Resolved**: 2025-11-20  
 **See**: `CHANGELOG.md` - "2025-11-20: Auto-Refresh Implementation for Tracked Symbols"
 

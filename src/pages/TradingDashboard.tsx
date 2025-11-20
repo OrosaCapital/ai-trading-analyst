@@ -76,8 +76,8 @@ export default function TradingDashboard() {
     }
   }, [chartData]);
 
-  // Use real-time price from WebSocket, fallback to last candle if not available
-  const currentPrice = priceData?.price ?? (candles.length > 0 ? candles[candles.length - 1].close : null);
+  // Use real-time price from WebSocket, fallback to most recent candle (candles are DESC, so [0] = newest)
+  const currentPrice = priceData?.price ?? (candles.length > 0 ? candles[0].close : null);
 
   console.log("TradingDashboard - chartData:", {
     has1h: !!chartData?.candles1h?.length,

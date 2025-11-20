@@ -25,8 +25,8 @@ export function DayTraderChartContainer({
   // Real-time price stream from WebSocket
   const { priceData } = useRealtimePriceStream(symbol, true);
   
-  // Use real-time price, fallback to last candle
-  const currentPrice = priceData?.price ?? (candles[candles.length - 1]?.close || 0);
+  // Use real-time price, fallback to most recent candle (candles are DESC, so [0] = newest)
+  const currentPrice = priceData?.price ?? (candles[0]?.close || 0);
   
   if (isLoading) {
     return (

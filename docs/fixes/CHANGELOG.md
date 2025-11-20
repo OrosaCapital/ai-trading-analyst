@@ -8,37 +8,45 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ### AI Analysis Using Wrong Candle Data
 
-**Issue**: AI was giving completely incorrect price targets (e.g., $48k for XRP when real price was $2.13) because it was analyzing old historical candle data instead of current data.
+**Issue**: AI was giving completely incorrect price targets (e.g., $48k for XRP when real price was $2.13) because it was analyzing old historical candle data instead of current data. **This same bug also affected the Trading Dashboard price display**, showing stale prices (2.15) instead of current WebSocket price (2.13).
 
 **Root Cause**:
 - Candles are fetched in descending order (newest first) from the database
-- The code was using `.slice(-50)` which takes the LAST 50 items from the array
+- Multiple components were using `.slice(-50)` or `[length-1]` to access candles
 - When array is sorted DESC, last 50 items = OLDEST 50 candles
-- Then it took `[length-1]` from that slice, getting the absolute oldest candle
-- AI was analyzing prices from days/weeks ago, not current market conditions
+- `candles[candles.length - 1]` = absolute oldest candle in the dataset
+- This affected:
+  1. AI analysis (analyzing weeks-old market data)
+  2. Trading Dashboard fallback price (showing old price when WebSocket not available)
+  3. DayTrader Chart fallback price (same issue)
 
 **Incorrect Logic**:
 ```typescript
-// WRONG - Analyzes oldest data
+// WRONG - Uses oldest data
 const latest1h = candles1h.slice(-50);  // Gets last 50 = oldest 50
 const last1h = latest1h[latest1h.length - 1];  // Gets oldest candle
+const currentPrice = candles[candles.length - 1]?.close;  // Oldest candle price
 ```
 
 **Corrected Logic**:
 ```typescript
-// CORRECT - Analyzes newest data  
+// CORRECT - Uses newest data  
 const latest1h = candles1h.slice(0, 50);  // Gets first 50 = newest 50
 const last1h = latest1h[0];  // Gets most recent candle
+const currentPrice = candles[0]?.close;  // Most recent candle price
 ```
 
 **Impact**:
 - AI now analyzes current market conditions, not outdated data
-- Price targets and entry/exit recommendations are accurate
+- Trading Dashboard shows accurate current price when WebSocket unavailable
+- All price fallbacks use most recent candle, not oldest
+- Eliminates price discrepancies (e.g., 2.15 vs 2.13 for XRP)
 - Trading signals reflect real-time market state
-- Eliminates bizarre price suggestions (like $48k for XRP)
 
 **Files Changed**:
 - Modified: `src/hooks/useAIAnalysis.ts` (lines 43-46)
+- Modified: `src/pages/TradingDashboard.tsx` (line 80)
+- Modified: `src/components/charts/DayTraderChartContainer.tsx` (line 29)
 
 **Testing**:
 - Verified XRP shows correct current price (~$2.13) to AI
