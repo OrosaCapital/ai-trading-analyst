@@ -6,6 +6,60 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Auto-Detection for Missing Kraken Symbol Mappings
+
+**Enhancement**: Added automatic symbol translation fallback to prevent "not supported by Kraken" errors for symbols that exist on Kraken but aren't in our explicit mapping table.
+
+**Problem Pattern**:
+When users try to view symbols not in our hardcoded `KRAKEN_SYMBOL_MAP`, the system would fail with:
+```
+⚠️ SYMBOLUSDT not supported by Kraken, skipping...
+```
+
+Even though Kraken might support the symbol with a slightly different format (e.g., using USD instead of USDT).
+
+**Solution - Smart Auto-Translation**:
+Enhanced `translateToKraken()` function with intelligent fallback logic:
+
+1. **Check explicit mapping first** - For known major pairs with special Kraken formats
+2. **Auto-detect common patterns** - If not found, try automatic conversions:
+   - `SYMBOLUSDT` → `SYMBOLUSD` (Kraken uses USD, not USDT for many pairs)
+3. **Log translation** - Console logs show when auto-translation happens
+4. **Graceful fallback** - Returns original symbol if no pattern matches
+
+**Example Auto-Fix**:
+```typescript
+// Before: PAXGUSDT not in map → failed
+translateToKraken('PAXGUSDT') // ❌ returns 'PAXGUSDT', fails on Kraken
+
+// After: Auto-translates USDT → USD
+translateToKraken('PAXGUSDT') // ✅ returns 'PAXGUSD', works on Kraken
+// Console: "🔄 Auto-translating PAXGUSDT -> PAXGUSD (Kraken uses USD, not USDT)"
+```
+
+**Files Changed**:
+- Modified: `supabase/functions/_shared/krakenSymbols.ts` (lines 33-52)
+
+**Impact**:
+- Most symbols now work automatically without manual mapping
+- Prevents "not supported" errors for valid Kraken pairs
+- Self-healing system - adapts to new symbols automatically
+- Reduces maintenance burden of hardcoded symbol list
+- Console logs help identify which symbols are auto-translated
+- Users can trade more symbols without code updates
+
+**When Manual Mapping Still Needed**:
+Only for symbols with unique Kraken formats that don't follow patterns:
+- `BTCUSDT` → `XXBTZUSD` (has X prefix)
+- `ETHUSDT` → `XETHZUSD` (has X prefix)
+- `DOGEUSDT` → `XDGUSD` (shortened name)
+
+Regular symbols like PAXG, LINK, UNI, etc. now work automatically.
+
+---
+
+## 2025-11-20
+
 ### Added PAXG Support to Kraken WebSocket
 
 **Issue**: PAXGUSDT was being skipped by the system with "not supported by Kraken" error, even though Kraken does support PAXG trading.

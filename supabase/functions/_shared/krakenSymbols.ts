@@ -30,9 +30,30 @@ const REVERSE_MAP: Record<string, string> = Object.fromEntries(
 
 /**
  * Translate standard symbol (BTCUSDT) to Kraken format (XXBTZUSD)
+ * 
+ * AUTO-DETECTION: If symbol not found in map, attempts smart fallback:
+ * 1. Try replacing USDT suffix with USD (e.g., PAXGUSDT -> PAXGUSD)
+ * 2. Returns original if no pattern matches
+ * 
+ * This handles cases where Kraken uses USD pairs instead of USDT
  */
 export function translateToKraken(symbol: string): string {
-  return KRAKEN_SYMBOL_MAP[symbol] || symbol;
+  // Check explicit mapping first
+  if (KRAKEN_SYMBOL_MAP[symbol]) {
+    return KRAKEN_SYMBOL_MAP[symbol];
+  }
+  
+  // AUTO-FIX: Try common pattern - replace USDT with USD
+  // Kraken often uses USD instead of USDT for many pairs
+  if (symbol.endsWith('USDT')) {
+    const usdVersion = symbol.replace(/USDT$/, 'USD');
+    console.log(`🔄 Auto-translating ${symbol} -> ${usdVersion} (Kraken uses USD, not USDT)`);
+    return usdVersion;
+  }
+  
+  // Return original if no translation found
+  console.log(`⚠️ No translation found for ${symbol}, using as-is`);
+  return symbol;
 }
 
 /**
