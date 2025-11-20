@@ -68,6 +68,14 @@ export const useRealtimePriceStream = (symbol: string | null, enabled: boolean =
         }
 
         if (data.type === "price_update") {
+          // Log price updates for debugging
+          console.log(`🔴 WebSocket Price Update - ${data.symbol}:`, {
+            price: data.price,
+            change24h: data.change24h,
+            volume: data.volume,
+            timestamp: new Date(data.timestamp).toISOString()
+          });
+          
           setPriceData(data);
           setLastUpdateTime(Date.now());
         }
