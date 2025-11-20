@@ -187,6 +187,81 @@ if (hoursSinceUpdate > 24) {
 
 ---
 
+### Auto-Refresh Implementation for Tracked Symbols
+
+**Issue**: UI checkbox "Auto refresh this symbol every 5 minutes" updated database but no backend process actually performed the refreshes.
+
+**Root Cause**:
+- Frontend correctly saved tracking preference to `tracked_symbols` table
+- Edge function `populate-market-data` had logic to handle tracked symbols
+- Missing: No scheduler calling the edge function regularly
+
+**Solution**:
+- Implemented `pg_cron` scheduled job running every 5 minutes
+- Calls `populate-market-data` edge function via HTTP POST
+- Edge function already contains logic to:
+  - Query `tracked_symbols WHERE active = true`
+  - Check data freshness (skip if updated < 5 minutes ago)
+  - Fetch new candles and update database
+  - Log results for monitoring
+
+**Implementation**:
+```sql
+SELECT cron.schedule(
+  'refresh-tracked-symbols-every-5min',
+  '*/5 * * * *',  -- Every 5 minutes
+  $$
+  SELECT net.http_post(
+    url := 'https://[project-ref].supabase.co/functions/v1/populate-market-data',
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer [anon-key]"}'::jsonb,
+    body := '{}'::jsonb
+  ) as request_id;
+  $$
+);
+```
+
+**Edge Function Logic** (already existed in `populate-market-data/index.ts`):
+```typescript
+// Load tracked symbols
+const { data: trackedSymbols } = await supabase
+  .from('tracked_symbols')
+  .select('symbol')
+  .eq('active', true);
+
+// For each symbol, check freshness and skip if recently updated
+const lastUpdate = await checkLastUpdate(symbol);
+if (minutesSinceUpdate < 5) {
+  console.log(`⏭️ Skipping ${symbol}, populated ${minutesSinceUpdate} minutes ago`);
+  continue;
+}
+
+// Fetch and store new data
+await fetchAndStoreCandles(symbol);
+```
+
+**Files Changed**:
+- Database: Added cron job schedule
+- Edge function: Already had necessary logic (no changes needed)
+
+**Separation of Concerns**:
+- **Tracked symbols**: Auto-refresh every 5 minutes via cron job
+- **Manual navigation**: 30-minute debouncing via `useFreshSymbolData` hook
+- **Edge function**: 30-minute cooldown prevents excessive API calls
+- All three layers work together to balance freshness and rate limits
+
+**Impact**: 
+- Tracked symbols now receive automatic updates every 5 minutes
+- No UI changes required (checkbox already functional)
+- Existing manual refresh behavior unchanged
+- Rate limiting maintained through edge function cooldown logic
+
+**Monitoring**:
+- Check cron job status: `SELECT * FROM cron.job WHERE jobname = 'refresh-tracked-symbols-every-5min';`
+- View execution history: `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;`
+- Edge function logs show which symbols are processed/skipped
+
+---
+
 ## Future Fixes
 
 All fixes should be documented here immediately after implementation with:
