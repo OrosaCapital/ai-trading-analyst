@@ -6,6 +6,33 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Candlestick Color Fix
+
+**Issue**: All candlesticks appearing black instead of showing green (bullish) and red (bearish) colors.
+
+**Root Cause**: 
+- `DayTraderChart.tsx` was using CSS variable syntax `hsl(var(--chart-green))` for colors
+- Lightweight-charts library doesn't support CSS variables in color properties
+- Chart was unable to parse the color values, defaulting to black
+
+**Solution**:
+- Replaced CSS variable references with direct HSL color strings
+- Used values from design system: `hsl(150, 100%, 45%)` for green, `hsl(0, 85%, 60%)` for red
+- Also fixed VWAP series color from CSS variable to direct HSL value
+- Colors now match design system while being compatible with lightweight-charts
+
+**Files Changed**:
+- Modified: `src/components/charts/DayTraderChart.tsx` (lines 75-82, 88-106)
+
+**Impact**:
+- Candlesticks now display proper green/red colors based on price direction
+- Improved visual clarity for bullish vs bearish candles
+- Maintains consistency with overall cyber theme color scheme
+
+---
+
+## 2025-11-20
+
 ### EMA Lines Z-Index Fix
 
 **Issue**: EMA lines were rendering behind volume bars, making them difficult to see during high-volume periods.
