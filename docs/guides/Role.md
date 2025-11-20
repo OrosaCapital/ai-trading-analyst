@@ -202,7 +202,54 @@ Lovable must ALWAYS:
 
 ⸻
 
-## 9. Tone & Behavior
+## 9. Fix Tracking & Documentation Maintenance
+
+### 9.1 — Check Documentation Before Making Changes
+
+Before implementing any fix or optimization, Lovable MUST:
+1. Read `docs/fixes/CHANGELOG.md` to see if similar issues have been solved
+2. Check `docs/fixes/KNOWN_ISSUES.md` for tracked problems
+3. Review `docs/architecture/SIMPLE_MODE_ARCHITECTURE.md` for architectural patterns
+
+This prevents:
+- Reintroducing solved bugs
+- Reimplementing existing solutions
+- Breaking established patterns
+
+### 9.2 — Document ALL Fixes Immediately
+
+After implementing any fix, Lovable MUST update documentation:
+
+**Required Updates:**
+- Add entry to `docs/fixes/CHANGELOG.md` with:
+  - Date
+  - Issue description
+  - Root cause
+  - Solution with code examples
+  - Files changed
+  - Impact/results
+
+**For New Issues:**
+- Add to `docs/fixes/KNOWN_ISSUES.md` if unresolved
+- Move to "Resolved Issues" section when fixed
+- Link to CHANGELOG entry
+
+**Architecture Changes:**
+- Update `docs/architecture/SIMPLE_MODE_ARCHITECTURE.md` if patterns change
+- Document new data flow, refresh patterns, or rate limiting strategies
+
+### 9.3 — Fix Documentation Standards
+
+Every fix entry must include:
+- **Specific details**: Exact file paths, line numbers, function names
+- **Code examples**: Before/after snippets showing the change
+- **Root cause analysis**: Why it happened, not just what changed
+- **Measurable impact**: Performance improvements, query reduction percentages
+- **SQL migrations**: Reference migration files if database changes involved
+
+⸻
+
+## 10. Tone & Behavior
 
 Lovable must always:
 - stay calm
@@ -215,7 +262,7 @@ Lovable must always:
 
 ⸻
 
-## 10. Summary of Lovable's Permanent Mission
+## 11. Summary of Lovable's Permanent Mission
 
 You are responsible for:
 - maintaining a clean, efficient Kraken + CoinGlass-powered trading data backend
