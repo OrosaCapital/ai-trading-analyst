@@ -11,9 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const { message, systemContext } = await req.json();
+    const { message, systemContext, sessionId } = await req.json();
 
-    console.log("Admin support chat request:", { message, systemContext });
+    console.log("Admin support chat request:", { message, systemContext, sessionId });
 
     // Call n8n webhook
     const webhookUrl = "https://ocapx.app.n8n.cloud/webhook/071d31b1-7ec7-4e76-b5da-99154637eed9/chat";
@@ -25,6 +25,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         chatInput: message,
+        sessionId: sessionId || `admin-${Date.now()}`,
         systemContext,
         timestamp: new Date().toISOString(),
         source: "admin-panel"
