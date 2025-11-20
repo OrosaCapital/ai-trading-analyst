@@ -91,8 +91,16 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
 
     // Add volume first so it renders behind EMAs
     const volumeSeries = priceChart.addSeries(HistogramSeries, {
-      priceScaleId: '',
+      priceScaleId: 'volume',
       priceFormat: { type: 'volume' },
+    });
+    
+    // Configure volume scale to be at bottom 20% of chart
+    priceChart.priceScale('volume').applyOptions({
+      scaleMargins: {
+        top: 0.8,    // Volume starts at 80% down
+        bottom: 0,   // Volume ends at bottom
+      },
     });
 
     // EMAs with bright, distinct colors for high visibility - added after volume to render on top
