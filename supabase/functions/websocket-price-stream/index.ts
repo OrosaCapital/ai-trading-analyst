@@ -41,26 +41,27 @@ Deno.serve(async (req) => {
     
     console.log(`🔗 Kraken pair: ${krakenSymbol} (original: ${symbol})`);
     
-    coinglassWS = new WebSocket('wss://ws.kraken.com/v2');
+    // Use Kraken v1 API (not v2)
+    coinglassWS = new WebSocket('wss://ws.kraken.com/');
     
     coinglassWS.onopen = () => {
       console.log(`✅ Kraken WebSocket connected for ${krakenSymbol}`);
       reconnectAttempts = 0;
       
+      // v1 API subscription format
       const subscribeMsg = {
-        method: 'subscribe',
-        params: {
-          channel: 'ticker',
-          symbol: [krakenSymbol]
-        }
+        event: 'subscribe',
+        pair: [krakenSymbol],
+        subscription: { name: 'ticker' }
       };
       
+      console.log('📤 Sending subscription:', JSON.stringify(subscribeMsg));
       coinglassWS?.send(JSON.stringify(subscribeMsg));
       
       if (pingInterval) clearInterval(pingInterval);
       pingInterval = setInterval(() => {
         if (coinglassWS?.readyState === WebSocket.OPEN) {
-          coinglassWS.send(JSON.stringify({ method: 'ping' }));
+          coinglassWS.send(JSON.stringify({ event: 'ping' }));
         }
       }, 30000);
       
@@ -76,32 +77,26 @@ Deno.serve(async (req) => {
       try {
         const data = JSON.parse(event.data);
         
-        // Log ALL messages from Kraken for debugging
-        console.log('📥 Kraken message:', JSON.stringify(data).substring(0, 200));
-        
-        if (data.method === 'pong') return;
-        
-        if (data.channel === 'ticker' && data.data && data.data[0]) {
-          const ticker = data.data[0];
-          console.log('💰 Sending price update:', {
-            symbol,
-            price: parseFloat(ticker.last || 0),
-            volume: parseFloat(ticker.volume || 0)
-          });
+        // v1 API returns array format: [channelID, tickerData, channelName, pair]
+        if (Array.isArray(data) && data[1] && data[1].c) {
+          const price = parseFloat(data[1].c[0]); // Last trade price
+          const volume = parseFloat(data[1].v[1] || 0); // 24h volume
+          
+          console.log('💰 Price update:', { symbol, price, volume });
           
           socket.send(JSON.stringify({
             type: "price_update",
             symbol: symbol,
-            price: parseFloat(ticker.last || 0),
-            volume: parseFloat(ticker.volume || 0),
+            price: price,
+            volume: volume,
             timestamp: Date.now()
           }));
-        } else {
-          console.log('⚠️ Ticker data not in expected format:', { 
-            hasChannel: !!data.channel, 
-            hasData: !!data.data,
-            channel: data.channel 
-          });
+        } else if (data.event === 'pong') {
+          // Ignore pong responses
+          return;
+        } else if (data.event) {
+          // Log other events (subscribed, error, etc.)
+          console.log('📥 Kraken event:', data.event, data.status || '');
         }
       } catch (error) {
         console.error('❌ Error processing Kraken message:', error);
