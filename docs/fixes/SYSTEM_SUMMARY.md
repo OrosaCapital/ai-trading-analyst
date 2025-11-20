@@ -175,6 +175,8 @@ If >30 minutes since last check:
 - [x] localStorage persistence across sessions
 - [x] Query ordering fixed (DESC + reverse)
 - [x] Duplicate candles removed via migration
+- [x] Removed unused pages (AI Analyst, System Health navigation)
+- [x] Consolidated features into focused interfaces
 
 ### ✅ System Health
 - [x] Tracked symbols auto-refresh every 5 minutes
@@ -182,6 +184,25 @@ If >30 minutes since last check:
 - [x] Rate limiting prevents API abuse
 - [x] Charts display current data
 - [x] No duplicate candles in database
+- [x] Navigation simplified (removed unused pages)
+- [x] Features consolidated into 4 main sections
+
+---
+
+## Navigation Structure
+
+The application now has 4 focused sections:
+
+1. **Admin Panel** (`/`) - Dashboard with KPIs, system health, database metrics
+2. **Data Flow** (`/data-flow`) - Real-time monitoring of data pipelines
+3. **Trading** (`/trading`) - Main trading interface with charts and AI analysis
+4. **Watchlist** (`/watchlist`) - User's saved symbols and portfolios
+
+**Removed Pages** (2025-11-20):
+- AI Analyst (`/ai-trading`) - Functionality integrated into Trading dashboard
+- System Health (`/system`) - Metrics integrated into Admin Panel and Data Flow
+
+All features remain accessible through the consolidated interfaces.
 
 ---
 

@@ -6,6 +6,55 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Page Removals - UI Simplification
+
+**Issue**: Unused pages cluttering the navigation and codebase.
+
+**Pages Removed**:
+1. **AI Analyst** (`/ai-trading` route, `AITrading.tsx`)
+   - Standalone AI chat interface
+   - Functionality superseded by integrated AI analysis in trading dashboard
+   - Users can access AI analysis directly from trading views
+
+2. **System Health** (`/system` route)
+   - Navigation link removed from AdminNavigation
+   - No dedicated page existed (was just a navigation placeholder)
+   - System health monitoring now integrated into:
+     - Admin Dashboard (Dashboard.tsx) - KPIs and metrics
+     - Data Flow page - Real-time monitoring
+     - Sidebar components - Live health scores
+
+**Rationale**:
+- Consolidate features into fewer, more focused pages
+- Reduce navigation complexity for users
+- AI analysis already available in trading dashboard via AI panel
+- System health metrics visible in multiple existing locations
+
+**Files Changed**:
+- Deleted: `src/pages/AITrading.tsx`
+- Modified: `src/App.tsx` (removed `/ai-trading` route and import)
+- Modified: `src/components/admin/AdminNavigation.tsx` (removed nav links and unused icon imports)
+
+**Impact**:
+- Cleaner navigation with 4 main sections instead of 6
+- No loss of functionality (features integrated elsewhere)
+- Improved user experience with focused interfaces
+- Reduced bundle size (removed unused page component)
+
+**Navigation Structure After Cleanup**:
+- Admin Panel (Dashboard) - `/`
+- Data Flow - `/data-flow`
+- Trading - `/trading`
+- Watchlist - `/watchlist`
+
+**Related Components Still Active**:
+- `useSystemHealth` hook - Used by Dashboard and Sidebar
+- `AIAgentPanel` - Used in Dashboard
+- System health metrics - Displayed in Dashboard KPI cards
+- AI analysis - Available in trading dashboard sidebar
+
+---
+
 ### Duplicate Hourly Candles Bug
 
 **Issue**: Multiple candles created per hour, resulting in ~7,400 candles per symbol instead of expected ~240 (10 days × 24 hours).
@@ -259,6 +308,48 @@ await fetchAndStoreCandles(symbol);
 - Check cron job status: `SELECT * FROM cron.job WHERE jobname = 'refresh-tracked-symbols-every-5min';`
 - View execution history: `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;`
 - Edge function logs show which symbols are processed/skipped
+
+---
+
+### Page Removals - UI Simplification
+
+**Issue**: Unused pages cluttering the navigation and codebase.
+
+**Pages Removed**:
+1. **AI Analyst** (`/ai-trading` route, `AITrading.tsx`)
+   - Standalone AI chat interface
+   - Functionality superseded by integrated AI analysis in trading dashboard
+   - Users can access AI analysis directly from trading views
+
+2. **System Health** (`/system` route)
+   - Navigation link removed from AdminNavigation
+   - No dedicated page existed (was just a navigation placeholder)
+   - System health monitoring now integrated into:
+     - Admin Dashboard (Dashboard.tsx) - KPIs and metrics
+     - Data Flow page - Real-time monitoring
+     - Sidebar components - Live health scores
+
+**Rationale**:
+- Consolidate features into fewer, more focused pages
+- Reduce navigation complexity for users
+- AI analysis already available in trading dashboard via AI panel
+- System health metrics visible in multiple existing locations
+
+**Files Changed**:
+- Deleted: `src/pages/AITrading.tsx`
+- Modified: `src/App.tsx` (removed `/ai-trading` route)
+- Modified: `src/components/admin/AdminNavigation.tsx` (removed both nav links)
+
+**Impact**:
+- Cleaner navigation with 4 main sections instead of 6
+- No loss of functionality (features integrated elsewhere)
+- Improved user experience with focused interfaces
+
+**Related Components Still Active**:
+- `useSystemHealth` hook - Used by Dashboard and Sidebar
+- `AIAgentPanel` - Used in Dashboard
+- System health metrics - Displayed in Dashboard KPI cards
+- AI analysis - Available in trading dashboard sidebar
 
 ---
 

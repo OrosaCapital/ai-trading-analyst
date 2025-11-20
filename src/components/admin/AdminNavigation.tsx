@@ -1,4 +1,4 @@
-import { Home, TrendingUp, BarChart3, Settings, Shield, Activity, GitBranch } from "lucide-react";
+import { Home, TrendingUp, Settings, Shield, GitBranch } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -15,9 +15,7 @@ import {
 const navItems = [
   { title: "Admin Panel", url: "/", icon: Shield },
   { title: "Data Flow", url: "/data-flow", icon: GitBranch },
-  { title: "System Health", url: "/system", icon: Activity },
   { title: "Trading", url: "/trading", icon: TrendingUp },
-  { title: "AI Analysis", url: "/ai-trading", icon: BarChart3 },
   { title: "Watchlist", url: "/watchlist", icon: Settings },
 ];
 
