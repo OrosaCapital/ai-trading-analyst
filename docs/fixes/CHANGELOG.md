@@ -6,6 +6,29 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Chart Data Availability Message Update
+
+**Enhancement**: Updated chart warning message to more accurately reflect data availability for selected timeframe.
+
+**Changes**:
+- Changed misleading "Using simulated data. Live data temporarily unavailable." message
+- New message: "Limited data available for current timeframe. Some indicators may show partial information."
+- More accurately describes the situation when viewing 15-minute data but only 4-hour indicators are available
+- Removes confusion about "simulated" data when real data is being used
+
+**Files Changed**:
+- Modified: `src/components/charts/DayTraderChartContainer.tsx` (line 55)
+
+**Impact**:
+- Users better understand why some data may be missing
+- Clearer communication that it's a timeframe/filter issue, not a system failure
+- Reduces confusion about data authenticity
+- More professional and accurate messaging
+
+---
+
+## 2025-11-20
+
 ### Volume Panel Repositioned
 
 **Enhancement**: Moved volume bars to a dedicated panel at the bottom of the chart, following standard trading chart layout.

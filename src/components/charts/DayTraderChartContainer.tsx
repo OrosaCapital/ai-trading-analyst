@@ -52,7 +52,7 @@ export function DayTraderChartContainer({
         <Alert variant="default" className="mb-4 border-cyber-yellow/30 bg-cyber-yellow/10">
           <AlertCircle className="h-4 w-4 text-cyber-yellow" />
           <AlertDescription className="text-cyber-yellow">
-            Using simulated data. Live data temporarily unavailable.
+            Limited data available for current timeframe. Some indicators may show partial information.
           </AlertDescription>
         </Alert>
       )}
