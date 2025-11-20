@@ -48,8 +48,9 @@ export const FundingRateChart = ({ symbol }: FundingRateChartProps) => {
       },
     });
 
+    // Timestamps should already be in seconds (UNIX epoch format)
     const chartData: LineData[] = candles.map((candle) => ({
-      time: (candle.time / 1000) as any,
+      time: candle.time as any,
       value: candle.close,
     }));
 

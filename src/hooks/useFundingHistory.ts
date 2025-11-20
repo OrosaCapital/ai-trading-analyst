@@ -110,9 +110,9 @@ export function useFundingHistory(symbol: string, exchange: string = 'Binance') 
         return;
       }
 
-      // Transform to candle format (multiply timestamp by 1000 for milliseconds)
+      // Transform to candle format (keep timestamp as-is, already in correct format)
       const candles: FundingCandle[] = dbHistory.map((entry: any) => ({
-        time: entry.timestamp * 1000,
+        time: entry.timestamp,
         open: parseFloat(entry.rate),
         high: parseFloat(entry.rate),
         low: parseFloat(entry.rate),
