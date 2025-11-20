@@ -163,22 +163,25 @@ export function useProfessionalChartData(symbol: string | null) {
           .select('*')
           .eq('symbol', symbol)
           .eq('timeframe', '1h')
-          .order('timestamp', { ascending: true })
+          .order('timestamp', { ascending: false })
           .limit(500);
 
         if (error) throw error;
 
         if (dbCandles && dbCandles.length > 0) {
           console.log(`Loaded ${dbCandles.length} 1h candles for ${symbol} from database`);
-          candles1hRef.current = dbCandles.map(c => ({
-            time: c.timestamp,
-            timestamp: c.timestamp,
-            open: Number(c.open),
-            high: Number(c.high),
-            low: Number(c.low),
-            close: Number(c.close),
-            volume: Number(c.volume || 0)
-          }));
+          // Reverse to chronological order for chart (newest candles loaded first, then reversed)
+          candles1hRef.current = dbCandles
+            .reverse()
+            .map(c => ({
+              time: c.timestamp,
+              timestamp: c.timestamp,
+              open: Number(c.open),
+              high: Number(c.high),
+              low: Number(c.low),
+              close: Number(c.close),
+              volume: Number(c.volume || 0)
+            }));
           hasInitializedRef.current = true;
           updateChartData();
         } else {

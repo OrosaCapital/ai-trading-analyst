@@ -163,17 +163,36 @@ Translation handled in:
 3. **Cache aggressively** - Minimize API calls
 4. **Calculate client-side** - Keep backend minimal
 
+### Data Freshness & Caching Strategy
+
+**Candle Generation Frequency:**
+- New candles generated at most **once per hour** for "1h" timeframe
+- Timestamps rounded to hour boundaries to ensure proper deduplication
+- Database uses upsert (on conflict) to prevent duplicate hourly candles
+
+**Freshness Check Intervals:**
+- `useFreshSymbolData` hook checks data age (4-hour threshold)
+- Edge function calls debounced to **max once per 5 minutes per symbol**
+- Prevents excessive API calls on page renders or symbol changes
+
+**Query Ordering:**
+- Charts query most recent 500 candles (`ORDER BY timestamp DESC LIMIT 500`)
+- Array reversed to chronological order for display
+- Ensures charts show current data (not historical from weeks ago)
+
 ### When Debugging
 1. Check `market_candles` table for data freshness
 2. Verify Kraken symbol translation
 3. Confirm WebSocket connection status
 4. Review edge function logs in Supabase
+5. Check console logs for debouncing messages (`⏭️ Skipping fresh data check`)
 
 ### Performance Optimization
 - Batch candle requests (720 at a time)
 - Use WebSocket for live updates only
 - Cache funding rates (5-minute intervals)
 - Lazy load non-critical components
+- Debounce edge function calls to reduce database load
 
 ---
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -22,6 +22,7 @@ export function useFreshSymbolData(symbol: string) {
     lastFetched: null,
   });
   const queryClient = useQueryClient();
+  const lastCheckRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -29,6 +30,15 @@ export function useFreshSymbolData(symbol: string) {
     async function ensureFreshData() {
       if (!symbol || symbol === 'USDT' || symbol === 'USD') return;
 
+      // Don't check more than once per 5 minutes per symbol to reduce edge function calls
+      const now = Date.now();
+      const lastCheck = lastCheckRef.current[symbol] || 0;
+      if (now - lastCheck < 5 * 60 * 1000) {
+        console.log(`⏭️ Skipping fresh data check for ${symbol}, checked ${Math.floor((now - lastCheck) / 1000)}s ago`);
+        return;
+      }
+
+      lastCheckRef.current[symbol] = now;
       setState(prev => ({ ...prev, isFetching: true, error: null }));
 
       try {
