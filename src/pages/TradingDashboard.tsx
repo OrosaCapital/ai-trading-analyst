@@ -18,8 +18,12 @@ import { toast } from "@/hooks/use-toast";
 
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
-  const [timeframe, setTimeframe] = useState<"1h" | "4h" | "1d" | "1w">("1d");
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(null);
+  const [timeframe, setTimeframe] = useState<"1h" | "4h" | "1d" | "1w">("1h");
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(() => {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return { from: startOfDay, to: today };
+  });
   const [filters, setFilters] = useState({
     minVolume: 0,
     maxVolume: Infinity,
