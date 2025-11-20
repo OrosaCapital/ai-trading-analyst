@@ -6,6 +6,40 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Advanced Filters Implementation
+
+**Issue**: Advanced Filters (volume range and signal-only display) in FilterBar were not filtering chart data - changing filter settings had no effect on displayed candles.
+
+**Root Cause**: 
+- `filters` state was being set in `TradingDashboard.tsx` but never passed to data fetching hooks
+- `useChartData` and `useProfessionalChartData` had no filters parameter
+- Candles were displayed regardless of volume thresholds or signal criteria
+
+**Solution**:
+- Added `filters` parameter to `useChartData` hook signature
+- Added `filters` parameter to `useProfessionalChartData` hook signature
+- Implemented client-side filtering after data fetch:
+  - **Volume filtering**: Filter candles where `volume >= minVolume && volume <= maxVolume`
+  - **Signal filtering**: Show only candles with significant trading activity:
+    - High volume (>1.5x average volume), OR
+    - Significant price movement (>2% change from open to close)
+- Pass `filters` from `TradingDashboard` to both hooks
+
+**Files Changed**:
+- Modified: `src/hooks/useChartData.ts` (lines 58-62, 105-130, 162-166)
+- Modified: `src/hooks/useProfessionalChartData.ts` (lines 45-49, 192-234, 236-237)
+- Modified: `src/pages/TradingDashboard.tsx` (lines 42-43)
+
+**Impact**:
+- Volume range filters now correctly filter out candles outside specified thresholds
+- Signal-only mode shows candles with high volume or significant price movement
+- Both main chart and professional chart respect filter settings
+- Useful for focusing on high-activity trading opportunities
+
+---
+
+## 2025-11-20
+
 ### Timeframe Selector Implementation
 
 **Issue**: Timeframe selector (1h/4h/1d/1w) in FilterBar was not changing chart data - selecting different timeframes had no effect on displayed candles.

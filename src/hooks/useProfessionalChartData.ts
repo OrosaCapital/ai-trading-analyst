@@ -45,7 +45,8 @@ export interface ChartData {
 export function useProfessionalChartData(
   symbol: string | null,
   dateRange?: { from: Date; to: Date } | null,
-  timeframe: "1h" | "4h" | "1d" | "1w" = "1h"
+  timeframe: "1h" | "4h" | "1d" | "1w" = "1h",
+  filters?: { minVolume: number; maxVolume: number; showOnlySignals: boolean }
 ) {
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -203,7 +204,7 @@ export function useProfessionalChartData(
           }
           
           // Reverse to chronological order for chart (newest candles loaded first, then reversed)
-          candles1hRef.current = dbCandles
+          let processedCandles = dbCandles
             .reverse()
             .map(c => ({
               time: c.timestamp,
@@ -214,6 +215,27 @@ export function useProfessionalChartData(
               close: Number(c.close),
               volume: Number(c.volume || 0)
             }));
+
+          // Apply volume filters
+          if (filters) {
+            processedCandles = processedCandles.filter(candle => 
+              candle.volume >= filters.minVolume && 
+              candle.volume <= filters.maxVolume
+            );
+
+            // Apply signal filter (show only candles with significant price movement)
+            if (filters.showOnlySignals) {
+              const avgVolume = processedCandles.reduce((sum, c) => sum + c.volume, 0) / processedCandles.length;
+              processedCandles = processedCandles.filter(candle => {
+                const priceChange = Math.abs((candle.close - candle.open) / candle.open) * 100;
+                const isHighVolume = candle.volume > avgVolume * 1.5;
+                const isSignificantMove = priceChange > 2; // >2% price change
+                return isHighVolume || isSignificantMove;
+              });
+            }
+          }
+
+          candles1hRef.current = processedCandles;
           hasInitializedRef.current = true;
           updateChartData();
         } else {
@@ -235,7 +257,7 @@ export function useProfessionalChartData(
     };
 
     loadHistoricalData();
-  }, [symbol, dateRange, timeframe, updateChartData]);
+  }, [symbol, dateRange, timeframe, filters, updateChartData]);
 
   useEffect(() => {
     if (!symbol) return;
