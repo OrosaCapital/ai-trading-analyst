@@ -182,36 +182,6 @@ export type Database = {
         }
         Relationships: []
       }
-      tatum_price_logs: {
-        Row: {
-          created_at: string | null
-          id: string
-          interval: string
-          price: number
-          symbol: string
-          timestamp: string
-          volume: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          interval: string
-          price: number
-          symbol: string
-          timestamp?: string
-          volume?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          interval?: string
-          price?: number
-          symbol?: string
-          timestamp?: string
-          volume?: number | null
-        }
-        Relationships: []
-      }
       tracked_symbols: {
         Row: {
           active: boolean | null

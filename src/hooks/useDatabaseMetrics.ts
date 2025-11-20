@@ -137,48 +137,11 @@ async function fetchMarketFundingRatesMetrics(): Promise<TableMetrics> {
   }
 }
 
-async function fetchTatumPriceLogsMetrics(): Promise<TableMetrics> {
-  try {
-    const { count } = await supabase
-      .from("tatum_price_logs")
-      .select("*", { count: "exact", head: true });
-
-    const { data } = await supabase
-      .from("tatum_price_logs")
-      .select("timestamp")
-      .order("timestamp", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const recordCount = count || 0;
-    const lastUpdate = data?.timestamp ? formatTimeDiff(data.timestamp) : "Never";
-    const isRecent = lastUpdate !== "Never" && !lastUpdate.includes("d ago");
-
-    return {
-      name: "tatum_price_logs",
-      status: recordCount > 0 && isRecent ? "Active" : "Idle",
-      records: recordCount,
-      lastUpdate,
-      health: recordCount > 0 && isRecent ? "success" : "neutral",
-    };
-  } catch (error) {
-    console.error("Error fetching tatum_price_logs metrics:", error);
-    return {
-      name: "tatum_price_logs",
-      status: "Error",
-      records: 0,
-      lastUpdate: "Error",
-      health: "error",
-    };
-  }
-}
-
 async function fetchDatabaseMetrics(): Promise<DatabaseMetrics> {
   const tableMetrics = await Promise.all([
     fetchMarketSnapshotsMetrics(),
     fetchMarketCandlesMetrics(),
     fetchMarketFundingRatesMetrics(),
-    fetchTatumPriceLogsMetrics(),
   ]);
 
   const totalRecords = tableMetrics.reduce((sum, table) => sum + table.records, 0);
