@@ -6,6 +6,31 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Live Clock with Auto-Detected Timezone
+
+**Enhancement**: Added real-time clock display to trading dashboard that automatically detects and shows user's local timezone.
+
+**Implementation**:
+- Created `LiveClock` component with 1-second refresh interval
+- Uses browser's `Intl.DateTimeFormat().resolvedOptions().timeZone` to auto-detect user's timezone
+- Displays time in 12-hour format with AM/PM
+- Shows timezone abbreviation (EST, PST, etc.) below the time
+- Positioned next to filter controls in FilterBar for easy reference
+
+**Files Changed**:
+- Created: `src/components/trading/LiveClock.tsx`
+- Modified: `src/components/trading/FilterBar.tsx` (lines 49-50, 388-390)
+
+**Impact**:
+- Users see their local time automatically without configuration
+- Works for any timezone (East Coast, West Coast, international)
+- Real-time updates every second
+- Clear timezone identification for trading session awareness
+
+---
+
+## 2025-11-20
+
 ### RSI Data Mapping Fix
 
 **Issue**: RSI indicator was displaying incorrect values due to array indexing error in chart rendering.
