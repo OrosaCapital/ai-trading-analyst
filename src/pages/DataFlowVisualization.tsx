@@ -1,53 +1,8 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminNavigation } from "@/components/admin/AdminNavigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
-
-const mermaidDiagram = `graph TB
-    subgraph External["🌐 External Data Sources"]
-        KrakenAPI["Kraken Public API<br/>📊 OHLC Endpoint"]
-        CoinglassAPI["Coinglass API<br/>💰 Funding Rates"]
-    end
-
-    subgraph EdgeFunctions["⚡ Edge Functions Layer"]
-        PopulateMarket["populate-market-data<br/>Status: 🔄 Scheduled"]
-        FetchCoinglass["fetch-coinglass-coins<br/>Status: 🔄 Active"]
-        FetchKrakenCandles["fetch-kraken-candles<br/>Status: 🔄 Active"]
-    end
-
-    subgraph Database["🗄️ Database Tables"]
-        MarketCandles["market_candles<br/>📊 26,002 records<br/>✅ Fresh"]
-        MarketFunding["market_funding_rates<br/>💵 1,124 records<br/>✅ Active"]
-        MarketSnapshots["market_snapshots<br/>📸 17 records<br/>✅ Live"]
-    end
-
-    subgraph AILayer["🤖 AI Analysis Layer"]
-        AIChat["ai-chat Edge Function<br/>Uses: market_candles, funding_rates"]
-        Context["AI Context Builder<br/>✅ Complete Data"]
-    end
-
-    KrakenAPI -->|"OHLC Data<br/>open, high, low, close, volume, vwap"| FetchKrakenCandles
-    FetchKrakenCandles -->|"Stores Complete OHLC Data"| MarketCandles
-    
-    CoinglassAPI -->|"Funding Rates<br/>Market Sentiment"| FetchCoinglass
-    FetchCoinglass --> MarketFunding
-    
-    PopulateMarket --> MarketCandles
-    PopulateMarket --> MarketSnapshots
-    
-    MarketCandles -.->|"Historical Context<br/>🔍 Complete OHLC + Volume"| AIChat
-    MarketFunding -.->|"Sentiment Analysis<br/>💡 Funding rates & exchange data"| AIChat
-    MarketSnapshots -.->|"Current State<br/>📊 Latest price & volume"| AIChat
-    
-    AIChat --> Context
-    Context --> |"📊 AI Recommendations<br/>✅ Full market context"| User["👤 User Queries"]
-
-    style MarketCandles fill:#dcfce7,stroke:#10b981,stroke-width:3px
-    style MarketFunding fill:#dcfce7,stroke:#10b981,stroke-width:2px
-    style MarketSnapshots fill:#dcfce7,stroke:#10b981,stroke-width:2px
-    style AIChat fill:#dcfce7,stroke:#10b981,stroke-width:2px
-    style Context fill:#dcfce7,stroke:#10b981,stroke-width:2px`;
+import { Activity, CheckCircle2 } from "lucide-react";
 
 export default function DataFlowVisualization() {
   return (
@@ -142,19 +97,6 @@ export default function DataFlowVisualization() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Mermaid Diagram */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Data Flow Architecture</CardTitle>
-                <CardDescription>
-                  How data flows from external APIs through the database to AI analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div dangerouslySetInnerHTML={{ __html: `<lov-mermaid>${mermaidDiagram}</lov-mermaid>` }} />
-              </CardContent>
-            </Card>
 
             {/* Data Quality Status */}
             <Card className="border-green-500/50 bg-green-500/5">
