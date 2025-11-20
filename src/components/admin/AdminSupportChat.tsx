@@ -21,6 +21,7 @@ export const AdminSupportChat = ({ systemAlerts = [] }: AdminSupportChatProps) =
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId] = useState(() => `admin-session-${Date.now()}`);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -49,6 +50,7 @@ export const AdminSupportChat = ({ systemAlerts = [] }: AdminSupportChatProps) =
       const { data, error } = await supabase.functions.invoke("admin-support-chat", {
         body: {
           message: input,
+          sessionId,
           systemContext,
         },
       });
