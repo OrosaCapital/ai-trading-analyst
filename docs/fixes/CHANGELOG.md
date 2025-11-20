@@ -6,6 +6,32 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Added PAXG Support to Kraken WebSocket
+
+**Issue**: PAXGUSDT was being skipped by the system with "not supported by Kraken" error, even though Kraken does support PAXG trading.
+
+**Root Cause**:
+- PAXGUSDT was missing from the `KRAKEN_SYMBOL_MAP` translation table
+- Without the mapping, the system couldn't translate `PAXGUSDT` to Kraken's format `PAXGUSD`
+- This caused both WebSocket streams and historical data fetching to fail for PAXG
+
+**Solution**:
+- Added `'PAXGUSDT': 'PAXGUSD'` mapping to `krakenSymbols.ts`
+- Now the system correctly translates PAXGUSDT to Kraken's PAXGUSD pair
+
+**Files Changed**:
+- Modified: `supabase/functions/_shared/krakenSymbols.ts` (line 23)
+
+**Impact**:
+- PAXG now streams real-time prices via WebSocket
+- Historical candle data now fetches correctly
+- Users can track PAXG price movements
+- Full chart and indicator support for PAXG
+
+---
+
+## 2025-11-20
+
 ### Added Login Link to Navigation
 
 **Enhancement**: Added Login/Auth page link to the sidebar navigation for easy access.
