@@ -59,7 +59,8 @@ export function useChartData(
   symbol: string, 
   basePrice: number = 50000,
   dateRange?: { from: Date; to: Date } | null,
-  timeframe: "1h" | "4h" | "1d" | "1w" = "1h"
+  timeframe: "1h" | "4h" | "1d" | "1w" = "1h",
+  filters?: { minVolume: number; maxVolume: number; showOnlySignals: boolean }
 ) {
   const [state, setState] = useState<ChartDataState>({
     candles: [],
@@ -104,7 +105,7 @@ export function useChartData(
 
       if (dbCandles && dbCandles.length > 0) {
         // Reverse to chronological order (newest fetched first, need oldest first for display)
-        const formattedCandles = dbCandles.reverse().map((c: any) => ({
+        let formattedCandles = dbCandles.reverse().map((c: any) => ({
           time: c.timestamp,
           open: parseFloat(c.open),
           high: parseFloat(c.high),
@@ -112,6 +113,25 @@ export function useChartData(
           close: parseFloat(c.close),
           volume: parseFloat(c.volume || 0)
         }));
+
+        // Apply volume filters
+        if (filters) {
+          formattedCandles = formattedCandles.filter(candle => 
+            candle.volume >= filters.minVolume && 
+            candle.volume <= filters.maxVolume
+          );
+
+          // Apply signal filter (show only candles with significant price movement)
+          if (filters.showOnlySignals) {
+            const avgVolume = formattedCandles.reduce((sum, c) => sum + c.volume, 0) / formattedCandles.length;
+            formattedCandles = formattedCandles.filter(candle => {
+              const priceChange = Math.abs((candle.close - candle.open) / candle.open) * 100;
+              const isHighVolume = candle.volume > avgVolume * 1.5;
+              const isSignificantMove = priceChange > 2; // >2% price change
+              return isHighVolume || isSignificantMove;
+            });
+          }
+        }
 
         // Cache for this symbol
         setCachedCandles(symbol, formattedCandles);
@@ -159,7 +179,7 @@ export function useChartData(
         isUsingFallback: true,
       });
     }
-  }, [symbol, basePrice, dateRange, timeframe]);
+  }, [symbol, basePrice, dateRange, timeframe, filters]);
 
   useEffect(() => {
     fetchCandles();
