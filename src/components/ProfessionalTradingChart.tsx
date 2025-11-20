@@ -154,7 +154,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
         },
       });
 
-      // Add candlestick series
+      // Add candlestick series first
       const candleSeries = chart.addSeries(CandlestickSeries, {
         upColor: '#22c55e',
         downColor: '#ef4444',
@@ -163,7 +163,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
         wickDownColor: '#ef4444',
       });
 
-      // Add volume series
+      // Add volume series second (renders behind EMAs)
       const volumeSeries = chart.addSeries(HistogramSeries, {
         color: '#3b82f680',
         priceFormat: { type: 'volume' },
@@ -174,7 +174,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
         scaleMargins: { top: 0.8, bottom: 0 },
       });
 
-      // Add EMA series
+      // Add EMA series last (renders on top)
       const emaSeries = chart.addSeries(LineSeries, {
         color: '#f59e0b',
         lineWidth: 2,

@@ -6,6 +6,34 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### EMA Lines Z-Index Fix
+
+**Issue**: EMA lines were rendering behind volume bars, making them difficult to see during high-volume periods.
+
+**Root Cause**: 
+- In `DayTraderChart.tsx`, volume series was added after EMAs, causing it to render on top
+- In lightweight-charts, series render order determines z-index (last added = top layer)
+
+**Solution**:
+- Reordered series addition in both chart components:
+  1. Candlesticks (bottom)
+  2. Volume bars (middle)
+  3. EMA lines (top)
+- Added clarifying comments explaining render order
+
+**Files Changed**:
+- Modified: `src/components/charts/DayTraderChart.tsx` (lines 75-108)
+- Modified: `src/components/ProfessionalTradingChart.tsx` (lines 157-182)
+
+**Impact**:
+- EMA lines now clearly visible above all bar data
+- Better visual clarity for trend analysis
+- Consistent behavior across both chart implementations
+
+---
+
+## 2025-11-20
+
 ### Advanced Filters Implementation
 
 **Issue**: Advanced Filters (volume range and signal-only display) in FilterBar were not filtering chart data - changing filter settings had no effect on displayed candles.
