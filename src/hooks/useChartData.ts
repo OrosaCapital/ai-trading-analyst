@@ -59,7 +59,7 @@ export function useChartData(
   symbol: string, 
   basePrice: number = 50000,
   dateRange?: { from: Date; to: Date } | null,
-  timeframe: "1h" | "4h" | "1d" | "1w" = "1h",
+  timeframe: "15m" | "1h" | "4h" | "1d" | "1w" = "1h",
   filters?: { minVolume: number; maxVolume: number; showOnlySignals: boolean }
 ) {
   const [state, setState] = useState<ChartDataState>({

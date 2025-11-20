@@ -49,8 +49,8 @@ import { format } from "date-fns";
 interface FilterBarProps {
   symbol: string;
   onSymbolChange: (symbol: string) => void;
-  timeframe: "1h" | "4h" | "1d" | "1w";
-  onTimeframeChange: (timeframe: "1h" | "4h" | "1d" | "1w") => void;
+  timeframe: "15m" | "1h" | "4h" | "1d" | "1w";
+  onTimeframeChange: (timeframe: "15m" | "1h" | "4h" | "1d" | "1w") => void;
   dateRange: { from: Date; to: Date } | null;
   onDateRangeChange: (range: { from: Date; to: Date } | null) => void;
   filters: {
@@ -213,6 +213,7 @@ export function FilterBar({
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="bg-popover z-50">
+          <SelectItem value="15m">15 Min</SelectItem>
           <SelectItem value="1h">1 Hour</SelectItem>
           <SelectItem value="4h">4 Hours</SelectItem>
           <SelectItem value="1d">1 Day</SelectItem>
