@@ -96,7 +96,8 @@ export default function TradingDashboard() {
     aiSymbol,
     chartData?.candles1h || [],
     chartData?.candles15m || [],
-    chartData?.indicators || {}
+    chartData?.indicators || {},
+    currentPrice || undefined // Pass live WebSocket price to AI
   );
   
   console.log("TradingDashboard - AI state:", { 

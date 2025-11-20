@@ -14,7 +14,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { messages, symbol, stream = true } = await req.json();
+    const { messages, symbol, livePrice, stream = true } = await req.json();
     
     // Validate input
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -84,11 +84,15 @@ serve(async (req) => {
         .order('timestamp', { ascending: false })
         .limit(20);
 
-      // Build context string
+      // Build context string with LIVE PRICE from WebSocket
       marketContext = `\n\n=== MARKET DATA FOR ${symbol} ===\n`;
       
+      if (livePrice) {
+        marketContext += `\n🔴 LIVE PRICE (WebSocket): $${livePrice}\n`;
+      }
+      
       if (snapshot) {
-        marketContext += `\nCurrent Snapshot:\n- Price: $${snapshot.price}\n- 24h Change: ${snapshot.change_24h}%\n- 24h Volume: $${snapshot.volume_24h}\n- Last Updated: ${snapshot.last_updated}\n`;
+        marketContext += `\nDatabase Snapshot (Reference):\n- Price: $${snapshot.price}\n- 24h Change: ${snapshot.change_24h}%\n- 24h Volume: $${snapshot.volume_24h}\n- Last Updated: ${snapshot.last_updated}\n`;
       }
 
       if (candles && candles.length > 0) {
