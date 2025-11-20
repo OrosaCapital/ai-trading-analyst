@@ -236,6 +236,5 @@ Translation handled in:
 
 **Removed/Deprecated**:
 - CoinMarketCap (replaced by Kraken)
-- Tatum (quota exhausted, replaced by Kraken)
 - API Ninjas (not used)
 

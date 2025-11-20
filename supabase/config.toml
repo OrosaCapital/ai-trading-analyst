@@ -11,6 +11,3 @@ verify_jwt = false
 
 [functions.fetch-kraken-candles]
 verify_jwt = false
-
-[functions.populate-kraken-price-logs]
-verify_jwt = false

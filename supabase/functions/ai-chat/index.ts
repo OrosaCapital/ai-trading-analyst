@@ -84,14 +84,6 @@ serve(async (req) => {
         .order('timestamp', { ascending: false })
         .limit(20);
 
-      // Get recent price logs
-      const { data: priceLogs } = await supabase
-        .from('tatum_price_logs')
-        .select('*')
-        .eq('symbol', symbol)
-        .order('timestamp', { ascending: false })
-        .limit(50);
-
       // Build context string
       marketContext = `\n\n=== MARKET DATA FOR ${symbol} ===\n`;
       
@@ -110,10 +102,6 @@ serve(async (req) => {
         const avgRate = (fundingRates.reduce((sum, r) => sum + Number(r.rate), 0) / fundingRates.length).toFixed(6);
         const latestRate = fundingRates[0].rate;
         marketContext += `\nFunding Rates:\n- Latest: ${latestRate}%\n- Average (last ${fundingRates.length}): ${avgRate}%\n- Exchanges: ${[...new Set(fundingRates.map(r => r.exchange))].join(', ')}\n`;
-      }
-
-      if (priceLogs && priceLogs.length > 0) {
-        marketContext += `\nPrice History (${priceLogs.length} data points available)\n`;
       }
 
       console.log('Market context built:', marketContext.substring(0, 200) + '...');

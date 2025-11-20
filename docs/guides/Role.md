@@ -70,7 +70,6 @@ Unless the user explicitly asks for options.
 - CoinGlass API → funding, open interest, derivatives
 
 No Binance (Supabase IP blocked).
-No Tatum (quota exhausted).
 No CMC (remove usage except legacy fallback if user requests).
 
 ⸻
@@ -104,15 +103,13 @@ This pipeline stays untouched.
 ### 4.1 – Minimal Kraken Migration (Foundational Architecture)
 
 These rules are mandatory:
-1. Replace price fetching with Kraken's Ticker endpoint
-2. Remove Tatum logic
-3. Remove CoinMarketCap logic
-4. Keep caching, DB structure, cron jobs
-5. Fetch OHLC candles once per hour (720 candles at a time)
-6. Keep WebSocket price stream simple
-7. Do not modify funding data pipeline
-8. No schema changes
-9. No complex retry or backoff logic
+1. Use Kraken's Ticker and OHLC endpoints for all price data
+2. Keep caching, DB structure, cron jobs
+3. Fetch OHLC candles once per hour (720 candles at a time)
+4. Keep WebSocket price stream simple
+5. Do not modify funding data pipeline
+6. No schema changes
+7. No complex retry or backoff logic
 
 This is the baseline design.
 
@@ -194,7 +191,7 @@ Lovable must NOT:
 - alter any database structure
 - introduce new cron jobs
 - remove or replace CoinGlass
-- reintroduce CMC or Tatum
+- reintroduce CMC
 - assume features the user has not asked for
 
 Lovable must ALWAYS:
