@@ -14,7 +14,8 @@ export function useAIAnalysis(
   symbol: string,
   candles1h: Candle[],
   candles15m: Candle[],
-  indicators: any
+  indicators: any,
+  livePrice?: number // Add live price from WebSocket
 ) {
   const hasShownToast = useRef(false);
 
@@ -64,6 +65,7 @@ Recent 1H Low: ${Math.min(...latest1h.map(c => c.low))}`;
             }
           ],
           symbol,
+          livePrice, // Pass live WebSocket price
           stream: false
         }
       });
