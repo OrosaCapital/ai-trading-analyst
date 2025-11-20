@@ -40,9 +40,10 @@ export function useAIAnalysis(
     queryFn: async () => {
       if (!symbol || candles1h.length < 10) return null;
 
-      const latest1h = candles1h.slice(-50);
-      const latest15m = candles15m.slice(-20);
-      const last1h = latest1h[latest1h.length - 1];
+      // Candles are sorted DESC (newest first), so take first N items for recent data
+      const latest1h = candles1h.slice(0, 50);
+      const latest15m = candles15m.slice(0, 20);
+      const last1h = latest1h[0]; // Most recent candle
 
       const summary = `Symbol: ${symbol}
 Current Price: ${last1h?.close || 0}
