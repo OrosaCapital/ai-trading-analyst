@@ -20,7 +20,7 @@ export default function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/" element={<RoleProtectedRoute requiredRole="superuser"><Dashboard /></RoleProtectedRoute>} />
         <Route path="/data-flow" element={<RoleProtectedRoute requiredRole="superuser"><DataFlowVisualization /></RoleProtectedRoute>} />
-        <Route path="/watchlist" element={<ProtectedRoute><AppShell><Watchlist /></AppShell></ProtectedRoute>} />
+        <Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
         <Route path="/symbol/:symbolParam" element={<SymbolDetails />} />
         <Route path="/trading" element={<TradingDashboard />} />
       </Routes>
