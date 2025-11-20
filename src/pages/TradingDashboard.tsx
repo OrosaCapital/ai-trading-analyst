@@ -14,6 +14,7 @@ import { formatPrice, formatVolume } from "@/lib/priceFormatter";
 import { Card } from "@/components/ui/card";
 import { useAIAnalysis } from "@/hooks/useAIAnalysis";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
+import { useRealtimePriceStream } from "@/hooks/useRealtimePriceStream";
 import { toast } from "@/hooks/use-toast";
 
 export default function TradingDashboard() {
@@ -42,6 +43,9 @@ export default function TradingDashboard() {
   
   // Automatically fetch fresh data when symbol changes
   const { isFetching: isFetchingFresh } = useFreshSymbolData(normalizedSymbol);
+  
+  // Real-time price stream from WebSocket
+  const { priceData, isConnected } = useRealtimePriceStream(normalizedSymbol, true);
   
   const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000, dateRange, timeframe, filters);
   const { chartData, isLoading: isChartLoading } = useProfessionalChartData(normalizedSymbol, dateRange, timeframe, filters);
@@ -72,10 +76,8 @@ export default function TradingDashboard() {
     }
   }, [chartData]);
 
-  const currentPrice =
-    candles.length > 0
-      ? candles[candles.length - 1].close
-      : null;
+  // Use real-time price from WebSocket, fallback to last candle if not available
+  const currentPrice = priceData?.price ?? (candles.length > 0 ? candles[candles.length - 1].close : null);
 
   console.log("TradingDashboard - chartData:", {
     has1h: !!chartData?.candles1h?.length,
