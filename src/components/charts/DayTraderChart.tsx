@@ -71,12 +71,12 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
     rsiChartRef.current = rsiChart;
 
     const candleSeries = priceChart.addSeries(CandlestickSeries, {
-      upColor: 'hsl(var(--chart-green))',
-      downColor: 'hsl(var(--chart-red))',
-      borderUpColor: 'hsl(var(--chart-green))',
-      borderDownColor: 'hsl(var(--chart-red))',
-      wickUpColor: 'hsl(var(--chart-green))',
-      wickDownColor: 'hsl(var(--chart-red))',
+      upColor: 'hsl(150, 100%, 45%)',      // Bright green for bullish
+      downColor: 'hsl(0, 85%, 60%)',       // Bright red for bearish
+      borderUpColor: 'hsl(150, 100%, 45%)',
+      borderDownColor: 'hsl(0, 85%, 60%)',
+      wickUpColor: 'hsl(150, 100%, 45%)',
+      wickDownColor: 'hsl(0, 85%, 60%)',
     });
 
     // Add volume first so it renders behind EMAs
@@ -104,7 +104,10 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       lastValueVisible: true,
       priceLineVisible: false,
     });
-    const vwapSeries = priceChart.addSeries(LineSeries, { color: 'hsl(var(--cyber-purple))', lineWidth: 2 });
+    const vwapSeries = priceChart.addSeries(LineSeries, { 
+      color: 'hsl(270, 100%, 65%)',  // Cyber purple
+      lineWidth: 2 
+    });
 
     const prevHighSeries = priceChart.addSeries(LineSeries, {
       color: 'hsla(var(--cyber-cyan), 0.4)',
