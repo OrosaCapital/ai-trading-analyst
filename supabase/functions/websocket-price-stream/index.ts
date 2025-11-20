@@ -76,10 +76,19 @@ Deno.serve(async (req) => {
       try {
         const data = JSON.parse(event.data);
         
+        // Log ALL messages from Kraken for debugging
+        console.log('📥 Kraken message:', JSON.stringify(data).substring(0, 200));
+        
         if (data.method === 'pong') return;
         
         if (data.channel === 'ticker' && data.data && data.data[0]) {
           const ticker = data.data[0];
+          console.log('💰 Sending price update:', {
+            symbol,
+            price: parseFloat(ticker.last || 0),
+            volume: parseFloat(ticker.volume || 0)
+          });
+          
           socket.send(JSON.stringify({
             type: "price_update",
             symbol: symbol,
@@ -87,6 +96,12 @@ Deno.serve(async (req) => {
             volume: parseFloat(ticker.volume || 0),
             timestamp: Date.now()
           }));
+        } else {
+          console.log('⚠️ Ticker data not in expected format:', { 
+            hasChannel: !!data.channel, 
+            hasData: !!data.data,
+            channel: data.channel 
+          });
         }
       } catch (error) {
         console.error('❌ Error processing Kraken message:', error);
