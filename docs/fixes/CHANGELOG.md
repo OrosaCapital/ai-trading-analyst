@@ -6,6 +6,35 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Timeframe Selector Implementation
+
+**Issue**: Timeframe selector (1h/4h/1d/1w) in FilterBar was not changing chart data - selecting different timeframes had no effect on displayed candles.
+
+**Root Cause**: 
+- `timeframe` state was being set in `TradingDashboard.tsx` but never passed to data fetching hooks
+- `useChartData` and `useProfessionalChartData` had hardcoded `.eq('timeframe', '1h')` in queries
+- Database queries were always fetching 1h candles regardless of user-selected timeframe
+
+**Solution**:
+- Added `timeframe` parameter to `useChartData` hook signature with default "1h"
+- Added `timeframe` parameter to `useProfessionalChartData` hook signature with default "1h"
+- Modified database queries to use the timeframe parameter instead of hardcoded '1h'
+- Pass `timeframe` from `TradingDashboard` to both hooks
+
+**Files Changed**:
+- Modified: `src/hooks/useChartData.ts` (lines 58-80, 162-166)
+- Modified: `src/hooks/useProfessionalChartData.ts` (lines 45-48, 164-169, 236-237)
+- Modified: `src/pages/TradingDashboard.tsx` (lines 42-43)
+
+**Impact**:
+- Timeframe selector now correctly switches between 1h, 4h, 1d, and 1w chart data
+- Charts reload with appropriate candles for selected timeframe
+- Both main chart and professional chart respect timeframe selection
+
+---
+
+## 2025-11-20
+
 ### Date Range Filter Implementation
 
 **Issue**: Date range selector in FilterBar was not filtering chart data - selecting custom date ranges had no effect on displayed candles.

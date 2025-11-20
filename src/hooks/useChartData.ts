@@ -58,7 +58,8 @@ function setCachedCandles(symbol: string, candles: Candle[]): void {
 export function useChartData(
   symbol: string, 
   basePrice: number = 50000,
-  dateRange?: { from: Date; to: Date } | null
+  dateRange?: { from: Date; to: Date } | null,
+  timeframe: "1h" | "4h" | "1d" | "1w" = "1h"
 ) {
   const [state, setState] = useState<ChartDataState>({
     candles: [],
@@ -80,7 +81,7 @@ export function useChartData(
         .from('market_candles')
         .select('*')
         .eq('symbol', symbol)
-        .eq('timeframe', '1h');
+        .eq('timeframe', timeframe); // Use selected timeframe
 
       // Apply date range filter if provided
       if (dateRange?.from && dateRange?.to) {
@@ -158,7 +159,7 @@ export function useChartData(
         isUsingFallback: true,
       });
     }
-  }, [symbol, basePrice, dateRange]);
+  }, [symbol, basePrice, dateRange, timeframe]);
 
   useEffect(() => {
     fetchCandles();

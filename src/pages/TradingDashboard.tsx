@@ -39,8 +39,8 @@ export default function TradingDashboard() {
   // Automatically fetch fresh data when symbol changes
   const { isFetching: isFetchingFresh } = useFreshSymbolData(normalizedSymbol);
   
-  const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000, dateRange);
-  const { chartData, isLoading: isChartLoading } = useProfessionalChartData(normalizedSymbol, dateRange);
+  const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000, dateRange, timeframe);
+  const { chartData, isLoading: isChartLoading } = useProfessionalChartData(normalizedSymbol, dateRange, timeframe);
 
   console.log("=== CHART DATA DEBUG ===", {
     chartDataExists: !!chartData,

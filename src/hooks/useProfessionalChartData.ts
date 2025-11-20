@@ -44,7 +44,8 @@ export interface ChartData {
 
 export function useProfessionalChartData(
   symbol: string | null,
-  dateRange?: { from: Date; to: Date } | null
+  dateRange?: { from: Date; to: Date } | null,
+  timeframe: "1h" | "4h" | "1d" | "1w" = "1h"
 ) {
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -166,7 +167,7 @@ export function useProfessionalChartData(
           .from('market_candles')
           .select('*')
           .eq('symbol', symbol)
-          .eq('timeframe', '1h');
+          .eq('timeframe', timeframe); // Use selected timeframe
 
         // Apply date range filter if provided
         if (dateRange?.from && dateRange?.to) {
@@ -234,7 +235,7 @@ export function useProfessionalChartData(
     };
 
     loadHistoricalData();
-  }, [symbol, dateRange, updateChartData]);
+  }, [symbol, dateRange, timeframe, updateChartData]);
 
   useEffect(() => {
     if (!symbol) return;
