@@ -105,14 +105,15 @@ When adding new issues, use this format:
 
 ## Monitoring Recommendations
 
-### For Tracked Symbols Issue
-Once implemented, monitor:
-- Cron job execution logs
-- Edge function invocation counts
-- Database write patterns
-- User feedback on data freshness
+### Tracked Symbols Auto-Refresh (✅ Implemented)
+Monitor the system health:
+- **Cron job status**: `SELECT * FROM cron.job WHERE jobname = 'refresh-tracked-symbols-every-5min';`
+- **Cron execution history**: `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;`
+- **Edge function logs**: Check `populate-market-data` logs for tracked symbol processing
+- **Data freshness**: Tracked symbols should update every 5-10 minutes
+- **User feedback**: Verify users see fresh data on tracked symbols
 
 ### General System Health
 - Query for symbols with old data: `SELECT symbol, MAX(updated_at) FROM market_candles GROUP BY symbol HAVING MAX(updated_at) < NOW() - INTERVAL '1 hour'`
-- Check cron job status: `SELECT * FROM cron.job;`
-- Edge function logs: Filter by function name and timestamp
+- Check tracked symbols: `SELECT symbol, active, added_at FROM tracked_symbols WHERE active = true;`
+- Edge function health: Monitor invocation counts and error rates
