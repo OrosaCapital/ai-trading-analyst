@@ -7,6 +7,7 @@
 
 ### Architecture
 - **SIMPLE_MODE_ARCHITECTURE.md** - Core architecture overview, data sources, and development guidelines
+- **DATA_FLOW_DIAGRAM.md** - Visual data flow from APIs through database to AI analysis
 
 ### API Integration
 - **COINGLASS_API.md** - CoinGlass API integration guide, endpoints, and usage patterns
