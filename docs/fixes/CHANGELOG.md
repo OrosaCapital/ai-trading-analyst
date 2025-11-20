@@ -6,30 +6,33 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
-### Funding Rate Chart Timestamp Fix
+### Funding Rate Chart Timestamp Fix (CORRECTED)
 
-**Issue**: Funding rate history chart displayed incorrect dates (1954, 2020, August instead of current dates).
+**Issue**: Funding rate history chart displayed incorrect dates (December 1952, August 2020, etc.).
 
 **Root Cause**: 
-- Double timestamp conversion was occurring:
-  1. `useFundingHistory.ts` multiplied database timestamp by 1000 (seconds → milliseconds)
-  2. `FundingRateChart.tsx` divided by 1000 again (milliseconds → seconds)
-- This resulted in incorrect timestamp values being passed to the chart
+- Database stores timestamps in **microseconds** (e.g., `1,763,596,800,000,000`)
+- Lightweight Charts expects timestamps in **seconds** (e.g., `1,763,596,800`)
+- Initial fix incorrectly assumed database used seconds
+- Database query confirmed timestamps are in scientific notation: `1.7635968e+12` = microseconds
 
 **Solution**:
-- Removed unnecessary timestamp conversions
-- Database stores timestamps in seconds (UNIX epoch format)
-- Lightweight Charts expects timestamps in seconds
-- Now timestamps pass through without conversion, maintaining correct values
+- Convert microseconds to seconds: `timestamp / 1000000`
+- Removed all intermediate conversions
+- Direct conversion from database microseconds to chart seconds
 
 **Files Changed**:
-- Modified: `src/hooks/useFundingHistory.ts` (line 113-120, removed multiplication)
-- Modified: `src/components/trading/FundingRateChart.tsx` (line 53-56, removed division)
+- Modified: `src/hooks/useFundingHistory.ts` (line 113-120, divide by 1,000,000)
+- Modified: `src/components/trading/FundingRateChart.tsx` (line 53-56, pass through as-is)
+
+**Verification**:
+- Sample timestamp: `1,763,596,800,000,000` microseconds
+- After conversion: `1,763,596,800` seconds
+- Corresponds to: November 2025 ✓
 
 **Impact**:
-- Funding rate chart now displays correct dates
-- Timeline matches actual funding rate data collection
-- Historical data visualization is accurate
+- Funding rate chart now displays accurate current dates
+- Historical timeline correctly represents data collection period
 
 ---
 

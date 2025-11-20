@@ -110,9 +110,10 @@ export function useFundingHistory(symbol: string, exchange: string = 'Binance') 
         return;
       }
 
-      // Transform to candle format (keep timestamp as-is, already in correct format)
+      // Transform to candle format
+      // Database stores timestamps in microseconds, convert to seconds for Lightweight Charts
       const candles: FundingCandle[] = dbHistory.map((entry: any) => ({
-        time: entry.timestamp,
+        time: entry.timestamp / 1000000, // Convert microseconds to seconds
         open: parseFloat(entry.rate),
         high: parseFloat(entry.rate),
         low: parseFloat(entry.rate),
