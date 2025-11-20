@@ -9,9 +9,6 @@ import Auth from "./pages/Auth";
 import DataFlowVisualization from "./pages/DataFlowVisualization";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RoleProtectedRoute } from "./components/RoleProtectedRoute";
-import { assertEnv } from "./config/env";
-
-assertEnv();
 
 export default function App() {
   return (

@@ -6,6 +6,41 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Removed Legacy Frontend API Key References (Security Fix)
+
+**Issue**: Console showing errors about missing environment variables `VITE_COINGLASS_API_KEY`, `VITE_COINMARKETCAP_API_KEY`, and `VITE_API_NINJAS_KEY`.
+
+**Root Cause**:
+- Legacy code in `src/config/env.ts` was trying to load API keys into frontend
+- `assertEnv()` function was checking for these keys and logging warnings
+- **This is a security anti-pattern** - API keys should NEVER be exposed to frontend code
+- These keys exist in backend secrets (where they belong) but were incorrectly being referenced in frontend
+
+**Security Context**:
+- API keys in frontend = publicly visible in browser (anyone can steal them)
+- Correct architecture: API keys ONLY in edge functions (backend)
+- Frontend calls edge functions → edge functions use secrets → secure
+
+**Solution**:
+1. Removed API key references from `src/config/env.ts`
+2. Removed `assertEnv()` call from `src/App.tsx`
+3. Added security comment explaining why API keys don't belong in frontend
+4. All API calls already go through edge functions (correct pattern)
+
+**Impact**:
+- Console errors eliminated
+- Security improved (no API key exposure risk)
+- Cleaner codebase following proper backend/frontend separation
+
+**Files Changed**:
+- Modified: `src/config/env.ts` (removed API key references and assertEnv function)
+- Modified: `src/App.tsx` (removed assertEnv call)
+
+**Architecture Note**:
+Frontend should never access API keys. All external API calls must go through edge functions where secrets are properly secured.
+
+---
+
 ### WebSocket Edge Function Configuration Missing
 
 **Issue**: WebSocket showing "WebSocket Offline" and console showing "failed: There was a bad response from the server" when attempting to connect to `websocket-price-stream` edge function.
