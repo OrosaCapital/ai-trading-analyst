@@ -228,9 +228,13 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
 
       return () => {
         window.removeEventListener('resize', handleResize);
-        chart.remove();
-        chartRef.current = null;
-        setChartReady(false);
+        try {
+          chart.remove();
+          chartRef.current = null;
+          setChartReady(false);
+        } catch (e) {
+          console.warn('Chart cleanup skipped:', e);
+        }
       };
     } catch (err) {
       console.error('❌ Chart initialization failed:', err);
@@ -253,10 +257,26 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
         return;
       }
 
-      console.log(`📈 Updating chart with ${candles.length} candles for ${activeTimeframe}`);
+      // Filter out null/invalid candles
+      const safeCandles = candles.filter(
+        (c: any) =>
+          c &&
+          c.time != null &&
+          c.open != null &&
+          c.high != null &&
+          c.low != null &&
+          c.close != null
+      );
+
+      if (safeCandles.length === 0) {
+        console.warn('⚠️ No valid candles after filtering');
+        return;
+      }
+
+      console.log(`📈 Updating chart with ${safeCandles.length} candles for ${activeTimeframe}`);
 
       // Update candlestick data
-      candleSeriesRef.current.setData(candles.map((c: any) => ({
+      candleSeriesRef.current.setData(safeCandles.map((c: any) => ({
         time: c.time as Time,
         open: c.open,
         high: c.high,
@@ -266,30 +286,46 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
 
       // Update volume data
       if (volumeSeriesRef.current) {
-        volumeSeriesRef.current.setData(candles.map((c: any) => ({
-          time: c.time as Time,
-          value: c.volume || 0,
-          color: c.close >= c.open ? '#22c55e' : '#ef4444', // Bright green/red for volume
-        })));
+        const safeVolume = safeCandles
+          .map((c: any) => ({
+            time: c.time as Time,
+            value: c.volume || 0,
+            color: c.close >= c.open ? '#22c55e' : '#ef4444',
+          }))
+          .filter((v: any) => v.value != null);
+
+        if (safeVolume.length > 0) {
+          volumeSeriesRef.current.setData(safeVolume);
+        }
       }
 
       // Update EMA data
       const indicators = chartData.indicators?.[activeTimeframe.toLowerCase()];
       if (emaSeriesRef.current && indicators?.ema50) {
-        const emaData = candles.map((c: any, i: number) => ({
-          time: c.time as Time,
-          value: indicators.ema50[i] || c.close,
-        }));
-        emaSeriesRef.current.setData(emaData);
+        const emaData = safeCandles
+          .map((c: any, i: number) => ({
+            time: c.time as Time,
+            value: indicators.ema50[i] || c.close,
+          }))
+          .filter((e: any) => e.value != null);
+
+        if (emaData.length > 0) {
+          emaSeriesRef.current.setData(emaData);
+        }
       }
 
       // Update RSI data
       if (rsiSeriesRef.current && indicators?.rsi) {
-        const rsiData = candles.map((c: any, i: number) => ({
-          time: c.time as Time,
-          value: indicators.rsi[i] || 50,
-        }));
-        rsiSeriesRef.current.setData(rsiData);
+        const rsiData = safeCandles
+          .map((c: any, i: number) => ({
+            time: c.time as Time,
+            value: indicators.rsi[i] || 50,
+          }))
+          .filter((r: any) => r.value != null);
+
+        if (rsiData.length > 0) {
+          rsiSeriesRef.current.setData(rsiData);
+        }
       }
 
       console.log('✅ Chart data updated successfully');

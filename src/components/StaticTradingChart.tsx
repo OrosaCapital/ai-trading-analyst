@@ -17,7 +17,8 @@ export const StaticTradingChart = ({ candles, signals }: StaticTradingChartProps
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
+    try {
+      const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: 'hsl(var(--foreground))',
@@ -58,41 +59,69 @@ export const StaticTradingChart = ({ candles, signals }: StaticTradingChartProps
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      chart.remove();
+      try {
+        chart.remove();
+      } catch (e) {
+        console.warn('Chart cleanup skipped:', e);
+      }
     };
+    } catch (e) {
+      console.warn('Chart initialization skipped:', e);
+    }
   }, []);
 
   useEffect(() => {
-    if (!candleSeriesRef.current || !candles.length) return;
+    if (!candleSeriesRef.current || !candles || !candles.length) return;
 
-    const formattedCandles = candles.map(c => ({
-      time: c.time as any,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close
-    }));
+    try {
+      // Filter out null/invalid candles
+      const safeCandles = candles.filter(
+        (c) =>
+          c &&
+          c.time != null &&
+          c.open != null &&
+          c.high != null &&
+          c.low != null &&
+          c.close != null
+      );
 
-    candleSeriesRef.current.setData(formattedCandles);
+      if (safeCandles.length === 0) return;
 
-    if (signals.length > 0) {
-      const markers = signals.map(signal => ({
-        time: signal.time as any,
-        position: signal.position,
-        color: signal.color,
-        shape: signal.shape,
-        text: signal.text,
+      const formattedCandles = safeCandles.map(c => ({
+        time: c.time as any,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close
       }));
-      
-      // V5 API: Use createSeriesMarkers instead of series.setMarkers
-      if (markersRef.current) {
-        markersRef.current.setMarkers(markers);
-      } else {
-        markersRef.current = createSeriesMarkers(candleSeriesRef.current, markers);
+
+      candleSeriesRef.current.setData(formattedCandles);
+
+      if (signals && signals.length > 0) {
+        const safeSignals = signals.filter(s => s && s.time != null);
+        
+        if (safeSignals.length > 0) {
+          const markers = safeSignals.map(signal => ({
+            time: signal.time as any,
+            position: signal.position,
+            color: signal.color,
+            shape: signal.shape,
+            text: signal.text,
+          }));
+          
+          // V5 API: Use createSeriesMarkers instead of series.setMarkers
+          if (markersRef.current) {
+            markersRef.current.setMarkers(markers);
+          } else {
+            markersRef.current = createSeriesMarkers(candleSeriesRef.current, markers);
+          }
+        }
+      } else if (markersRef.current) {
+        // Clear markers if no signals
+        markersRef.current.setMarkers([]);
       }
-    } else if (markersRef.current) {
-      // Clear markers if no signals
-      markersRef.current.setMarkers([]);
+    } catch (e) {
+      console.warn('Chart update skipped:', e);
     }
   }, [candles, signals]);
 

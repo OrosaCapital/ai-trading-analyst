@@ -20,6 +20,8 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
     console.log('DayTraderChart received:', candles?.length, 'candles for', symbol);
     if (!containerRef.current || !candles || candles.length === 0) return;
 
+    try {
+
     if (priceChartRef.current) priceChartRef.current.remove();
     if (macdChartRef.current) macdChartRef.current.remove();
     if (rsiChartRef.current) rsiChartRef.current.remove();
@@ -79,6 +81,23 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       height: rsiContainer.clientHeight,
     });
     rsiChartRef.current = rsiChart;
+
+    // Filter out null/invalid candles
+    const safeCandles = candles.filter(
+      (c) =>
+        c &&
+        c.time != null &&
+        c.open != null &&
+        c.high != null &&
+        c.low != null &&
+        c.close != null &&
+        c.volume != null
+    );
+
+    if (safeCandles.length === 0) {
+      console.warn('No valid candles after filtering');
+      return;
+    }
 
     const candleSeries = priceChart.addSeries(CandlestickSeries, {
       upColor: 'hsl(150, 100%, 45%)',      // Bright green for bullish
@@ -160,75 +179,136 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
       lineStyle: 2,
     });
 
-    const prices = candles.map(c => c.close);
+    // Calculate indicator data
+    const prices = safeCandles.map(c => c.close);
     const ema9 = calculateEMA(prices, 9);
     const ema21 = calculateEMA(prices, 21);
     const ema50 = calculateEMA(prices, 50);
-    const vwap = calculateVWAP(candles);
-    const volumeData = calculateVolumeSeries(candles);
-    const { prevHigh, prevLow } = getPreviousDayLevels(candles);
-    const { macdLine, signalLine, histogram } = calculateMACD(candles);
     const rsi = calculateRSI(prices, 14);
+    const vwapData = calculateVWAP(safeCandles);
+    const { prevHigh, prevLow } = getPreviousDayLevels(safeCandles);
+    const { macdLine, signalLine, histogram } = calculateMACD(safeCandles);
+    const volumeSeriesData = calculateVolumeSeries(safeCandles);
 
-    candleSeries.setData(candles.map(c => ({ 
-      time: c.time as any, 
-      open: c.open, 
-      high: c.high, 
-      low: c.low, 
-      close: c.close 
-    })));
+    // Add candle data
+    const formattedCandles = safeCandles.map(c => ({
+      time: c.time as any,
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close
+    }));
 
-    if (ema9.length > 0) {
-      ema9Series.setData(candles.slice(8).map((c, i) => ({ time: c.time as any, value: ema9[i + 8] })));
-    }
-    if (ema21.length > 0) {
-      ema21Series.setData(candles.slice(20).map((c, i) => ({ time: c.time as any, value: ema21[i + 20] })));
-    }
-    if (ema50.length > 0) {
-      ema50Series.setData(candles.slice(49).map((c, i) => ({ time: c.time as any, value: ema50[i + 49] })));
-    }
+    candleSeries.setData(formattedCandles);
 
-    vwapSeries.setData(vwap.map(v => ({ time: v.time as any, value: v.value })));
-    volumeSeries.setData(volumeData.map(v => ({ time: v.time as any, value: v.value, color: v.color })));
-
-    if (prevHigh !== null && prevLow !== null) {
-      prevHighSeries.setData(candles.map(c => ({ time: c.time as any, value: prevHigh })));
-      prevLowSeries.setData(candles.map(c => ({ time: c.time as any, value: prevLow })));
+    const safeVolumeData = volumeSeriesData.filter(v => v && v.time != null && v.value != null);
+    if (safeVolumeData.length > 0) {
+      volumeSeries.setData(safeVolumeData.map(v => ({ 
+        time: v.time as any, 
+        value: v.value, 
+        color: v.color 
+      })));
     }
 
-    macdLineSeries.setData(macdLine.map(m => ({ time: m.time as any, value: m.value })));
-    macdSignalSeries.setData(signalLine.map(s => ({ time: s.time as any, value: s.value })));
-    macdHistSeries.setData(histogram.map(h => ({ time: h.time as any, value: h.value, color: h.color })));
+    // Add EMA data
+    if (ema9 && ema9.length > 0) {
+      const ema9Data = safeCandles.slice(8).map((c, i) => ({ time: c.time as any, value: ema9[i + 8] }))
+        .filter(e => e && e.value != null);
+      if (ema9Data.length > 0) ema9Series.setData(ema9Data);
+    }
+    if (ema21 && ema21.length > 0) {
+      const ema21Data = safeCandles.slice(20).map((c, i) => ({ time: c.time as any, value: ema21[i + 20] }))
+        .filter(e => e && e.value != null);
+      if (ema21Data.length > 0) ema21Series.setData(ema21Data);
+    }
+    if (ema50 && ema50.length > 0) {
+      const ema50Data = safeCandles.slice(49).map((c, i) => ({ time: c.time as any, value: ema50[i + 49] }))
+        .filter(e => e && e.value != null);
+      if (ema50Data.length > 0) ema50Series.setData(ema50Data);
+    }
 
-    if (rsi.length > 0) {
-      const rsiData = candles.slice(14).map((c, i) => ({ time: c.time as any, value: rsi[i] }));
-      rsiSeries.setData(rsiData);
+    // Add VWAP
+    if (vwapData && vwapData.length > 0) {
+      const safeVwap = vwapData.filter(v => v && v.time != null && v.value != null);
+      if (safeVwap.length > 0) {
+        vwapSeries.setData(safeVwap.map(v => ({ time: v.time as any, value: v.value })));
+      }
+    }
 
-      const ob = rsiData.map(r => ({ time: r.time, value: 70 }));
-      const os = rsiData.map(r => ({ time: r.time, value: 30 }));
-      const mid = rsiData.map(r => ({ time: r.time, value: 50 }));
+    // Add previous day levels
+    if (prevHigh != null && prevLow != null) {
+      const timeRange = safeCandles.map(c => c.time);
+      prevHighSeries.setData(timeRange.map(t => ({ time: t as any, value: prevHigh })));
+      prevLowSeries.setData(timeRange.map(t => ({ time: t as any, value: prevLow })));
+    }
 
-      rsiOverbought.setData(ob);
-      rsiOversold.setData(os);
-      rsiMidline.setData(mid);
+    if (macdLine && macdLine.length > 0) {
+      const safeMacd = macdLine.filter(m => m && m.time != null && m.value != null);
+      if (safeMacd.length > 0) macdLineSeries.setData(safeMacd.map(m => ({ time: m.time as any, value: m.value })));
+    }
+    if (signalLine && signalLine.length > 0) {
+      const safeSignal = signalLine.filter(s => s && s.time != null && s.value != null);
+      if (safeSignal.length > 0) macdSignalSeries.setData(safeSignal.map(s => ({ time: s.time as any, value: s.value })));
+    }
+    if (histogram && histogram.length > 0) {
+      const safeHist = histogram.filter(h => h && h.time != null && h.value != null);
+      if (safeHist.length > 0) macdHistSeries.setData(safeHist.map(h => ({ time: h.time as any, value: h.value, color: h.color })));
+    }
+
+    if (rsi && rsi.length > 0) {
+      const rsiData = safeCandles.slice(14).map((c, i) => ({ time: c.time as any, value: rsi[i] }))
+        .filter(r => r.value != null);
+      
+      if (rsiData.length > 0) {
+        rsiSeries.setData(rsiData);
+
+        const ob = rsiData.map(r => ({ time: r.time, value: 70 }));
+        const os = rsiData.map(r => ({ time: r.time, value: 30 }));
+        const mid = rsiData.map(r => ({ time: r.time, value: 50 }));
+
+        rsiOverbought.setData(ob);
+        rsiOversold.setData(os);
+        rsiMidline.setData(mid);
+      }
     }
 
     const syncCharts = (sourceChart: IChartApi, targetCharts: IChartApi[]) => {
-      sourceChart.timeScale().subscribeVisibleTimeRangeChange(range => {
-        if (range) {
-          targetCharts.forEach(chart => chart.timeScale().setVisibleRange(range));
-        }
-      });
+      try {
+        sourceChart.timeScale().subscribeVisibleTimeRangeChange(range => {
+          if (range && range.from != null && range.to != null) {
+            targetCharts.forEach(chart => {
+              try {
+                if (chart && chart.timeScale) {
+                  chart.timeScale().setVisibleRange(range);
+                }
+              } catch (e) {
+                console.warn('Chart sync skipped:', e);
+              }
+            });
+          }
+        });
+      } catch (e) {
+        console.warn('Chart sync setup skipped:', e);
+      }
     };
 
     syncCharts(priceChart, [macdChart, rsiChart]);
     syncCharts(macdChart, [priceChart, rsiChart]);
     syncCharts(rsiChart, [priceChart, macdChart]);
 
-    if (candles.length > 0) {
-      const from = candles[Math.max(0, candles.length - 120)].time as any;
-      const to = candles[candles.length - 1].time as any;
-      priceChart.timeScale().setVisibleRange({ from, to });
+    if (safeCandles.length > 0) {
+      const lastCandle = safeCandles[safeCandles.length - 1];
+      const firstVisibleCandle = safeCandles[Math.max(0, safeCandles.length - 120)];
+      
+      if (lastCandle && firstVisibleCandle && lastCandle.time != null && firstVisibleCandle.time != null) {
+        try {
+          const from = firstVisibleCandle.time as any;
+          const to = lastCandle.time as any;
+          priceChart.timeScale().setVisibleRange({ from, to });
+        } catch (e) {
+          console.warn('Set visible range skipped:', e);
+        }
+      }
     }
 
     const handleResize = () => {
@@ -281,6 +361,9 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
         console.warn('RSI chart already disposed:', e);
       }
     };
+    } catch (e) {
+      console.warn('Chart initialization skipped:', e);
+    }
   }, [candles, symbol]);
 
   return (
