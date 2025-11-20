@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.ai-chat]
 verify_jwt = false
 
+[functions.admin-support-chat]
+verify_jwt = true
+
 [functions.populate-market-data]
 verify_jwt = false
 

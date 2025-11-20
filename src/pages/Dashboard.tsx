@@ -8,13 +8,16 @@ import { SystemAlerts } from "../components/admin/SystemAlerts";
 import { BackendStatus } from "../components/admin/BackendStatus";
 import { EdgeFunctionsList } from "../components/admin/EdgeFunctionsList";
 import { DatabaseIndicators } from "../components/admin/DatabaseIndicators";
+import { AdminSupportChat } from "../components/admin/AdminSupportChat";
 import { Card } from "@/components/ui/card";
 import { useMarketData } from "../hooks/useMarketData";
 import { useSystemHealth } from "../hooks/useSystemHealth";
+import { useSystemAlertsStore } from "../store/useSystemAlertsStore";
 
 export function Dashboard() {
   const { validation, isLoading, error } = useMarketData();
   const { data: healthData } = useSystemHealth();
+  const alerts = useSystemAlertsStore((state) => state.alerts);
 
   const kpis = useMemo(() => {
     if (!healthData?.metrics) {
@@ -87,6 +90,13 @@ export function Dashboard() {
 
             {/* Primary Widget - System Alerts */}
             <SystemAlerts />
+
+            {/* Admin Support Chat */}
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
+              <div className="h-[500px]">
+                <AdminSupportChat systemAlerts={alerts} />
+              </div>
+            </div>
 
             {/* Secondary Widgets - Max 5-6 total */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
