@@ -57,8 +57,40 @@ export function translateToKraken(symbol: string): string {
 }
 
 /**
- * Translate Kraken symbol (XXBTZUSD) to standard format (BTCUSDT)
+ * Convert Kraken symbol to WebSocket v1 API format with slash
+ * Example: XXBTZUSD -> XBT/USD
  */
-export function translateFromKraken(krakenSymbol: string): string {
-  return REVERSE_MAP[krakenSymbol] || krakenSymbol;
+export function toKrakenWSFormat(krakenSymbol: string): string {
+  // Common Kraken WebSocket v1 API pair formats
+  const wsFormatMap: Record<string, string> = {
+    'XXBTZUSD': 'XBT/USD',
+    'XETHZUSD': 'ETH/USD',
+    'XXRPZUSD': 'XRP/USD',
+    'SOLUSD': 'SOL/USD',
+    'BNBUSD': 'BNB/USD',
+    'ADAUSD': 'ADA/USD',
+    'XDGUSD': 'DOGE/USD',
+    'MATICUSD': 'MATIC/USD',
+    'DOTUSD': 'DOT/USD',
+    'AVAXUSD': 'AVAX/USD',
+    'LINKUSD': 'LINK/USD',
+    'UNIUSD': 'UNI/USD',
+    'ATOMUSD': 'ATOM/USD',
+    'XLTCZUSD': 'LTC/USD',
+    'XETCZUSD': 'ETC/USD',
+    'XXLMZUSD': 'XLM/USD',
+    'PAXGUSD': 'PAXG/USD',
+  };
+  
+  if (wsFormatMap[krakenSymbol]) {
+    return wsFormatMap[krakenSymbol];
+  }
+  
+  // Fallback: try to add slash before last 3-4 chars (USD/USDT)
+  if (krakenSymbol.endsWith('USD')) {
+    const base = krakenSymbol.slice(0, -3);
+    return `${base}/USD`;
+  }
+  
+  return krakenSymbol;
 }

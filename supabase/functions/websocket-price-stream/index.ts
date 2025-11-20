@@ -36,22 +36,23 @@ Deno.serve(async (req) => {
 
     console.log(`📡 Connecting to Kraken WebSocket for ${symbol}...`);
     
-    const { translateToKraken } = await import('../_shared/krakenSymbols.ts');
+    const { translateToKraken, toKrakenWSFormat } = await import('../_shared/krakenSymbols.ts');
     const krakenSymbol = translateToKraken(symbol);
+    const wsSymbol = toKrakenWSFormat(krakenSymbol);
     
-    console.log(`🔗 Kraken pair: ${krakenSymbol} (original: ${symbol})`);
+    console.log(`🔗 Kraken pair: ${krakenSymbol} -> WS format: ${wsSymbol} (original: ${symbol})`);
     
     // Use Kraken v1 API (not v2)
     coinglassWS = new WebSocket('wss://ws.kraken.com/');
     
     coinglassWS.onopen = () => {
-      console.log(`✅ Kraken WebSocket connected for ${krakenSymbol}`);
+      console.log(`✅ Kraken WebSocket connected for ${wsSymbol}`);
       reconnectAttempts = 0;
       
-      // v1 API subscription format
+      // v1 API subscription format with SLASH
       const subscribeMsg = {
         event: 'subscribe',
-        pair: [krakenSymbol],
+        pair: [wsSymbol],  // Must be "XBT/USD" format with slash!
         subscription: { name: 'ticker' }
       };
       
