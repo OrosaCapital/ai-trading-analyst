@@ -45,7 +45,7 @@ export interface ChartData {
 export function useProfessionalChartData(
   symbol: string | null,
   dateRange?: { from: Date; to: Date } | null,
-  timeframe: "1h" | "4h" | "1d" | "1w" = "1h",
+  timeframe: "15m" | "1h" | "4h" | "1d" | "1w" = "1h",
   filters?: { minVolume: number; maxVolume: number; showOnlySignals: boolean }
 ) {
   const [chartData, setChartData] = useState<ChartData | null>(null);

@@ -6,6 +6,31 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Added 15-Minute Timeframe
+
+**Enhancement**: Added 15-minute timeframe option to chart filters for more granular intraday analysis.
+
+**Changes**:
+- Added "15m" as a timeframe option in FilterBar dropdown
+- Updated TypeScript type definitions to include "15m" in timeframe union types
+- Modified `FilterBar.tsx`, `TradingDashboard.tsx`, `useChartData.ts`, and `useProfessionalChartData.ts` to support 15m timeframe
+- 15-minute option appears first in the dropdown for quick access
+
+**Files Changed**:
+- Modified: `src/components/trading/FilterBar.tsx` (lines 51-68, 210-221)
+- Modified: `src/pages/TradingDashboard.tsx` (line 23)
+- Modified: `src/hooks/useChartData.ts` (line 61)
+- Modified: `src/hooks/useProfessionalChartData.ts` (line 48)
+
+**Impact**:
+- Traders can now view charts with 15-minute candles
+- Better support for day trading and scalping strategies
+- More granular timeframe options: 15m, 1h, 4h, 1d, 1w
+
+---
+
+## 2025-11-20
+
 ### Default Filter Settings
 
 **Issue**: Chart filters had no default values - users had to manually set symbol, timeframe, and date range on every page load.
