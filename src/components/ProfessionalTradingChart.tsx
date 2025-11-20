@@ -266,7 +266,7 @@ export const ProfessionalTradingChart = ({ symbol, existingChartData }: Professi
         volumeSeriesRef.current.setData(candles.map((c: any) => ({
           time: c.time as Time,
           value: c.volume || 0,
-          color: c.close >= c.open ? '#22c55e80' : '#ef444480',
+          color: c.close >= c.open ? '#22c55e' : '#ef4444', // Bright green/red for volume
         })));
       }
 
