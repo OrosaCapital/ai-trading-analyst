@@ -6,6 +6,75 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Watchlist Page Layout and Real-Time Price Fix
+
+**Issue**: Watchlist page had multiple layout and UX issues:
+- Inconsistent header layout compared to other pages
+- Static prices from database instead of live WebSocket updates
+- Poor card spacing and readability
+- Cluttered stats section
+- No visual feedback for live connection status
+- Inconsistent typography and component sizing
+
+**Root Cause**:
+- Watchlist cards were using static `current_price` from database
+- No integration with `useRealtimePriceStream` hook
+- Header layout differed from TradingDashboard pattern
+- Stats cards had inconsistent sizing and spacing
+- Missing visual indicators for real-time data status
+
+**Solution**:
+1. **Created dedicated WatchlistCard component**:
+   - Integrated `useRealtimePriceStream` for each symbol
+   - Added live connection indicator with animated pulse
+   - Larger, more readable price display (text-3xl)
+   - Real-time 24h change percentage with trend icons
+   - Better action button layout and spacing
+   - Improved card hover effects and transitions
+
+2. **Refactored Watchlist page layout**:
+   - Unified header structure with TradingDashboard
+   - Consistent header height and spacing (h-14)
+   - Simplified stats grid (3 columns on desktop)
+   - Larger stat numbers (text-3xl) for better readability
+   - Improved empty state with better visual hierarchy
+   - Better responsive grid (1/2/3 columns for mobile/tablet/desktop)
+
+3. **Enhanced visual consistency**:
+   - Matched card styling with TradingDashboard KPI cards
+   - Consistent border colors (border-border/50)
+   - Unified backdrop blur effects
+   - Better text contrast and hierarchy
+   - Proper spacing between all elements
+
+**Files Changed**:
+- Created: `src/components/watchlist/WatchlistCard.tsx` (new component)
+- Modified: `src/pages/Watchlist.tsx` (complete layout refactor)
+
+**Technical Details**:
+```typescript
+// Before (static price):
+<span className="text-2xl font-bold">{formatPrice(item.current_price)}</span>
+
+// After (real-time price with WebSocket):
+const { priceData, isConnected } = useRealtimePriceStream(item.symbol, true);
+const currentPrice = priceData?.price ?? item.current_price;
+<span className="text-3xl font-bold">{formatPrice(currentPrice)}</span>
+```
+
+**Impact**:
+- All watchlist prices now update in real-time
+- Consistent layout and navigation across all pages
+- Better readability with improved typography
+- Visual feedback for live data connections
+- Cleaner, more professional appearance
+- Better responsive behavior on all screen sizes
+- Users can see which symbols are actively streaming live data
+
+---
+
+## 2025-11-20
+
 ### Real-Time Price Display Fix (Multiple Components)
 
 **Issue**: Multiple components across the app were displaying stale prices from historical candle data instead of live prices from Kraken WebSocket.
