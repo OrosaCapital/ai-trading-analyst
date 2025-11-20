@@ -6,6 +6,30 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Chart Timezone Localization
+
+**Enhancement**: Charts now explicitly display timestamps in the user's local timezone with 12-hour format.
+
+**Implementation**:
+- Added `localization.timeFormatter` to chart configurations in both DayTraderChart and ProfessionalTradingChart
+- Timestamps automatically convert from UTC/Unix format to user's browser timezone
+- Time displayed in 12-hour format with AM/PM for consistency with LiveClock
+- Uses browser's `Date.toLocaleTimeString()` for automatic timezone detection
+
+**Files Changed**:
+- Modified: `src/components/charts/DayTraderChart.tsx` (lines 34-57)
+- Modified: `src/components/ProfessionalTradingChart.tsx` (lines 136-162)
+
+**Impact**:
+- Chart time axis displays in user's local timezone (EST, PST, etc.)
+- Consistent time format across all UI elements
+- No manual timezone configuration needed
+- Works automatically for all global users
+
+---
+
+## 2025-11-20
+
 ### Live Clock with Auto-Detected Timezone
 
 **Enhancement**: Added real-time clock display to trading dashboard that automatically detects and shows user's local timezone.
