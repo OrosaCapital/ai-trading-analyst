@@ -6,33 +6,33 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
-### Funding Rate Chart Timestamp Fix (CORRECTED)
+### Funding Rate Chart Timestamp Fix (FINAL)
 
-**Issue**: Funding rate history chart displayed incorrect dates (December 1952, August 2020, etc.).
+**Issue**: Funding rate history chart displayed incorrect dates (January 21st, 1970).
 
 **Root Cause**: 
-- Database stores timestamps in **microseconds** (e.g., `1,763,596,800,000,000`)
-- Lightweight Charts expects timestamps in **seconds** (e.g., `1,763,596,800`)
-- Initial fix incorrectly assumed database used seconds
-- Database query confirmed timestamps are in scientific notation: `1.7635968e+12` = microseconds
+- Database stores timestamps in **MILLISECONDS** (from Coinglass API standard format)
+- Coinglass API returns timestamps like `1658880000000` (milliseconds)
+- Lightweight Charts expects timestamps in **SECONDS**
+- Previous attempts incorrectly assumed seconds or microseconds
+
+**Verification via SQL**:
+```sql
+to_timestamp(timestamp/1000) -- ✓ Shows 2025-11-03 (CORRECT)
+to_timestamp(timestamp/1000000) -- ✗ Shows 1970-01-21 (user's issue)
+to_timestamp(timestamp) -- ✗ Shows year 57811 (way off)
+```
 
 **Solution**:
-- Convert microseconds to seconds: `timestamp / 1000000`
-- Removed all intermediate conversions
-- Direct conversion from database microseconds to chart seconds
+- Convert milliseconds to seconds: `timestamp / 1000`
+- Direct conversion from Coinglass format to chart format
 
 **Files Changed**:
-- Modified: `src/hooks/useFundingHistory.ts` (line 113-120, divide by 1,000,000)
-- Modified: `src/components/trading/FundingRateChart.tsx` (line 53-56, pass through as-is)
-
-**Verification**:
-- Sample timestamp: `1,763,596,800,000,000` microseconds
-- After conversion: `1,763,596,800` seconds
-- Corresponds to: November 2025 ✓
+- Modified: `src/hooks/useFundingHistory.ts` (line 113-121, divide by 1,000)
 
 **Impact**:
-- Funding rate chart now displays accurate current dates
-- Historical timeline correctly represents data collection period
+- Funding rate chart now displays current November 2025 dates correctly
+- Aligns with Coinglass API timestamp standard (milliseconds)
 
 ---
 

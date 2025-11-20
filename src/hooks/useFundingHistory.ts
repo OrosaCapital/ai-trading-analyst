@@ -111,9 +111,10 @@ export function useFundingHistory(symbol: string, exchange: string = 'Binance') 
       }
 
       // Transform to candle format
-      // Database stores timestamps in microseconds, convert to seconds for Lightweight Charts
+      // Database stores timestamps in MILLISECONDS (from Coinglass API)
+      // Lightweight Charts expects SECONDS
       const candles: FundingCandle[] = dbHistory.map((entry: any) => ({
-        time: entry.timestamp / 1000000, // Convert microseconds to seconds
+        time: entry.timestamp / 1000, // Convert milliseconds to seconds
         open: parseFloat(entry.rate),
         high: parseFloat(entry.rate),
         low: parseFloat(entry.rate),
