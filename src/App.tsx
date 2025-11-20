@@ -3,7 +3,6 @@ import { AppShell } from "./components/layout/AppShell";
 import { AdminShell } from "./components/layout/AdminShell";
 import { Dashboard } from "./pages/Dashboard";
 import Watchlist from "./pages/Watchlist";
-import AITrading from "./pages/AITrading";
 import TradingDashboard from "./pages/TradingDashboard";
 import SymbolDetails from "./pages/SymbolDetails";
 import Auth from "./pages/Auth";
@@ -22,7 +21,6 @@ export default function App() {
         <Route path="/" element={<RoleProtectedRoute requiredRole="superuser"><Dashboard /></RoleProtectedRoute>} />
         <Route path="/data-flow" element={<RoleProtectedRoute requiredRole="superuser"><DataFlowVisualization /></RoleProtectedRoute>} />
         <Route path="/watchlist" element={<ProtectedRoute><AppShell><Watchlist /></AppShell></ProtectedRoute>} />
-        <Route path="/ai-trading" element={<ProtectedRoute><AppShell><AITrading /></AppShell></ProtectedRoute>} />
         <Route path="/symbol/:symbolParam" element={<SymbolDetails />} />
         <Route path="/trading" element={<TradingDashboard />} />
       </Routes>
