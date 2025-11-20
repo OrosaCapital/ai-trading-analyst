@@ -1,4 +1,4 @@
-import { Home, TrendingUp, BarChart3, Settings } from "lucide-react";
+import { Home, TrendingUp, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -15,7 +15,6 @@ import {
 const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Trading", url: "/trading", icon: TrendingUp },
-  { title: "AI Analysis", url: "/ai-trading", icon: BarChart3 },
   { title: "Watchlist", url: "/watchlist", icon: Settings },
 ];
 
