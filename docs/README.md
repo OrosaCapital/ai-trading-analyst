@@ -18,6 +18,7 @@
 ### Fixes & Maintenance
 - **fixes/CHANGELOG.md** - Complete history of bug fixes, optimizations, and system improvements
 - **fixes/KNOWN_ISSUES.md** - Active and resolved issues with detailed tracking
+- **fixes/SYSTEM_SUMMARY.md** - High-level overview of how the system works (start here for new developers/AI)
 
 ## Project Overview
 

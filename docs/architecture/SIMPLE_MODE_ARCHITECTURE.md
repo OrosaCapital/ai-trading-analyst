@@ -78,11 +78,13 @@ When users navigate to a symbol:
 
 ### Auto Refresh (Tracked Symbols)
 For symbols marked as "tracked" by users:
-- **Mechanism**: pg_cron scheduled job (every 5 minutes) - *Pending Implementation*
+- **Mechanism**: pg_cron scheduled job (every 5 minutes) - **✅ Implemented**
+- **Cron Job**: `refresh-tracked-symbols-every-5min` runs via `cron.schedule()`
 - **Target**: Symbols with `tracked_symbols.active = true`
 - **Condition**: Only refreshes if data is >5 minutes old
-- **Function**: Calls `populate-market-data` for each tracked symbol
+- **Function**: Calls `populate-market-data` edge function via HTTP POST
 - **Purpose**: Keep actively monitored symbols updated without user intervention
+- **Monitoring**: Check `SELECT * FROM cron.job;` and edge function logs
 
 ### Rate Limiting Strategy
 To prevent API abuse and respect external API limits:
@@ -102,8 +104,9 @@ To prevent API abuse and respect external API limits:
    - Benefit: Reduces database load and edge function invocations
 
 3. **Cron Level** (5-minute intervals with freshness checks)
-   - Location: Database `refresh_tracked_symbols()` function
-   - Checks: Data age before each refresh attempt
+   - Location: pg_cron job `refresh-tracked-symbols-every-5min`
+   - Implementation: Calls `populate-market-data` edge function via HTTP POST
+   - Checks: Edge function validates data age before each refresh
    - Action: Only fetch if data >5 minutes old
    - Benefit: Ensures tracked symbols stay current without overwhelming system
 
