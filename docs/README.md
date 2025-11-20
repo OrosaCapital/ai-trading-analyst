@@ -14,6 +14,10 @@
 ### Library Reference
 - **LIBRARY_REFERENCE.md** - Library versions and API patterns (lightweight-charts, React, etc.)
 
+### Fixes & Maintenance
+- **fixes/CHANGELOG.md** - Complete history of bug fixes, optimizations, and system improvements
+- **fixes/KNOWN_ISSUES.md** - Active and resolved issues with detailed tracking
+
 ## Project Overview
 
 This is a **Simple Mode Trading Dashboard** built with:
