@@ -6,6 +6,49 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### AI Analysis Using Wrong Candle Data
+
+**Issue**: AI was giving completely incorrect price targets (e.g., $48k for XRP when real price was $2.13) because it was analyzing old historical candle data instead of current data.
+
+**Root Cause**:
+- Candles are fetched in descending order (newest first) from the database
+- The code was using `.slice(-50)` which takes the LAST 50 items from the array
+- When array is sorted DESC, last 50 items = OLDEST 50 candles
+- Then it took `[length-1]` from that slice, getting the absolute oldest candle
+- AI was analyzing prices from days/weeks ago, not current market conditions
+
+**Incorrect Logic**:
+```typescript
+// WRONG - Analyzes oldest data
+const latest1h = candles1h.slice(-50);  // Gets last 50 = oldest 50
+const last1h = latest1h[latest1h.length - 1];  // Gets oldest candle
+```
+
+**Corrected Logic**:
+```typescript
+// CORRECT - Analyzes newest data  
+const latest1h = candles1h.slice(0, 50);  // Gets first 50 = newest 50
+const last1h = latest1h[0];  // Gets most recent candle
+```
+
+**Impact**:
+- AI now analyzes current market conditions, not outdated data
+- Price targets and entry/exit recommendations are accurate
+- Trading signals reflect real-time market state
+- Eliminates bizarre price suggestions (like $48k for XRP)
+
+**Files Changed**:
+- Modified: `src/hooks/useAIAnalysis.ts` (lines 43-46)
+
+**Testing**:
+- Verified XRP shows correct current price (~$2.13) to AI
+- Confirmed AI generates realistic entry/exit targets
+- All symbols now use most recent candle data for analysis
+
+---
+
+## 2025-11-20
+
 ### WebSocket Authentication for Real-Time Price Streaming
 
 **Issue**: WebSocket connections to the price stream were failing silently - no real-time price updates were being received even though the edge function was deployed.
