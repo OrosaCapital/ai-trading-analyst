@@ -7,6 +7,7 @@ import AITrading from "./pages/AITrading";
 import TradingDashboard from "./pages/TradingDashboard";
 import SymbolDetails from "./pages/SymbolDetails";
 import Auth from "./pages/Auth";
+import DataFlowVisualization from "./pages/DataFlowVisualization";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RoleProtectedRoute } from "./components/RoleProtectedRoute";
 import { assertEnv } from "./config/env";
@@ -19,6 +20,7 @@ export default function App() {
       <Routes>
         <Route path="/auth" element={<Auth />} />
         <Route path="/" element={<RoleProtectedRoute requiredRole="superuser"><Dashboard /></RoleProtectedRoute>} />
+        <Route path="/data-flow" element={<RoleProtectedRoute requiredRole="superuser"><DataFlowVisualization /></RoleProtectedRoute>} />
         <Route path="/watchlist" element={<ProtectedRoute><AppShell><Watchlist /></AppShell></ProtectedRoute>} />
         <Route path="/ai-trading" element={<ProtectedRoute><AppShell><AITrading /></AppShell></ProtectedRoute>} />
         <Route path="/symbol/:symbolParam" element={<SymbolDetails />} />
