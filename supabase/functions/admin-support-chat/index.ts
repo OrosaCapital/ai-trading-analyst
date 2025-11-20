@@ -24,7 +24,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        message,
+        chatInput: message,
         systemContext,
         timestamp: new Date().toISOString(),
         source: "admin-panel"
