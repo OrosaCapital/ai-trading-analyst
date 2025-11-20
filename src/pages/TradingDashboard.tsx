@@ -18,6 +18,13 @@ import { toast } from "@/hooks/use-toast";
 
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
+  const [timeframe, setTimeframe] = useState<"1h" | "4h" | "1d" | "1w">("1d");
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(null);
+  const [filters, setFilters] = useState({
+    minVolume: 0,
+    maxVolume: Infinity,
+    showOnlySignals: false,
+  });
 
   const normalizeSymbol = (sym: string) => {
     const clean = sym.toUpperCase().replace(/\//g, "").trim();
@@ -140,7 +147,16 @@ export default function TradingDashboard() {
           <header className="flex items-center border-b border-border/40 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
             <SidebarTrigger className="ml-4" />
             <div className="flex-1">
-              <FilterBar symbol={symbol} onSymbolChange={setSymbol} />
+              <FilterBar 
+                symbol={symbol} 
+                onSymbolChange={setSymbol}
+                timeframe={timeframe}
+                onTimeframeChange={setTimeframe}
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
             </div>
           </header>
 
