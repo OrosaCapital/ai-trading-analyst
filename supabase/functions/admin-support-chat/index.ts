@@ -31,11 +31,24 @@ serve(async (req) => {
       }),
     });
 
+    console.log("Webhook response status:", webhookResponse.status);
+    
+    // Try to get the response text regardless of status
+    const responseText = await webhookResponse.text();
+    console.log("Webhook response body:", responseText);
+
     if (!webhookResponse.ok) {
-      throw new Error(`Webhook returned ${webhookResponse.status}`);
+      throw new Error(`Webhook returned ${webhookResponse.status}: ${responseText}`);
     }
 
-    const responseData = await webhookResponse.json();
+    // Parse JSON response
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Failed to parse webhook response as JSON:", e);
+      responseData = { message: responseText };
+    }
 
     return new Response(
       JSON.stringify({ 
