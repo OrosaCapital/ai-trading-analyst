@@ -6,6 +6,29 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
+### Default Filter Settings
+
+**Issue**: Chart filters had no default values - users had to manually set symbol, timeframe, and date range on every page load.
+
+**Solution**:
+- Set default symbol to "BTCUSDT" (Bitcoin)
+- Set default timeframe to "1h" (1 hour) instead of "1d"
+- Set default date range to today (from start of day to current time)
+- Initialize dateRange state with a function that calculates today's date range dynamically
+
+**Files Changed**:
+- Modified: `src/pages/TradingDashboard.tsx` (lines 21-29)
+
+**Impact**:
+- Users now see Bitcoin (BTC) chart data immediately on page load
+- Chart displays 1-hour timeframe by default
+- Date range automatically set to today's trading session
+- Better user experience with sensible defaults
+
+---
+
+## 2025-11-20
+
 ### Candlestick Color Fix
 
 **Issue**: All candlesticks appearing black instead of showing green (bullish) and red (bearish) colors.
