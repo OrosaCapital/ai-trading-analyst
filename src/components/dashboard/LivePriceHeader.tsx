@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { useRealtimePriceStream } from '@/hooks/useRealtimePriceStream';
 interface LivePriceHeaderProps {
   symbol?: string;
   marketData?: {
@@ -15,67 +16,19 @@ export const LivePriceHeader = ({
   symbol = 'BTC',
   marketData
 }: LivePriceHeaderProps) => {
-  const [price, setPrice] = useState<number | null>(null);
+  // Real-time price from WebSocket
+  const { priceData, isConnected, lastUpdateTime } = useRealtimePriceStream(`${symbol}USDT`, true);
+  
   const [priceOneMinuteAgo, setPriceOneMinuteAgo] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use real-time price from WebSocket
+  const price = priceData?.price ?? null;
+  const isLoading = !isConnected;
+  const lastUpdate = lastUpdateTime ? new Date(lastUpdateTime) : null;
 
-  // Fetch current price from CoinMarketCap and 1-minute ago price from logs
-  const fetchPrice = async () => {
-    try {
-      // Fetch current price
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('fetch-cmc-price', {
-        body: {
-          symbol: `${symbol}USD`
-        }
-      });
-      if (error) {
-        console.error('Error fetching price:', error);
-        setError('Failed to fetch price');
-        return;
-      }
-      if (data?.unavailable) {
-        setError('Price data unavailable');
-        return;
-      }
-      if (data?.price) {
-        setPrice(data.price);
-        setLastUpdate(new Date());
-        setError(null);
-      }
-
-      // TODO: Fetch price from 1 minute ago from cmc_price_logs after migration
-      // const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
-      // const { data: logData, error: logError } = await supabase
-      //   .from('cmc_price_logs')
-      //   .select('price')
-      //   .eq('symbol', `${symbol}USD`)
-      //   .eq('interval', '1m')
-      //   .lte('timestamp', oneMinuteAgo.toISOString())
-      //   .order('timestamp', { ascending: false })
-      //   .limit(1)
-      //   .single();
-      // if (!logError && logData) {
-      //   setPriceOneMinuteAgo(logData.price);
-      // }
-    } catch (err) {
-      console.error('Price fetch error:', err);
-      setError('Connection error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // REMOVED: No polling for price data - WebSocket only
-  // Price updates come from useRealtimePriceStream hook
-  useEffect(() => {
-    if (!symbol) return;
-    // No fetch - WebSocket handles all real-time data
-  }, [symbol]);
+  // Real-time price updates handled by useRealtimePriceStream hook
+  // No polling needed - WebSocket provides live data
 
   // Calculate 1-minute price change
   const priceChange = priceOneMinuteAgo && price ? price - priceOneMinuteAgo : 0;

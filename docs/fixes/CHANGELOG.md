@@ -6,40 +6,64 @@ This document tracks all bug fixes, optimizations, and system improvements with 
 
 ## 2025-11-20
 
-### Real-Time Price Display Fix
+### Real-Time Price Display Fix (Multiple Components)
 
-**Issue**: Trading dashboard showed stale prices from historical candle data instead of live prices from Kraken WebSocket.
+**Issue**: Multiple components across the app were displaying stale prices from historical candle data instead of live prices from Kraken WebSocket.
+
+**Affected Components**:
+1. `TradingDashboard` - Main trading page current price
+2. `DayTraderChartContainer` - Market insights panel price
+3. `LivePriceHeader` - Dashboard header live price display
 
 **Root Cause**:
-- `TradingDashboard` was using `candles[candles.length - 1].close` for current price
-- This pulled the last historical candle's close price, which could be minutes or hours old
-- Real-time WebSocket stream (`useRealtimePriceStream`) was running but not being used for price display
+- All three components were using stale historical candle data for current price display
+- `candles[candles.length - 1].close` pulls the last historical candle's close price
+- Historical candles could be minutes or hours old depending on timeframe
+- Real-time WebSocket stream existed but wasn't integrated into these components
 - Example: Dashboard showed XRP at $2.07 while Kraken live price was $2.13
 
 **Solution**:
-- Integrated `useRealtimePriceStream` hook into `TradingDashboard`
-- Changed current price to use real-time WebSocket data: `priceData?.price`
-- Added fallback to last candle price if WebSocket not yet connected
-- Real-time price updates now reflect live market prices instantly
+1. **TradingDashboard**:
+   - Integrated `useRealtimePriceStream` hook
+   - Changed current price to use real-time WebSocket data: `priceData?.price`
+   - Added fallback to last candle price if WebSocket not yet connected
+
+2. **DayTraderChartContainer**:
+   - Added `useRealtimePriceStream` hook integration
+   - Passes real-time `currentPrice` to `MarketInsightsPanel`
+   - VWAP calculations and market insights now use live prices
+
+3. **LivePriceHeader**:
+   - Replaced stub implementation with actual `useRealtimePriceStream` integration
+   - Removed old polling/fetch code that was commented out
+   - Now displays true real-time price with WebSocket connection status
 
 **Files Changed**:
-- Modified: `src/pages/TradingDashboard.tsx` (lines 17-19, 45-48, 77-80)
+- Modified: `src/pages/TradingDashboard.tsx` (lines 17-19, 45-51, 77-78)
+- Modified: `src/components/charts/DayTraderChartContainer.tsx` (lines 1-8, 17-27, 103-111)
+- Modified: `src/components/dashboard/LivePriceHeader.tsx` (lines 1-5, 16-30)
 
 **Technical Details**:
 ```typescript
-// Before:
-const currentPrice = candles.length > 0 ? candles[candles.length - 1].close : null;
+// Before (all components):
+const currentPrice = candles[candles.length - 1]?.close || 0;
 
-// After:
-const { priceData, isConnected } = useRealtimePriceStream(normalizedSymbol, true);
-const currentPrice = priceData?.price ?? (candles.length > 0 ? candles[candles.length - 1].close : null);
+// After (TradingDashboard & DayTraderChartContainer):
+const { priceData, isConnected } = useRealtimePriceStream(symbol, true);
+const currentPrice = priceData?.price ?? (candles[candles.length - 1]?.close || 0);
+
+// After (LivePriceHeader):
+const { priceData, isConnected, lastUpdateTime } = useRealtimePriceStream(`${symbol}USDT`, true);
+const price = priceData?.price ?? null;
 ```
 
 **Impact**:
-- Current price now updates in real-time (every few seconds)
-- Eliminates price discrepancies between dashboard and exchange
-- Users see accurate live market prices
+- All price displays now update in real-time (every few seconds)
+- Eliminates price discrepancies across the entire application
+- Market insights calculations (VWAP deviation) now use live prices
+- Users see consistent, accurate live market prices everywhere
 - Maintains graceful fallback to historical data during WebSocket connection delays
+- WebSocket connection status visible to users
 
 ---
 

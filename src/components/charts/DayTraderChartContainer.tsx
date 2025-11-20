@@ -5,6 +5,7 @@ import type { Candle } from "@/lib/indicators";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useRealtimePriceStream } from "@/hooks/useRealtimePriceStream";
 
 interface DayTraderChartContainerProps {
   symbol: string;
@@ -21,6 +22,11 @@ export function DayTraderChartContainer({
   isUsingFallback = false,
   error = null
 }: DayTraderChartContainerProps) {
+  // Real-time price stream from WebSocket
+  const { priceData } = useRealtimePriceStream(symbol, true);
+  
+  // Use real-time price, fallback to last candle
+  const currentPrice = priceData?.price ?? (candles[candles.length - 1]?.close || 0);
   
   if (isLoading) {
     return (
@@ -104,7 +110,7 @@ export function DayTraderChartContainer({
         <h4 className="text-sm font-semibold mb-3">Market Intelligence</h4>
         <MarketInsightsPanel 
           symbol={symbol} 
-          currentPrice={candles[candles.length - 1]?.close || 0}
+          currentPrice={currentPrice}
           candles={candles}
           isUsingFallback={isUsingFallback}
         />
