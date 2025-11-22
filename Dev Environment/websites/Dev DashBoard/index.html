@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orosa Capital - Dev Dashboard</title>
+    <style>
+        :root {
+            --color-bg: #111827;
+            --color-card: #1F2937;
+            --color-border: #374151;
+            --color-text: #F9FAFB;
+            --color-text-muted: #9CA3AF;
+            --color-green: #34D399;
+            --color-red: #F87171;
+            --color-yellow: #FBBF24;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            margin: 0;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 2.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        p.lead {
+            color: var(--color-text-muted);
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+        }
+        .welcome {
+            background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(59,130,246,0.15));
+            border: 1px solid rgba(52,211,153,0.35);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+        .sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.25rem;
+        }
+        .card {
+            background-color: var(--color-card);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: row;
+            gap: 1rem;
+        }
+        .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .status-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 4.5rem;
+            gap: 0.5rem;
+        }
+        .status-indicator {
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 9999px;
+            background-color: var(--color-yellow);
+            box-shadow: 0 0 10px var(--color-yellow);
+            transition: all 0.3s ease;
+        }
+        .status-indicator.online {
+            background-color: var(--color-green);
+            box-shadow: 0 0 10px var(--color-green);
+        }
+        .status-indicator.offline {
+            background-color: var(--color-red);
+            box-shadow: 0 0 10px var(--color-red);
+        }
+        .card-content {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+            flex-grow: 1;
+            word-break: break-word;
+        }
+        .card-footer {
+            margin-top: 1.5rem;
+            font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            background-color: var(--color-bg);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+        }
+        .last-checked {
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+        a {
+            color: var(--color-green);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Dev Environment Status</h1>
+    <p class="lead">Live indicators for all local development services and dependencies.</p>
+    <div class="welcome">
+        Welcome back, builder. Your stack is warming up — keep it fast, keep it clean, and ship something you’re proud of today.
+    </div>
+
+    <div class="sections">
+        <section>
+            <div class="section-title">Active Services</div>
+            <div class="grid" id="services-grid"></div>
+        </section>
+        <section>
+            <div class="section-title">Key Dependencies</div>
+            <div class="grid" id="dependencies-grid"></div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const services = [
+                { name: 'OCAPX Trader', port: 8080, path: '/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst', cmd: 'pnpm dev' },
+                { name: 'Cannabis Card Smart Website', port: 5174, path: '/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/cannacardz', cmd: 'pnpm dev' },
+                { name: 'Future Site', port: 3000, path: '/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/Dev Environment/websites/cc.com', cmd: 'pnpm start' },
+                { name: 'Supabase Studio', port: 54321, path: 'Any Supabase project', cmd: 'supabase start' }
+            ];
+
+            const dependencies = [
+                { name: 'Node.js', cmd: 'node -v' },
+                { name: 'pnpm', cmd: 'pnpm -v' },
+                { name: 'Supabase CLI', cmd: 'supabase -v' }
+            ];
+
+            const servicesGrid = document.getElementById('services-grid');
+            const depsGrid = document.getElementById('dependencies-grid');
+
+            // Render service cards
+            services.forEach(service => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="status-stack">
+                        <div id="status-${service.port}" class="status-indicator" title="Checking..."></div>
+                        <span style="font-size:0.75rem;color:var(--color-text-muted);">Status</span>
+                    </div>
+                    <div class="card-body">
+                        <h2 class="card-title">${service.name}</h2>
+                        <div class="card-content">
+                            <p>URL: <a href="http://localhost:${service.port}" target="_blank">http://localhost:${service.port}</a></p>
+                            <p>Path: ${service.path}</p>
+                        </div>
+                        <div class="card-footer">
+                            <span>${service.cmd}</span>
+                        </div>
+                        <div class="last-checked" id="last-checked-${service.port}">
+                            Last checked: --
+                        </div>
+                    </div>
+                `;
+                servicesGrid.appendChild(card);
+            });
+
+            // Render dependency cards
+            dependencies.forEach(dep => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-body">
+                        <h2 class="card-title">${dep.name}</h2>
+                        <div class="card-content">
+                            <p>Check your installed version from the terminal.</p>
+                        </div>
+                        <div class="card-footer">
+                            <span>${dep.cmd}</span>
+                        </div>
+                    </div>
+                `;
+                depsGrid.appendChild(card);
+            });
+
+            // Health check logic
+            services.forEach(service => {
+                const statusIndicator = document.getElementById(`status-${service.port}`);
+                const lastChecked = document.getElementById(`last-checked-${service.port}`);
+                
+                // Use a controller to timeout the fetch request
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+                fetch(`http://localhost:${service.port}`, { mode: 'no-cors', signal: controller.signal })
+                    .then(response => {
+                        const timestamp = new Date().toLocaleTimeString();
+                        statusIndicator.classList.remove('offline');
+                        statusIndicator.classList.add('online');
+                        statusIndicator.title = `Online as of ${timestamp}`;
+                        lastChecked.textContent = `Last checked: ${timestamp}`;
+                    })
+                    .catch(err => {
+                        const timestamp = new Date().toLocaleTimeString();
+                        statusIndicator.classList.remove('online');
+                        statusIndicator.classList.add('offline');
+                        statusIndicator.title = `Offline as of ${timestamp}`;
+                        lastChecked.textContent = `Last checked: ${timestamp}`;
+                    })
+                    .finally(() => {
+                        clearTimeout(timeoutId);
+                    });
+            });
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OCAPX Trader — UI Preview</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-relay-http="http://localhost:4000" data-default-symbol="XRP/USD">
+    <div class="app">
+      <header class="site-header">
+        <div class="brand">
+          <img src="assets/ocapx-logo-light.svg" alt="OCAPX" class="brand-logo" />
+          <span class="brand-text">Trader</span>
+        </div>
+        <nav class="top-nav">
+          <a href="#">Dashboard</a>
+          <a href="#">Charts</a>
+          <a href="#">Signals</a>
+          <a href="#">Settings</a>
+        </nav>
+        <div class="header-actions">
+          <button id="theme-toggle">Dark</button>
+        </div>
+      </header>
+
+      <div class="layout">
+        <main class="main">
+          <section class="page-header">
+            <div class="page-header__primary">
+              <div>
+                <p class="eyebrow">Command Center</p>
+                <h1>Trader Dashboard</h1>
+                <p class="subheading">Live market posture, positions, and signal flow.</p>
+              </div>
+              <div class="live-price-display" aria-live="polite">
+                <div class="symbol-select">
+                  <span class="symbol-label">Symbol</span>
+                  <strong id="live-symbol">BTC/USD</strong>
+                </div>
+                <div class="price-readout">
+                  <span id="live-price">$0.00</span>
+                  <small id="live-price-delta">0.00%</small>
+                </div>
+              </div>
+              <div class="page-controls">
+                <input id="symbol-input" class="control-input" aria-label="Symbol" value="XRP/USD" />
+                <select aria-label="Timeframe" id="timeframe-select">
+                  <option>1m</option>
+                  <option>5m</option>
+                  <option>15m</option>
+                  <option>1h</option>
+                </select>
+                <button id="market-refresh" class="btn secondary">Refresh</button>
+                <span id="canonical-pair" title="Kraken canonical pair" class="command-chip">Canonical: —</span>
+                <span id="snapshot-status" class="command-chip">Idle</span>
+              </div>
+            </div>
+
+            <nav class="tabs" aria-label="dashboard tabs">
+              <a class="active" href="#">Summary</a>
+            </nav>
+          </section>
+          <section class="metrics-row" aria-label="market snapshots">
+            <article class="metric-card indicator-summary">
+              <span class="metric-status" data-connected="true" aria-label="Indicator feeds status"></span>
+              <p class="metric-label">Live Indicators</p>
+              <h2><span id="indicator-live-count">0</span>/<span id="indicator-total-count">0</span></h2>
+              <span class="metric-delta up" id="indicator-live-percentage">0%</span>
+              <small id="indicator-live-note">Awaiting feeds...</small>
+            </article>
+            <article class="metric-card">
+              <span class="metric-status" data-connected="true" aria-label="Data connected"></span>
+              <p class="metric-label">1m Bias</p>
+              <h2>Momentum Long</h2>
+              <span class="metric-delta up">+1.8%</span>
+              <small>Last sync 12s ago</small>
+            </article>
+            <article class="metric-card">
+              <span class="metric-status" data-connected="true" aria-label="Data connected"></span>
+              <p class="metric-label">5m Signal</p>
+              <h2>Liquidity Sweep</h2>
+              <span class="metric-delta neutral">+0.3%</span>
+              <small>VWAP aligned</small>
+            </article>
+            <article class="metric-card">
+              <span class="metric-status" data-connected="false" aria-label="Data disconnected"></span>
+              <p class="metric-label">15m / 1h</p>
+              <h2>Range Expansion</h2>
+              <span class="metric-delta down">-0.6%</span>
+              <small>Watch EMA(21)</small>
+            </article>
+          </section>
+
+          <section class="grid">
+            <div class="card chart-large">
+              <div class="card-title">Main Chart</div>
+              <div class="chart-panel">
+                <div class="chart-main">
+                  <div class="chart-grid"></div>
+                  <div class="chart-slot" id="main-chart">
+                    <div id="tv-chart" class="tv-chart" role="img" aria-label="Empty chart placeholder"></div>
+                  </div>
+                </div>
+                <aside class="chart-side" aria-label="chart insights">
+                  <div class="mini-card spark">
+                    <p class="mini-label">Momentum</p>
+                    <div class="sparkline"></div>
+                  </div>
+                  <div class="mini-card gauge">
+                    <p class="mini-label">Flow Dial</p>
+                    <div class="chart-gauge">
+                      <div class="chart-gauge__ring"></div>
+                      <div class="chart-gauge__dot"></div>
+                    </div>
+                  </div>
+                  <div class="mini-card stats">
+                    <div>
+                      <span>Net Flow</span>
+                      <strong id="net-flow">+3.8%</strong>
+                    </div>
+                    <div>
+                      <span>Liquidity</span>
+                      <strong id="liquidity">$24.5M</strong>
+                    </div>
+                    <div>
+                      <span>Signal</span>
+                      <strong id="signal">Bias Long</strong>
+                    </div>
+                    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.04);margin:8px 0" />
+                    <div>
+                      <span>Funding Rate</span>
+                      <strong id="funding-rate">—</strong>
+                    </div>
+                    <div>
+                      <span>Open Interest</span>
+                      <strong id="open-interest">—</strong>
+                    </div>
+                    <div>
+                      <span>Market Cap</span>
+                      <strong id="market-cap">—</strong>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+
+            <div class="card indicators">
+              <div class="card-title">Indicators</div>
+              <div class="indicator-list">
+                <div class="indicator" data-indicator="ema" data-connected="false">
+                  <span class="indicator-status" aria-label="Data connected"></span>
+                  <p class="feed-label">Kraken API Public</p>
+                  <div class="indicator-body">
+                    EMA(9): <strong id="ema9-val">—</strong>
+                    <span class="divider">|</span>
+                    EMA(21): <strong id="ema21-val">—</strong>
+                  </div>
+                </div>
+                <div class="indicator" data-indicator="rsi" data-connected="false">
+                  <span class="indicator-status" aria-label="Data connected"></span>
+                  <p class="feed-label">CoinMarketCap API</p>
+                  <div class="indicator-body">
+                    RSI(14): <strong id="rsi14-val">—</strong>
+                  </div>
+                </div>
+                <div class="indicator" data-indicator="macd" data-connected="false">
+                  <span class="indicator-status" aria-label="Data connected"></span>
+                  <p class="feed-label">CoinMarketCap API</p>
+                  <div class="indicator-body">
+                    MACD(12,26,9): <strong id="macd-val">—</strong>
+                    <small id="macd-signal-val" class="indicator-meta">(sig: —)</small>
+                  </div>
+                </div>
+                <div class="indicator" data-indicator="vwap" data-connected="false">
+                  <span class="indicator-status" aria-label="Data disconnected"></span>
+                  <p class="feed-label">CoinGlass</p>
+                  <div class="indicator-body">
+                    VWAP (Session): <strong id="vwap-val">—</strong>
+                  </div>
+                </div>
+                <div class="indicator" data-indicator="atr" data-connected="false">
+                  <span class="indicator-status" aria-label="Data disconnected"></span>
+                  <p class="feed-label">Volatility</p>
+                  <div class="indicator-body">
+                    ATR(14): <strong id="atr14-val">—</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card small">
+              <div class="card-title">Order Flow</div>
+              <div class="chart-slot small-slot"></div>
+            </div>
+
+            <div class="card small">
+              <div class="card-title">Position Panel</div>
+              <div class="panel-body">No data — UI only</div>
+            </div>
+
+            <div class="card wide">
+              <div class="card-title">Recent Signals</div>
+              <div class="panel-body signals">No signals — UI only</div>
+            </div>
+          </section>
+
+          <section class="sidebar-stack" aria-label="workspace utilities">
+            <div class="sidebar-card nav-card">
+              <p class="sidebar-title">Workspace</p>
+              <ul>
+                <li class="active">Overview</li>
+                <li>Markets</li>
+                <li>Strategies</li>
+                <li>History</li>
+                <li>Account</li>
+              </ul>
+            </div>
+            <div class="sidebar-card preset-card">
+              <p class="sidebar-title">Preset Windows</p>
+              <div class="timeframe-list">
+                <button type="button" class="chip active">1m</button>
+                <button type="button" class="chip">5m</button>
+                <button type="button" class="chip">15m</button>
+                <button type="button" class="chip">1h</button>
+              </div>
+            </div>
+            <div class="sidebar-card pulse-card">
+              <p class="sidebar-title">Market Pulse</p>
+              <div class="pulse-stat">
+                <span>Volatility</span>
+                <strong>Low</strong>
+              </div>
+              <div class="pulse-stat">
+                <span>Sentiment</span>
+                <strong>Moderate Bullish</strong>
+              </div>
+              <div class="pulse-stat">
+                <span>HubSpot Sync</span>
+                <strong>Operational</strong>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <footer class="site-footer">OCAPX Trader — UI skin preview</footer>
+    </div>
+
+    <!-- Lightweight Charts (UI-only) -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

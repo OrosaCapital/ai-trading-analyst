@@ -1,0 +1,113 @@
+
+> vite_react_shadcn_ts@0.0.0 dev /Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst
+> vite
+
+
+  VITE v5.4.19  ready in 138 ms
+
+  ➜  Local:   http://localhost:8080/
+  ➜  Network: http://172.20.9.122:8080/
+Error:   Failed to scan for dependencies from entries:
+  /Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/index.html
+
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "calculateEMA"[0m
+
+    src/components/charts/AdvancedChart.tsx:4:9:
+[37m      4 │ import { [32mcalculateEMA[37m, calculateRSI } from '@/lib/indicators';
+        ╵          [32m~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "calculateRSI"[0m
+
+    src/components/charts/AdvancedChart.tsx:4:23:
+[37m      4 │ import { calculateEMA, [32mcalculateRSI[37m } from '@/lib/indicators';
+        ╵                        [32m~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "calculateEMA"[0m
+
+    src/components/charts/DayTraderChart.tsx:4:9:
+[37m      4 │ import { [32mcalculateEMA[37m, calculateRSI } from '@/lib/indicators';
+        ╵          [32m~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "calculateRSI"[0m
+
+    src/components/charts/DayTraderChart.tsx:4:23:
+[37m      4 │ import { calculateEMA, [32mcalculateRSI[37m } from '@/lib/indicators';
+        ╵                        [32m~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "generateSampleCandles"[0m
+
+    src/hooks/useChartData.ts:5:9:
+[37m      5 │ import { [32mgenerateSampleCandles[37m } from '@/lib/indicators';
+        ╵          [32m~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "calculateEMA"[0m
+
+    src/hooks/useProfessionalChartData.ts:6:2:
+[37m      6 │   [32mcalculateEMA[37m,
+        ╵   [32m~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "calculateRSI"[0m
+
+    src/hooks/useProfessionalChartData.ts:7:2:
+[37m      7 │   [32mcalculateRSI[37m,
+        ╵   [32m~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "calculateVolumeSMA"[0m
+
+    src/hooks/useProfessionalChartData.ts:8:2:
+[37m      8 │   [32mcalculateVolumeSMA[37m,
+        ╵   [32m~~~~~~~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "detectSwingPoints"[0m
+
+    src/hooks/useProfessionalChartData.ts:9:2:
+[37m      9 │   [32mdetectSwingPoints[37m,
+        ╵   [32m~~~~~~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "detectLiquiditySweeps"[0m
+
+    src/hooks/useProfessionalChartData.ts:10:2:
+[37m      10 │   [32mdetectLiquiditySweeps[37m,
+         ╵   [32m~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "detectSupportResistance"[0m
+
+    src/hooks/useProfessionalChartData.ts:11:2:
+[37m      11 │   [32mdetectSupportResistance[37m,
+         ╵   [32m~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "buildCandleFromPriceUpdates"[0m
+
+    src/hooks/useProfessionalChartData.ts:13:2:
+[37m      13 │   [32mbuildCandleFromPriceUpdates[37m,
+         ╵   [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "src/lib/indicators.js" for import "generateSampleCandles"[0m
+
+    src/hooks/useProfessionalChartData.ts:14:2:
+[37m      14 │   [32mgenerateSampleCandles[37m,
+         ╵   [32m~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+    at failureErrorWithLog (/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/node_modules/esbuild/lib/main.js:1472:15)
+    at /Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/node_modules/esbuild/lib/main.js:945:25
+    at runOnEndCallbacks (/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/node_modules/esbuild/lib/main.js:1315:45)
+    at buildResponseToResult (/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/node_modules/esbuild/lib/main.js:943:7)
+    at /Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/node_modules/esbuild/lib/main.js:955:9
+    at new Promise (<anonymous>)
+    at requestCallbacks.on-end (/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/node_modules/esbuild/lib/main.js:954:54)
+    at handleRequest (/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/node_modules/esbuild/lib/main.js:647:17)
+    at handleIncomingPacket (/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/node_modules/esbuild/lib/main.js:672:7)
+    at Socket.readFromStdout (/Users/franciscoorosa/Desktop/Rumble & Local Dev Project/ai-trading-analyst/node_modules/esbuild/lib/main.js:600:7)

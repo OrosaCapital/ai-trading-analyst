@@ -1,0 +1,4 @@
+packages:
+  - 'packages/*'
+  - 'orosa-capital-com'
+  - 'cannabis-cardz-com'

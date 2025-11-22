@@ -1,0 +1,35 @@
+- - # Knowledge Base Log
+
+## Errors and Fixes
+
+### Error: Missing `express` module
+- **Fix**: Installed the `express` module using `pnpm install express`.
+- **When it might occur**: Happens when the `express` dependency is not listed in `package.json` or not installed.
+
+### Error: Invalid route pattern in `server.js`
+- **Fix**: Replaced invalid wildcard route (`'/.*'`) with a catch-all middleware using `app.use`.
+- **When it might occur**: Occurs when using unsupported route patterns in Express.js.
+
+### Error: Missing `react/jsx-runtime` module
+- **Fix**: Installed the latest versions of `react` and `react-dom` using `npm install react@latest react-dom@latest`.
+- **When it might occur**: Happens when the project uses an outdated or incompatible version of React.
+
+### Error: Missing `dev` script in `package.json`
+- **Fix**: Added a `dev` script to the `package.json` file in `Dev Environment/websites/cc.com` to allow running the development server using `npm run dev`.
+- **When it might occur**: Happens when the `dev` script is not defined in the `package.json` file.
+
+### Improvement: Modern Landing Page Design
+- **Change**: Enhanced homepage with full-height hero, animations, features section with hover effects, modern testimonials with avatars, and final CTA section.
+- **Details**: Added gradients, shadows, transforms, and responsive design for a professional landing page experience.
+- **Reason**: Improved visual appeal and user engagement for Cannabis Cardz.
+
+## Improvements
+
+### Improvement: Use absolute paths in `start-dev.sh`
+- **Change**: Updated the script to use absolute paths for reliability.
+- **Reason**: Prevents navigation issues caused by relative paths.
+
+### Improvement: Reset Trading Page KPI indicators to placeholders
+- **Change**: Removed all KPI calculation logic and replaced with simple "Loading..." placeholders for Current Price, 24h Volume, 24h High, and 24h Low indicators.
+- **Details**: Cleaned up imports, removed KPICard component usage, and created basic placeholder cards with consistent styling to prepare for fresh implementation.
+- **Reason**: Starting fresh coding process for KPI indicators with clean slate.

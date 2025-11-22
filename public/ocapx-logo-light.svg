@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" role="img" aria-labelledby="title desc">
+  <title id="title">OCAPX Modern Logo Light</title>
+  <desc id="desc">OCAPX wordmark with shield monogram on white background for light themes</desc>
+  <defs>
+    <linearGradient id="accentLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0042FF"/>
+      <stop offset="100%" stop-color="#00B4F0"/>
+    </linearGradient>
+    <linearGradient id="textFade" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0C1633"/>
+      <stop offset="100%" stop-color="#2B4A7B"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="120" rx="18" fill="#FFFFFF" stroke="#E3E8F3" />
+  <g transform="translate(24 28)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 0 L54 10 L54 40 L36 50 L18 40 L18 10 Z" fill="url(#accentLight)" opacity="0.2"/>
+    <path d="M18 10 L36 0 L54 10 L54 24 C54 34 46 42 36 42 C26 42 18 34 18 24 Z" stroke="url(#accentLight)" stroke-width="6"/>
+    <circle cx="36" cy="26" r="8" fill="#FFFFFF" stroke="url(#accentLight)" stroke-width="3"/>
+    <path d="M36 18 L36 40" stroke="url(#accentLight)" stroke-width="4"/>
+  </g>
+  <g transform="translate(110 36)" fill="url(#textFade)" font-family="Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text font-size="32" font-weight="600" letter-spacing="0.2em">OCAPX</text>
+    <rect y="46" width="140" height="4" rx="2" fill="url(#accentLight)"/>
+  </g>
+</svg>

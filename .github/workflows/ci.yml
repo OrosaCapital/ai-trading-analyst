@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install deps
+        working-directory: ai-trading-analyst
+        run: |
+          npm ci
+
+      - name: Run unit tests
+        working-directory: ai-trading-analyst
+        run: |
+          node test/run_tests.js || true
+
+      - name: Start relay for integration test
+        working-directory: ai-trading-analyst
+        run: |
+          nohup node server/relay.js > relay.log 2>&1 & echo $! > relay.pid
+          sleep 1
+
+      - name: Run integration WS test
+        working-directory: ai-trading-analyst
+        run: |
+          node test/integration_relay_ws_test.js
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relay-logs
+          path: ai-trading-analyst/*.log

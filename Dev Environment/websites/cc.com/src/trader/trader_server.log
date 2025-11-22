@@ -1,0 +1,108 @@
+::1 - - [22/Nov/2025 01:20:32] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:28:17] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:28:18] code 404, message File not found
+::1 - - [22/Nov/2025 01:28:18] "GET /trader/styles.css HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:28:18] code 404, message File not found
+::1 - - [22/Nov/2025 01:28:18] "GET /trader/assets/ocapx-logo-light.svg HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:28:18] code 404, message File not found
+::1 - - [22/Nov/2025 01:28:18] "GET /trader/app.js HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:28:18] code 404, message File not found
+::1 - - [22/Nov/2025 01:28:18] "GET /favicon.ico HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:31:53] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:32:00] "HEAD / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:32:05] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:32:27] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:32:27] code 404, message File not found
+::1 - - [22/Nov/2025 01:32:27] "GET /trader/styles.css HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:32:27] code 404, message File not found
+::1 - - [22/Nov/2025 01:32:27] code 404, message File not found
+::1 - - [22/Nov/2025 01:32:27] "GET /trader/assets/ocapx-logo-light.svg HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:32:27] "GET /trader/app.js HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:32:30] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:32:30] code 404, message File not found
+::1 - - [22/Nov/2025 01:32:30] "GET /trader/styles.css HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:32:30] code 404, message File not found
+::1 - - [22/Nov/2025 01:32:30] "GET /trader/assets/ocapx-logo-light.svg HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:32:30] code 404, message File not found
+::1 - - [22/Nov/2025 01:32:30] "GET /trader/app.js HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:32:46] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:32:46] code 404, message File not found
+::1 - - [22/Nov/2025 01:32:46] "GET /trader/styles.css HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:32:46] code 404, message File not found
+::1 - - [22/Nov/2025 01:32:46] code 404, message File not found
+::1 - - [22/Nov/2025 01:32:46] "GET /trader/app.js HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:32:46] "GET /trader/assets/ocapx-logo-light.svg HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:34:50] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:34:50] code 404, message File not found
+::1 - - [22/Nov/2025 01:34:50] "GET /trader/styles.css HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:34:50] code 404, message File not found
+::1 - - [22/Nov/2025 01:34:50] code 404, message File not found
+::1 - - [22/Nov/2025 01:34:50] "GET /trader/assets/ocapx-logo-light.svg HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:34:50] "GET /trader/app.js HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:36:35] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:36:35] "GET /styles.css HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:36:35] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:36:35] "GET /assets/ocapx-logo-light.svg HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:36:40] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:37:49] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:37:50] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:37:51] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:38:12] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:38:13] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:38:15] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:38:31] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:38:31] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:38:33] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:38:35] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:38:35] "GET /app.js HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:38:50] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:38:50] "GET /app.js HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:41:47] code 404, message File not found
+::1 - - [22/Nov/2025 01:41:47] code 404, message File not found
+::1 - - [22/Nov/2025 01:41:47] "GET /apple-touch-icon-precomposed.png HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:41:47] "GET /apple-touch-icon.png HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:41:47] code 404, message File not found
+::1 - - [22/Nov/2025 01:41:47] "GET /favicon.ico HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 01:41:52] "GET / HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:41:52] "GET /styles.css HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:41:52] "GET /app.js HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:42:59] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:43:00] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:43:10] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:43:10] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:43:29] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:43:29] "GET /styles.css HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:43:29] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:44:35] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:44:35] "GET /app.js HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:44:52] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:44:52] "GET /app.js HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:48:55] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:48:55] "GET /styles.css HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:48:55] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:49:03] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:49:03] "GET /styles.css HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 01:49:03] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:51:09] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:51:09] "GET /styles.css HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:51:09] "GET /assets/ocapx-logo-light.svg HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:51:09] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 01:51:09] code 404, message File not found
+::1 - - [22/Nov/2025 01:51:09] "GET /favicon.ico HTTP/1.1" 404 -
+::1 - - [22/Nov/2025 02:00:22] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 02:00:22] "GET /styles.css HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 02:00:22] "GET /assets/ocapx-logo-light.svg HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 02:00:22] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 02:00:46] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 02:11:56] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 02:11:56] "GET /styles.css HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 02:11:56] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 02:21:08] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 02:21:08] "GET /styles.css HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 02:21:08] "GET /app.js HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 02:21:14] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 02:22:11] "GET / HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 02:22:11] "GET /styles.css HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 02:22:11] "GET /app.js HTTP/1.1" 200 -
+::1 - - [22/Nov/2025 02:22:11] "GET /assets/ocapx-logo-light.svg HTTP/1.1" 304 -
+::1 - - [22/Nov/2025 02:22:15] "GET / HTTP/1.1" 200 -
