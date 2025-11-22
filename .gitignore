@@ -1,0 +1,27 @@
+# Node modules
+node_modules/
+
+# Environment
+.env
+
+# Dev/runtime artefacts
+.dev/
+logs/
+*.log
+relay.log
+live_xrp_relay.log
+log_tailer.log
+
+# Build / dist
+dist/
+build/
+coverage/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Lock files (keep if you prefer lockfiles tracked)
+# pnpm-lock.yaml
+# package-lock.json
