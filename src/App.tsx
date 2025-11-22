@@ -4,6 +4,7 @@ import { AdminShell } from "./components/layout/AdminShell";
 import { Dashboard } from "./pages/Dashboard";
 import Watchlist from "./pages/Watchlist";
 import TradingDashboard from "./pages/TradingDashboard";
+import AdvancedTrading from "./pages/AdvancedTrading";
 import SymbolDetails from "./pages/SymbolDetails";
 import Auth from "./pages/Auth";
 import DataFlowVisualization from "./pages/DataFlowVisualization";
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
         <Route path="/symbol/:symbolParam" element={<SymbolDetails />} />
         <Route path="/trading" element={<TradingDashboard />} />
+        <Route path="/advanced-trading" element={<AdvancedTrading />} />
       </Routes>
     </BrowserRouter>
   );

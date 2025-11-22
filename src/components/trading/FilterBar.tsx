@@ -132,16 +132,17 @@ export function FilterBar({
   };
 
   return (
-    <div className="flex items-center gap-3 p-4 bg-card/50 border-b border-border/40 backdrop-blur-sm">
+    <div className="futuristic-filter relative flex w-full flex-wrap items-end gap-3 rounded-2xl border border-white/10 bg-background/40 p-4 backdrop-blur-2xl">
+      <div className="filter-strand" />
       {/* Symbol Selector with Search */}
-      <div className="flex-1 max-w-md space-y-2">
+      <div className="flex-1 min-w-[260px] space-y-2">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="w-full justify-between bg-background/50 border-border/60 hover:bg-background/70"
+              className="w-full justify-between border-transparent bg-black/30 text-left shadow-inner shadow-primary/10 hover:border-primary/30"
             >
               <div className="flex items-center gap-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
@@ -190,17 +191,17 @@ export function FilterBar({
         </Popover>
         
         {/* Auto-refresh Tracking Checkbox */}
-        <div className="flex items-center space-x-2 pt-1">
+        <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
           <Checkbox
             id="auto-refresh"
             checked={isTracked}
             disabled={isTrackingLoading}
             onCheckedChange={toggleTracking}
-            className="data-[state=checked]:bg-primary"
+            className="data-[state=checked]:bg-primary data-[state=checked]:shadow-[0_0_12px_hsl(var(--primary)_/_0.6)]"
           />
           <Label
             htmlFor="auto-refresh"
-            className="text-xs text-muted-foreground flex items-center gap-1.5 cursor-pointer"
+            className="flex cursor-pointer items-center gap-1.5"
           >
             <RefreshCw className="h-3 w-3" />
             Auto-refresh this symbol (5min)
@@ -208,189 +209,191 @@ export function FilterBar({
         </div>
       </div>
 
-      {/* Timeframe Selector */}
-      <Select value={timeframe} onValueChange={onTimeframeChange}>
-        <SelectTrigger className="w-32 bg-background/50 border-border/60">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className="bg-popover z-50">
-          <SelectItem value="15m">15 Min</SelectItem>
-          <SelectItem value="1h">1 Hour</SelectItem>
-          <SelectItem value="4h">4 Hours</SelectItem>
-          <SelectItem value="1d">1 Day</SelectItem>
-          <SelectItem value="1w">1 Week</SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
+        {/* Timeframe Selector */}
+        <Select value={timeframe} onValueChange={onTimeframeChange}>
+          <SelectTrigger className="w-32 border-transparent bg-black/30 text-xs uppercase tracking-[0.3em]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-popover z-50">
+            <SelectItem value="15m">15 Min</SelectItem>
+            <SelectItem value="1h">1 Hour</SelectItem>
+            <SelectItem value="4h">4 Hours</SelectItem>
+            <SelectItem value="1d">1 Day</SelectItem>
+            <SelectItem value="1w">1 Week</SelectItem>
+          </SelectContent>
+        </Select>
 
-      {/* Date Range Dialog */}
-      <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
-        <DialogTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={cn(
-              "gap-2",
-              dateRange && "border-primary text-primary"
-            )}
-          >
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {dateRange 
-                ? `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")}`
-                : "Date Range"
-              }
-            </span>
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px] bg-card">
-          <DialogHeader>
-            <DialogTitle>Select Date Range</DialogTitle>
-            <DialogDescription>
-              Choose a custom date range to filter the trading data
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>From Date</Label>
-                <CalendarComponent
-                  mode="single"
-                  selected={tempDateRange.from}
-                  onSelect={(date) => setTempDateRange(prev => ({ ...prev, from: date }))}
-                  className="rounded-md border bg-background pointer-events-auto"
-                  disabled={(date) => date > new Date()}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>To Date</Label>
-                <CalendarComponent
-                  mode="single"
-                  selected={tempDateRange.to}
-                  onSelect={(date) => setTempDateRange(prev => ({ ...prev, to: date }))}
-                  className="rounded-md border bg-background pointer-events-auto"
-                  disabled={(date) => 
-                    date > new Date() || 
-                    (tempDateRange.from ? date < tempDateRange.from : false)
-                  }
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleClearDateRange}>
-                Clear
-              </Button>
-              <Button 
-                onClick={handleApplyDateRange}
-                disabled={!tempDateRange.from || !tempDateRange.to}
-              >
-                Apply Range
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Advanced Filters Sheet */}
-      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <SheetTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={cn(
-              "gap-2",
-              (filters.minVolume > 0 || filters.maxVolume < Infinity || filters.showOnlySignals) 
-                && "border-primary text-primary"
-            )}
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            <span className="hidden sm:inline">Filters</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent className="bg-card w-[400px] sm:w-[540px]">
-          <SheetHeader>
-            <SheetTitle>Advanced Filters</SheetTitle>
-            <SheetDescription>
-              Filter chart data by volume and trading signals
-            </SheetDescription>
-          </SheetHeader>
-          <div className="space-y-6 py-6">
-            {/* Volume Range */}
-            <div className="space-y-3">
-              <Label className="text-base font-semibold">Volume Range</Label>
-              <div className="grid grid-cols-2 gap-3">
+        {/* Date Range Dialog */}
+        <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className={cn(
+                "gap-2 border-transparent bg-black/30",
+                dateRange && "border-primary/40 text-primary"
+              )}
+            >
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {dateRange 
+                  ? `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")}`
+                  : "Date Range"
+                }
+              </span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px] bg-card">
+            <DialogHeader>
+              <DialogTitle>Select Date Range</DialogTitle>
+              <DialogDescription>
+                Choose a custom date range to filter the trading data
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="min-volume" className="text-xs text-muted-foreground">
-                    Minimum Volume
-                  </Label>
-                  <Input
-                    id="min-volume"
-                    type="number"
-                    value={tempFilters.minVolume}
-                    onChange={(e) => setTempFilters({ ...tempFilters, minVolume: Number(e.target.value) })}
-                    className="bg-background"
+                  <Label>From Date</Label>
+                  <CalendarComponent
+                    mode="single"
+                    selected={tempDateRange.from}
+                    onSelect={(date) => setTempDateRange(prev => ({ ...prev, from: date }))}
+                    className="pointer-events-auto rounded-md border bg-background"
+                    disabled={(date) => date > new Date()}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="max-volume" className="text-xs text-muted-foreground">
-                    Maximum Volume
-                  </Label>
-                  <Input
-                    id="max-volume"
-                    type="number"
-                    value={tempFilters.maxVolume === Infinity ? '' : tempFilters.maxVolume}
-                    onChange={(e) => setTempFilters({ 
-                      ...tempFilters, 
-                      maxVolume: e.target.value === '' ? Infinity : Number(e.target.value) 
-                    })}
-                    placeholder="No limit"
-                    className="bg-background"
+                  <Label>To Date</Label>
+                  <CalendarComponent
+                    mode="single"
+                    selected={tempDateRange.to}
+                    onSelect={(date) => setTempDateRange(prev => ({ ...prev, to: date }))}
+                    className="pointer-events-auto rounded-md border bg-background"
+                    disabled={(date) => 
+                      date > new Date() || 
+                      (tempDateRange.from ? date < tempDateRange.from : false)
+                    }
                   />
                 </div>
               </div>
-            </div>
-
-            {/* Signal Filter */}
-            <div className="space-y-3">
-              <Label className="text-base font-semibold">Signal Display</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="signals-only"
-                  checked={tempFilters.showOnlySignals}
-                  onCheckedChange={(checked) => 
-                    setTempFilters({ ...tempFilters, showOnlySignals: checked as boolean })
-                  }
-                />
-                <Label
-                  htmlFor="signals-only"
-                  className="text-sm font-normal cursor-pointer"
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handleClearDateRange}>
+                  Clear
+                </Button>
+                <Button 
+                  onClick={handleApplyDateRange}
+                  disabled={!tempDateRange.from || !tempDateRange.to}
                 >
-                  Show only candles with high volume or significant price movement
-                </Label>
+                  Apply Range
+                </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2 pt-4 border-t">
-              <Button 
-                variant="outline" 
-                onClick={handleResetFilters}
-                className="flex-1"
-              >
-                Reset All
-              </Button>
-              <Button 
-                onClick={handleApplyFilters}
-                className="flex-1"
-              >
-                Apply Filters
-              </Button>
+        {/* Advanced Filters Sheet */}
+        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <SheetTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className={cn(
+                "gap-2 border-transparent bg-black/30",
+                (filters.minVolume > 0 || filters.maxVolume < Infinity || filters.showOnlySignals) 
+                  && "border-primary/40 text-primary"
+              )}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="hidden sm:inline">Filters</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent className="bg-card w-[400px] sm:w-[540px]">
+            <SheetHeader>
+              <SheetTitle>Advanced Filters</SheetTitle>
+              <SheetDescription>
+                Filter chart data by volume and trading signals
+              </SheetDescription>
+            </SheetHeader>
+            <div className="space-y-6 py-6">
+              {/* Volume Range */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Volume Range</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="min-volume" className="text-xs text-muted-foreground">
+                      Minimum Volume
+                    </Label>
+                    <Input
+                      id="min-volume"
+                      type="number"
+                      value={tempFilters.minVolume}
+                      onChange={(e) => setTempFilters({ ...tempFilters, minVolume: Number(e.target.value) })}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="max-volume" className="text-xs text-muted-foreground">
+                      Maximum Volume
+                    </Label>
+                    <Input
+                      id="max-volume"
+                      type="number"
+                      value={tempFilters.maxVolume === Infinity ? '' : tempFilters.maxVolume}
+                      onChange={(e) => setTempFilters({ 
+                        ...tempFilters, 
+                        maxVolume: e.target.value === '' ? Infinity : Number(e.target.value) 
+                      })}
+                      placeholder="No limit"
+                      className="bg-background"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Signal Filter */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Signal Display</Label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="signals-only"
+                    checked={tempFilters.showOnlySignals}
+                    onCheckedChange={(checked) => 
+                      setTempFilters({ ...tempFilters, showOnlySignals: checked as boolean })
+                    }
+                  />
+                  <Label
+                    htmlFor="signals-only"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Show only candles with high volume or significant price movement
+                  </Label>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={handleResetFilters}
+                  className="flex-1"
+                >
+                  Reset All
+                </Button>
+                <Button 
+                  onClick={handleApplyFilters}
+                  className="flex-1"
+                >
+                  Apply Filters
+                </Button>
+              </div>
             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+          </SheetContent>
+        </Sheet>
 
-      {/* Live Clock */}
-      <LiveClock />
+        {/* Live Clock */}
+        <LiveClock />
+      </div>
     </div>
   );
 }

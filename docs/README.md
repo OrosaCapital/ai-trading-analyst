@@ -1,3 +1,14 @@
+# AI Trading Analyst — Docs Index
+
+This folder contains operational and developer documentation for the `ai-trading-analyst` relay backend and adapters.
+
+Available documents
+- `backend.md` — Architecture overview and components
+- `setup.md` — Installation and run instructions (macOS / zsh focused)
+- `troubleshooting.md` — Common errors and how to resolve them
+- `tests.md` — How to run the smoke and unit tests
+
+If you need a printable or condensed README for hand-offs, copy the sections you need.
 # Documentation Index
 
 ## Active Documentation

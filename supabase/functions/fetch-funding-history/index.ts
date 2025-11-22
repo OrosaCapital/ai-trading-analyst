@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
 
     console.log(`Successfully fetched ${numericCandles.length} funding rate candles. Avg: ${avgFunding.toFixed(4)}%`);
 
-    // 🔥 CRITICAL: Store in database per LOVABLE_ROLE.md architecture
+    // 🔥 CRITICAL: Store in database per L.md architecture
     // External APIs → Database Tables → React Components
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

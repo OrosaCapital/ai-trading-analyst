@@ -7,7 +7,6 @@ import { DayTraderChartContainer } from "@/components/charts/DayTraderChartConta
 import { FundingRateChart } from "@/components/trading/FundingRateChart";
 import { AlertStrip, type AlertBadge } from "@/components/trading/AlertStrip";
 import { MicroTimeframePanel } from "@/components/trading/MicroTimeframePanel";
-import { SessionStatsPanel, type SessionStats } from "@/components/trading/SessionStatsPanel";
 import { useChartData } from "@/hooks/useChartData";
 import { useFreshSymbolData } from "@/hooks/useFreshSymbolData";
 import { formatPrice, formatVolume } from "@/lib/priceFormatter";
@@ -16,6 +15,7 @@ import { useAIAnalysis } from "@/hooks/useAIAnalysis";
 import { useProfessionalChartData } from "@/hooks/useProfessionalChartData";
 import { useRealtimePriceStream } from "@/hooks/useRealtimePriceStream";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export default function TradingDashboard() {
   const [symbol, setSymbol] = useState("BTCUSDT");
@@ -42,13 +42,13 @@ export default function TradingDashboard() {
   const normalizedSymbol = normalizeSymbol(symbol);
   
   // Automatically fetch fresh data when symbol changes
-  const { isFetching: isFetchingFresh } = useFreshSymbolData(normalizedSymbol);
+  useFreshSymbolData(normalizedSymbol);
   
   // Real-time price stream from WebSocket
   const { priceData, isConnected } = useRealtimePriceStream(normalizedSymbol, true);
   
   const { candles, isLoading, isUsingFallback, error } = useChartData(normalizedSymbol, 50000, dateRange, timeframe, filters);
-  const { chartData, isLoading: isChartLoading } = useProfessionalChartData(normalizedSymbol, dateRange, timeframe, filters);
+  const { chartData } = useProfessionalChartData(normalizedSymbol, dateRange, timeframe, filters);
 
   console.log("=== CHART DATA DEBUG ===", {
     chartDataExists: !!chartData,
@@ -108,6 +108,31 @@ export default function TradingDashboard() {
   });
 
   const sessionStats = useMemo(() => buildSessionStats(candles), [candles]);
+  const systemDiagnostics = useMemo(() => {
+    const candlesLoaded = chartData?.candles1h?.length ?? 0;
+    const aiState = isAnalyzing ? "Synthesizing" : analysis ? "Synced" : "Idle";
+    return [
+      {
+        id: "feed",
+        label: "Market Feed",
+        value: isConnected ? "Live" : "Link Lost",
+        tone: isConnected ? "success" : "danger",
+      },
+      {
+        id: "ai",
+        label: "AI Analyst",
+        value: aiState,
+        tone: isAnalyzing ? "pulse" : analysis ? "success" : "neutral",
+      },
+      {
+        id: "coverage",
+        label: "Data Window",
+        value: candlesLoaded ? `${candlesLoaded}x 1h bars` : "Awaiting sync",
+        tone: candlesLoaded ? "info" : "neutral",
+      },
+    ] as const;
+  }, [analysis, isAnalyzing, isConnected, chartData]);
+
   const alerts = useMemo(() => {
     const baseAlerts = buildAlerts(candles, candles, candles);
     
@@ -147,101 +172,154 @@ export default function TradingDashboard() {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="relative flex min-h-screen w-full bg-background/95">
+        <div className="holo-grid" />
+        <div className="aurora aurora-top" />
+        <div className="aurora aurora-bottom" />
         <TradingNavigation />
         
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header with trigger and filters */}
-          <header className="flex items-center border-b border-border/40 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
-            <SidebarTrigger className="ml-4" />
-            <div className="flex-1">
-              <FilterBar 
-                symbol={symbol} 
-                onSymbolChange={setSymbol}
-                timeframe={timeframe}
-                onTimeframeChange={setTimeframe}
-                dateRange={dateRange}
-                onDateRangeChange={setDateRange}
-                filters={filters}
-                onFiltersChange={setFilters}
-              />
+          <header className="relative border-b border-white/5 bg-gradient-to-r from-background/60 via-background/40 to-background/10 backdrop-blur-xl">
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,hsla(var(--primary)/0.18),transparent_60%)]" />
+            <div className="relative z-10 space-y-4 px-4 py-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase tracking-[0.5em] text-muted-foreground">
+                    Mission Control
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-3xl font-semibold text-gradient">NeuroFlow Trading Deck</h1>
+                    <SidebarTrigger className="rounded-full border border-border/60 bg-card/70 px-3 py-1 text-[11px] uppercase tracking-widest text-muted-foreground hover:border-primary/40" />
+                  </div>
+                  <p className="text-sm text-muted-foreground max-w-2xl">
+                    Real-time liquidity, sentiment, and AI overlays stay intact — we’re amplifying the experience with a tighter layout, holographic surfacing, and status telemetry.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {systemDiagnostics.map((diag) => (
+                    <div
+                      key={diag.id}
+                      className={cn(
+                        "status-chip",
+                        {
+                          success: "status-chip--success",
+                          danger: "status-chip--danger",
+                          info: "status-chip--info",
+                          pulse: "status-chip--pulse",
+                          neutral: "status-chip--neutral",
+                        }[diag.tone]
+                      )}
+                    >
+                      <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                        {diag.label}
+                      </span>
+                      <span className="text-sm font-semibold">{diag.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass-panel rounded-2xl border border-white/5 shadow-2xl shadow-black/40">
+                <FilterBar 
+                  symbol={symbol} 
+                  onSymbolChange={setSymbol}
+                  timeframe={timeframe}
+                  onTimeframeChange={setTimeframe}
+                  dateRange={dateRange}
+                  onDateRangeChange={setDateRange}
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                />
+              </div>
             </div>
           </header>
 
-          {/* Main content */}
-          <main className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Alert Strip */}
-            <AlertStrip alerts={alerts} isLoading={isLoading || isAnalyzing} />
-
-            {/* Top KPIs - 5 Second Rule: Most Important Info */}
-            {kpis && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KPICard
-                  label="Current Price"
-                  value={currentPrice ? formatPrice(currentPrice) : (isConnected ? "Connecting..." : "WebSocket Offline")}
-                  change={kpis.dayChange}
-                  trend={kpis.dayChange > 0 ? "up" : "down"}
-                  subtitle={normalizedSymbol}
-                />
-                <KPICard
-                  label="24h Volume"
-                  value={formatVolume(kpis.volume)}
-                  subtitle="Trading activity"
-                />
-                <KPICard
-                  label="24h High"
-                  value={formatPrice(kpis.high24h)}
-                  subtitle="Peak price"
-                />
-                <KPICard
-                  label="24h Low"
-                  value={formatPrice(kpis.low24h)}
-                  subtitle="Lowest price"
-                />
-              </div>
-            )}
-
-            {/* Main Chart - Priority Widget */}
-            <DayTraderChartContainer 
-              symbol={normalizedSymbol}
-              candles={candles}
-              isLoading={isLoading}
-              isUsingFallback={isUsingFallback}
-              error={error}
-            />
-
-            {/* Secondary Metrics Grid - Max 5-6 widgets */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <FundingRateChart symbol={normalizedSymbol} />
-              <MicroTimeframePanel candles1m={candles} candles15m={candles} />
-              
-              {/* Session Summary Card */}
-              {sessionStats && (
-                <Card className="p-4 bg-gradient-to-br from-card via-card to-card/95 border border-border/40">
-                  <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-3">
-                    Session Summary
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Direction</span>
-                      <span className={`text-sm font-bold ${
-                        sessionStats.direction === 'up' ? 'text-chart-green' :
-                        sessionStats.direction === 'down' ? 'text-chart-red' :
-                        'text-muted-foreground'
-                      }`}>
-                        {sessionStats.direction?.toUpperCase() || 'NEUTRAL'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Range</span>
-                      <span className="text-sm font-bold">
-                        {sessionStats.rangePct?.toFixed(2)}%
-                      </span>
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+            <section className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1fr)]">
+                {kpis && (
+                  <div className="glass-cluster rounded-2xl p-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <KPICard
+                        label="Current Price"
+                        value={currentPrice ? formatPrice(currentPrice) : (isConnected ? "Connecting..." : "WebSocket Offline")}
+                        change={kpis.dayChange}
+                        trend={kpis.dayChange > 0 ? "up" : "down"}
+                        subtitle={normalizedSymbol}
+                      />
+                      <KPICard
+                        label="24h Volume"
+                        value={formatVolume(kpis.volume)}
+                        subtitle="Trading activity"
+                      />
+                      <KPICard
+                        label="24h High"
+                        value={formatPrice(kpis.high24h)}
+                        subtitle="Peak price"
+                      />
+                      <KPICard
+                        label="24h Low"
+                        value={formatPrice(kpis.low24h)}
+                        subtitle="Lowest price"
+                      />
                     </div>
                   </div>
-                </Card>
-              )}
-            </div>
+                )}
+                <div className="glass-panel rounded-2xl border border-white/5 p-4">
+                  <div className="flex items-center justify-between pb-3">
+                    <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">Signal Matrix</p>
+                    <span className="text-[10px] font-semibold text-muted-foreground">Realtime</span>
+                  </div>
+                  <AlertStrip alerts={alerts} isLoading={isLoading || isAnalyzing} />
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)]">
+                <DayTraderChartContainer 
+                  symbol={normalizedSymbol}
+                  candles={candles}
+                  isLoading={isLoading}
+                  isUsingFallback={isUsingFallback}
+                  error={error}
+                />
+                <div className="space-y-4">
+                  <FundingRateChart symbol={normalizedSymbol} />
+                  <MicroTimeframePanel candles1m={candles} candles15m={candles} />
+                  {sessionStats && (
+                    <Card className="p-4 holo-card">
+                      <h3 className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-bold mb-4">
+                        Session Vector
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Direction</span>
+                          <span className={cn(
+                            "text-sm font-semibold",
+                            sessionStats.direction === "up" && "text-chart-green",
+                            sessionStats.direction === "down" && "text-chart-red",
+                            sessionStats.direction === "flat" && "text-muted-foreground"
+                          )}>
+                            {sessionStats.direction?.toUpperCase() || "NEUTRAL"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Range</span>
+                          <span className="text-sm font-semibold">{sessionStats.rangePct?.toFixed(2)}%</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Session Change</span>
+                          <span className="text-sm font-semibold">
+                            {sessionStats.sessionChangePct?.toFixed(2)}%
+                          </span>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              </div>
+            </section>
           </main>
         </div>
       </div>
@@ -251,7 +329,7 @@ export default function TradingDashboard() {
 
 /* ---------- PURE HELPERS (NO REACT) ---------- */
 
-function buildSessionStats(candles: { close: number; high: number; low: number }[]): SessionStats {
+function buildSessionStats(candles: { close: number; high: number; low: number }[]) {
   if (!candles || candles.length < 2) {
     return {
       sessionChangePct: null,

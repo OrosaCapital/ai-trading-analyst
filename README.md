@@ -1,3 +1,43 @@
+# AI Trading Analyst — Indicator Library
+
+Quick notes for running the indicator demos and tests included in this workspace.
+
+Prerequisites
+- Node.js (14+ recommended)
+
+Run the demo that computes indicators on synthetic candles:
+
+```bash
+node ai-trading-analyst/scripts/demo_indicators_run.js
+```
+
+Load indicator presets (quick check):
+
+```bash
+node ai-trading-analyst/scripts/demo_presets_run.js
+```
+
+Run unit tests (lightweight runner included):
+
+```bash
+cd "Dev Environment/websites/cc.com" || true
+node ../ai-trading-analyst/test/run_tests.js
+```
+
+Or from workspace root:
+
+```bash
+node ai-trading-analyst/test/run_tests.js
+```
+
+Files of interest
+- `src/lib/indicators.js` — indicator implementations (SMA, EMA, RSI, MACD, VWAP, ATR, Bollinger, Stochastic, CCI, ROC, OBV, CMF, ADX, Parabolic SAR, TRIX, Keltner)
+- `src/config/indicator-presets.json` — UI presets and timeframe presets
+- `scripts/demo_indicators_run.js` — demo runner computing indicators on synthetic candles
+- `test/` — simple unit tests and runner
+
+Notes
+- Implementations are intentionally clear and readable for demo and UI purposes; production use should consider numeric stability and edge-case handling.
 # Welcome to your Lovable project
 
 ## Project info

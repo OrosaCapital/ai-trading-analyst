@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface KPICardProps {
   label: string;
@@ -17,21 +18,23 @@ export function KPICard({ label, value, change, trend, subtitle }: KPICardProps)
   };
 
   return (
-    <Card className="p-4 bg-gradient-to-br from-card via-card to-card/95 border border-border/40 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+    <Card className="kpi-card relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-card/80 via-card/70 to-card/60 p-4 shadow-lg shadow-black/20">
+      <span className="kpi-card__grid" />
+      <span className="kpi-card__orb" />
+      <div className="relative z-10 flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.4em] text-muted-foreground">
             {label}
           </span>
           {change !== undefined && (
-            <div className={`flex items-center gap-1 text-xs font-semibold ${getTrendColor()}`}>
+            <div className={cn("flex items-center gap-1 rounded-full border border-white/10 px-2 py-1 text-[11px] font-semibold", getTrendColor())}>
               {trend === "up" && <TrendingUp className="h-3 w-3" />}
               {trend === "down" && <TrendingDown className="h-3 w-3" />}
-              <span>{change >= 0 ? '+' : ''}{change.toFixed(2)}%</span>
+              <span>{change >= 0 ? "+" : ""}{change.toFixed(2)}%</span>
             </div>
           )}
         </div>
-        <div className="text-3xl font-bold tracking-tight">{value}</div>
+        <div className="text-3xl font-bold tracking-tight text-foreground">{value}</div>
         {subtitle && (
           <p className="text-xs text-muted-foreground/70">{subtitle}</p>
         )}

@@ -368,10 +368,10 @@ export const DayTraderChart = memo(({ symbol, candles, containerId }: DayTraderC
 
   return (
     <div ref={containerRef} className="w-full h-full flex flex-col gap-2">
-      <div id="price-chart" className="flex-[7] min-h-[400px] rounded-lg border border-border/50 overflow-hidden" />
+      <div id="price-chart" className="flex-[7] min-h-0 rounded-lg border border-border/50 overflow-hidden" />
       <div className="flex gap-2 flex-[3]">
-        <div id="macd-chart" className="flex-1 min-h-[150px] rounded-lg border border-border/50 overflow-hidden" />
-        <div id="rsi-chart" className="flex-1 min-h-[150px] rounded-lg border border-border/50 overflow-hidden" />
+        <div id="macd-chart" className="flex-1 min-h-0 rounded-lg border border-border/50 overflow-hidden" />
+        <div id="rsi-chart" className="flex-1 min-h-0 rounded-lg border border-border/50 overflow-hidden" />
       </div>
     </div>
   );

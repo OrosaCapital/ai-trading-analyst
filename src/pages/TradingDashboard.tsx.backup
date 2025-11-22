@@ -1,0 +1,314 @@
+import { useState, useEffect } from "react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { TradingNavigation } from "@/components/trading/TradingNavigation";
+import { FilterBar } from "@/components/trading/FilterBar";
+import { DayTraderChartContainer } from "@/components/charts/DayTraderChartContainer";
+import { FundingRateChart } from "@/components/trading/FundingRateChart";
+import { AlertStrip, type AlertBadge } from "@/components/trading/AlertStrip";
+import { MicroTimeframePanel } from "@/components/trading/MicroTimeframePanel";
+import { SessionStatsPanel, type SessionStats } from "@/components/trading/SessionStatsPanel";
+import { useStreamingChartData } from "@/hooks/useStreamingChartData";
+import { useStreamingCandleData } from "@/hooks/useStreamingCandleData";
+import { useFreshSymbolData } from "@/hooks/useFreshSymbolData";
+import { Card } from "@/components/ui/card";
+import { useAIAnalysis } from "@/hooks/useAIAnalysis";
+import { useRealtimePriceStream } from "@/hooks/useRealtimePriceStream";
+import { toast } from "@/hooks/use-toast";
+
+export default function TradingDashboard() {
+  console.log("TradingDashboard component is rendering");
+
+  const [symbol, setSymbol] = useState("BTCUSDT");
+  const [timeframe, setTimeframe] = useState<"15m" | "1h" | "4h" | "1d" | "1w">("1h");
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(() => {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return { from: startOfDay, to: today };
+  });
+  const [filters, setFilters] = useState({
+    minVolume: 0,
+    maxVolume: Infinity,
+    showOnlySignals: false,
+  });
+
+  const normalizeSymbol = (sym: string) => {
+    const clean = sym.toUpperCase().replace(/\//g, "").trim();
+    if (!clean || clean === "USDT" || clean === "USD") return "BTCUSDT";
+    if (clean.endsWith("USDT")) return clean;
+    if (clean.endsWith("USD")) return clean.replace("USD", "USDT");
+    return `${clean}USDT`;
+  };
+
+  const normalizedSymbol = normalizeSymbol(symbol);
+  
+  // Automatically fetch fresh data when symbol changes
+  const { isFetching: isFetchingFresh } = useFreshSymbolData(normalizedSymbol);
+  
+  // Real-time price stream from WebSocket
+  const { priceData, isConnected } = useRealtimePriceStream(normalizedSymbol, true);
+  
+  // Use streaming chart data instead of database-only data
+  const { candles, isLoading, isUsingFallback, error, updateWithStreamingData } = useStreamingChartData(normalizedSymbol, 50000, dateRange, timeframe, filters);
+
+  // Real-time candle streaming for live updates
+  const { streamingCandle, connectionStatus: streamingStatus } = useStreamingCandleData(normalizedSymbol, timeframe, true);
+
+  // Update chart with streaming data
+  useEffect(() => {
+    if (streamingCandle && candles.length > 0) {
+      console.log('📊 Updating chart with streaming candle:', streamingCandle);
+      updateWithStreamingData(streamingCandle);
+    }
+  }, [streamingCandle, updateWithStreamingData, candles.length]);
+
+  // CRITICAL: Use ONLY WebSocket price for live display - no database fallback!
+  // Candles are for charts/AI only, not live price display
+  const currentPrice = priceData?.price ?? null;
+
+  console.log("TradingDashboard - chartData:", {
+    hasCandles: !!candles?.length,
+    countCandles: candles?.length,
+    symbol: normalizedSymbol,
+    streamingStatus,
+    lastStreamingUpdate: streamingCandle?.timestamp
+  });
+
+  // Only pass symbol to AI when we have sufficient candle data
+  const aiSymbol = candles && candles.length >= 10 ? normalizedSymbol : "";
+  
+  const { analysis, isAnalyzing } = useAIAnalysis(
+    aiSymbol,
+    candles || [], // Use candles directly instead of chartData.candles1h
+    candles || [], // Use candles directly instead of chartData.candles15m
+    {}, // indicators - keeping empty for now, can be enhanced later
+    currentPrice || undefined // Pass live WebSocket price to AI
+  );
+  
+  console.log("TradingDashboard - AI state:", { 
+    analysis, 
+    isAnalyzing,
+    aiSymbol,
+    willAnalyze: !!aiSymbol 
+  });
+
+  const sessionStats = useMemo(() => buildSessionStats(candles), [candles]);
+  const alerts = useMemo(() => {
+    const baseAlerts = buildAlerts(candles, candles, candles);
+    
+    console.log("TradingDashboard - Building alerts:", { 
+      hasAnalysis: !!analysis, 
+      analysisMessage: analysis?.message,
+      baseAlertsCount: baseAlerts.length 
+    });
+    
+    if (analysis) {
+      const aiAlert = {
+        id: "ai-signal",
+        label: `🤖 AI: ${analysis.message}`,
+        severity: "info" as const
+      };
+      console.log("TradingDashboard - Adding AI alert:", aiAlert);
+      return [aiAlert, ...baseAlerts];
+    }
+    
+    return baseAlerts;
+  }, [candles, analysis]);
+
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex min-h-screen w-full bg-background">
+        {/* Debug: Basic content to test rendering */}
+        <div style={{ position: 'fixed', top: '10px', left: '10px', background: 'red', color: 'white', padding: '10px', zIndex: 9999 }}>
+          TradingDashboard is rendering - Symbol: {symbol}
+        </div>
+        
+        <TradingNavigation />
+        
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header with trigger and filters */}
+          <header className="flex items-center border-b border-border/40 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
+            <SidebarTrigger className="ml-4" />
+            <div className="flex-1">
+              <FilterBar 
+                symbol={symbol} 
+                onSymbolChange={setSymbol}
+                timeframe={timeframe}
+                onTimeframeChange={setTimeframe}
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
+            </div>
+          </header>
+
+          {/* Main content */}
+          <main className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Alert Strip */}
+            <AlertStrip alerts={alerts} isLoading={isLoading || isAnalyzing} />
+
+            {/* Top KPIs - 5 Second Rule: Most Important Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-gradient-to-br from-card via-card to-card/95 border border-border/40 rounded-lg">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2">
+                  Current Price
+                </div>
+                <div className="text-3xl font-bold tracking-tight">Loading...</div>
+                <p className="text-xs text-muted-foreground/70">{normalizedSymbol}</p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-card via-card to-card/95 border border-border/40 rounded-lg">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2">
+                  24h Volume
+                </div>
+                <div className="text-3xl font-bold tracking-tight">Loading...</div>
+                <p className="text-xs text-muted-foreground/70">Trading activity</p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-card via-card to-card/95 border border-border/40 rounded-lg">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2">
+                  24h High
+                </div>
+                <div className="text-3xl font-bold tracking-tight">Loading...</div>
+                <p className="text-xs text-muted-foreground/70">Peak price</p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-card via-card to-card/95 border border-border/40 rounded-lg">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2">
+                  24h Low
+                </div>
+                <div className="text-3xl font-bold tracking-tight">Loading...</div>
+                <p className="text-xs text-muted-foreground/70">Lowest price</p>
+              </div>
+            </div>
+
+            {/* Main Chart - Priority Widget */}
+            <DayTraderChartContainer 
+              symbol={normalizedSymbol}
+              candles={candles}
+              isLoading={isLoading}
+              isUsingFallback={isUsingFallback}
+              error={error}
+            />
+
+            {/* Secondary Metrics Grid - Max 5-6 widgets */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <FundingRateChart symbol={normalizedSymbol} />
+              <MicroTimeframePanel candles1m={candles} candles15m={candles} />
+              
+              {/* Session Summary Card */}
+              {sessionStats && (
+                <Card className="p-4 bg-gradient-to-br from-card via-card to-card/95 border border-border/40">
+                  <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-3">
+                    Session Summary
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Direction</span>
+                      <span className={`text-sm font-bold ${
+                        sessionStats.direction === 'up' ? 'text-chart-green' :
+                        sessionStats.direction === 'down' ? 'text-chart-red' :
+                        'text-muted-foreground'
+                      }`}>
+                        {sessionStats.direction?.toUpperCase() || 'NEUTRAL'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Range</span>
+                      <span className="text-sm font-bold">
+                        {sessionStats.rangePct?.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+/* ---------- PURE HELPERS (NO REACT) ---------- */
+
+function buildSessionStats(candles: { close: number; high: number; low: number }[]): SessionStats {
+  if (!candles || candles.length < 2) {
+    return {
+      sessionChangePct: null,
+      high: null,
+      low: null,
+      rangePct: null,
+      direction: null,
+    };
+  }
+
+  const first = candles[0];
+  const last = candles[candles.length - 1];
+
+  const sessionChangePct = ((last.close - first.close) / first.close) * 100;
+  const high = Math.max(...candles.map((c) => c.high));
+  const low = Math.min(...candles.map((c) => c.low));
+  const rangePct = ((high - low) / first.close) * 100;
+
+  const direction = sessionChangePct > 0.3 ? "up" : sessionChangePct < -0.3 ? "down" : "flat";
+
+  return {
+    sessionChangePct,
+    high,
+    low,
+    rangePct,
+    direction,
+  };
+}
+
+function buildAlerts(
+  candles1m: { close: number; open: number }[],
+  candles15m: { close: number; open: number }[],
+  candles1h: { close: number; open: number }[]
+): AlertBadge[] {
+  const alerts: AlertBadge[] = [];
+
+  if (!candles1m.length || !candles15m.length || !candles1h.length) {
+    return alerts;
+  }
+
+  const last1m = candles1m[candles1m.length - 1];
+  const last15m = candles15m[candles15m.length - 1];
+  const last1h = candles1h[candles1h.length - 1];
+
+  // 1m spike
+  const last1mChange = ((last1m.close - last1m.open) / last1m.open) * 100;
+  if (Math.abs(last1mChange) > 0.5) {
+    alerts.push({
+      id: "1m-spike",
+      label: last1mChange > 0 ? "1m rally" : "1m dump",
+      severity: "warn",
+    });
+  }
+
+  // 15m reversal
+  const last15mChange = ((last15m.close - last15m.open) / last15m.open) * 100;
+  const prev15m = candles15m[candles15m.length - 2] || last15m;
+  const prev15mChange = ((prev15m.close - prev15m.open) / prev15m.open) * 100;
+  if (last15mChange * prev15mChange < 0 && Math.abs(last15mChange) > 0.3) {
+    alerts.push({
+      id: "15m-reversal",
+      label: "15m reversal forming",
+      severity: "info",
+    });
+  }
+
+  // 1h trend shift
+  if (candles1h.length >= 3) {
+    const h1 = candles1h[candles1h.length - 3];
+    const h2 = candles1h[candles1h.length - 2];
+    const h3 = candles1h[candles1h.length - 1];
+    if ((h1.close < h2.close && h2.close > h3.close) || (h1.close > h2.close && h2.close < h3.close)) {
+      alerts.push({
+        id: "1h-trend",
+        label: "1h momentum shift",
+        severity: "info",
+      });
+    }
+  }
+
+  return alerts;
+}

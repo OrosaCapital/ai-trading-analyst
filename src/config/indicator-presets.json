@@ -1,0 +1,78 @@
+{
+  "indicators": {
+    "sma": {
+      "name": "Simple Moving Average",
+      "type": "overlay",
+      "params": { "period": 20 },
+      "defaults": { "1m": 10, "5m": 20, "15m": 50, "1h": 200 }
+    },
+    "ema": {
+      "name": "Exponential Moving Average",
+      "type": "overlay",
+      "params": { "period": 20 },
+      "defaults": { "1m": 9, "5m": 20, "15m": 20, "1h": 50 }
+    },
+    "rsi": {
+      "name": "Relative Strength Index",
+      "type": "subpanel",
+      "params": { "period": 14 },
+      "defaults": { "1m": 14, "5m": 14, "15m": 14, "1h": 14 }
+    },
+    "macd": {
+      "name": "MACD",
+      "type": "subpanel",
+      "params": { "fast": 12, "slow": 26, "signal": 9 },
+      "defaults": { "1m": {"fast":12,"slow":26,"signal":9}, "5m": {"fast":12,"slow":26,"signal":9} }
+    },
+    "vwap": {
+      "name": "VWAP",
+      "type": "overlay",
+      "params": {},
+      "defaults": { "intraday": true }
+    },
+    "atr": {
+      "name": "Average True Range",
+      "type": "subpanel",
+      "params": { "period": 14 },
+      "defaults": { "1m": 14, "5m": 14, "15m": 14 }
+    },
+    "bollinger": {
+      "name": "Bollinger Bands",
+      "type": "overlay",
+      "params": { "period": 20, "stdDev": 2 },
+      "defaults": { "1m": {"period":20,"stdDev":2}, "5m": {"period":20,"stdDev":2} }
+    },
+    "stochastic": {
+      "name": "Stochastic",
+      "type": "subpanel",
+      "params": { "k": 14, "d": 3 },
+      "defaults": { "1m": {"k":14,"d":3} }
+    },
+    "cci": { "name": "CCI", "type": "subpanel", "params": { "period": 20 }, "defaults": { "15m": 20 } },
+    "roc": { "name": "ROC", "type": "subpanel", "params": { "period": 12 }, "defaults": { "15m": 12 } },
+    "obv": { "name": "OBV", "type": "subpanel", "params": {}, "defaults": {} },
+    "cmf": { "name": "Chaikin Money Flow", "type": "subpanel", "params": { "period": 21 }, "defaults": { "5m": 21 } },
+    "adx": { "name": "ADX", "type": "subpanel", "params": { "period": 14 }, "defaults": { "15m": 14 } },
+    "psar": { "name": "Parabolic SAR", "type": "overlay", "params": { "step": 0.02, "maxStep": 0.2 }, "defaults": {} },
+    "trix": { "name": "TRIX", "type": "subpanel", "params": { "period": 15, "signal": 9 }, "defaults": {} },
+    "keltner": { "name": "Keltner Channels", "type": "overlay", "params": { "emaPeriod": 20, "atrPeriod": 10, "mult": 1.5 }, "defaults": {} }
+  },
+  "timeframePresets": {
+    "1m": {
+      "overlays": [{"indicator":"ema","period":9},{"indicator":"ema","period":20}],
+      "subpanels": [{"indicator":"rsi","period":14},{"indicator":"macd","fast":12,"slow":26,"signal":9}]
+    },
+    "5m": {
+      "overlays": [{"indicator":"ema","period":20},{"indicator":"sma","period":50}],
+      "subpanels": [{"indicator":"rsi","period":14},{"indicator":"bollinger","period":20,"stdDev":2}]
+    },
+    "15m": {
+      "overlays": [{"indicator":"sma","period":50}],
+      "subpanels": [{"indicator":"adx","period":14},{"indicator":"atr","period":14}]
+    },
+    "1h": {
+      "overlays": [{"indicator":"sma","period":200},{"indicator":"vwap"}],
+      "subpanels": [{"indicator":"macd","fast":12,"slow":26,"signal":9}]
+    }
+  }
+}

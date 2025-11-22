@@ -30,13 +30,9 @@ export function DayTraderChartContainer({
   
   if (isLoading) {
     return (
-      <Card className="p-6 glass-panel">
-        <div className="space-y-4">
-          <Skeleton className="h-[400px] w-full" />
-          <div className="flex gap-4">
-            <Skeleton className="h-[150px] flex-1" />
-            <Skeleton className="h-[150px] flex-1" />
-          </div>
+      <Card className="p-6 glass-panel h-full">
+        <div className="space-y-4 h-full">
+          <Skeleton className="h-full w-full" />
         </div>
       </Card>
     );
@@ -44,8 +40,8 @@ export function DayTraderChartContainer({
 
   if (!candles || candles.length === 0) {
     return (
-      <Card className="p-6 glass-panel">
-        <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+      <Card className="p-6 glass-panel h-full">
+        <div className="flex items-center justify-center h-full text-muted-foreground">
           {error ? `Error: ${error}` : 'No candle data available. Select a symbol to begin.'}
         </div>
       </Card>
@@ -53,7 +49,7 @@ export function DayTraderChartContainer({
   }
 
   return (
-    <Card className="p-6 glass-panel">
+    <Card className="p-4 glass-panel h-full flex flex-col">
       {isUsingFallback && (
         <Alert variant="default" className="mb-4 border-cyber-yellow/30 bg-cyber-yellow/10">
           <AlertCircle className="h-4 w-4 text-cyber-yellow" />
@@ -63,42 +59,17 @@ export function DayTraderChartContainer({
         </Alert>
       )}
       
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h3 className="text-lg font-bold">{symbol} Professional Chart</h3>
+          <h3 className="text-base font-bold">{symbol} Professional Chart</h3>
           <p className="text-xs text-muted-foreground">
-            EMAs (9, 21, 50) • VWAP • PDH/PDL • MACD (3,10,16) • RSI (14)
+            EMAs (9, 21, 50) • VWAP • PDH/PDL • MACD • RSI
           </p>
         </div>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-chart-green" />
-            <span>Bullish</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-chart-red" />
-            <span>Bearish</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5 bg-chart-yellow" />
-            <span>EMA 9</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5 bg-chart-orange" />
-            <span>EMA 21</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5 bg-chart-blue" />
-            <span>EMA 50</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5 bg-cyber-purple" />
-            <span>VWAP</span>
-          </div>
-        </div>
+        {/* Legend can be added back if needed */}
       </div>
 
-      <div className="h-[600px]">
+      <div className="flex-grow min-h-0">
         <DayTraderChart 
           symbol={symbol} 
           candles={candles}
@@ -106,8 +77,8 @@ export function DayTraderChartContainer({
         />
       </div>
 
-      <div className="mt-4 p-4 bg-card/50 rounded-lg border border-border/40">
-        <h4 className="text-sm font-semibold mb-3">Market Intelligence</h4>
+      <div className="mt-2 p-2 bg-card/50 rounded-lg border border-border/40">
+        <h4 className="text-xs font-semibold mb-2">Market Intelligence</h4>
         <MarketInsightsPanel 
           symbol={symbol} 
           currentPrice={currentPrice}

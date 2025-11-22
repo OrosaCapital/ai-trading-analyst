@@ -15,6 +15,7 @@ import {
 const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Trading", url: "/trading", icon: TrendingUp },
+  { title: "Adv. Trading", url: "/advanced-trading", icon: TrendingUp },
   { title: "Watchlist", url: "/watchlist", icon: Settings },
   { title: "Login", url: "/auth", icon: LogIn },
 ];
