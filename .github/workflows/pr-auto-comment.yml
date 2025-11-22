@@ -1,0 +1,34 @@
+name: Post PR Template Comment
+
+on:
+  pull_request:
+    types: [opened, reopened, edited]
+
+jobs:
+  post-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post PR template as comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const body = `## Sprint: Finish Relay → Dashboard E2E
+
+### Summary
+- Completed end-to-end pipeline: Kraken adapter -> eventBus -> relay -> Trader UI.
+- Live publisher \\`scripts/live_xrp_relay.cjs\\` publishes normalized XRP ticks to Redis.
+- UI fix and Puppeteer smoke test validate \\`#live-price\\` updates from the relay.
+
+### Verification Steps
+1. Start Redis locally: \\`redis-server\\` or ensure \\`redis://127.0.0.1:6379\\` reachable.
+2. From \\`ai-trading-analyst/\\`: \\`npm ci\\` then \\`node server/relay.js\\`.
+3. Optionally run live publisher: \\`node scripts/live_xrp_relay.cjs\\`.
+4. Run tests: \\`npm run test:integration\\` and \\`npm run test:ui\\`.
+
+### Next Tasks
+- Add TLS/auth for relay endpoints.
+- Persist metrics (Prometheus/Grafana).
+`;
+            const issue_number = context.payload.pull_request.number;
+            await github.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });

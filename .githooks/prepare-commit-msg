@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Simple prepare-commit-msg hook: if the commit message doesn't include 'Sprint:',
+# prepend a short sprint header template for guidance.
+MSG_FILE="$1"
+COMMIT_SOURCE="$2"
+
+# skip when commit message provided by merge or squash
+if [[ "$COMMIT_SOURCE" == "merge" || "$COMMIT_SOURCE" == "squash" ]]; then
+  exit 0
+fi
+
+if grep -q "Sprint:" "$MSG_FILE"; then
+  exit 0
+fi
+
+cat <<'EOF' > /tmp/commit_header_template.txt
+Sprint: Finish Relay → Dashboard E2E
+
+Summary: (short summary here)
+
+EOF
+
+cat /tmp/commit_header_template.txt "$MSG_FILE" > /tmp/commitmsg.tmp && mv /tmp/commitmsg.tmp "$MSG_FILE"
+rm -f /tmp/commit_header_template.txt || true
+exit 0
