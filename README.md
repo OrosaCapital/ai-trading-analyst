@@ -1,5 +1,8 @@
 # AI Trading Analyst — Indicator Library
 
+![Test All](https://github.com/OrosaCapital/ai-trading-analyst/actions/workflows/test-all.yml/badge.svg)
+
+
 Quick notes for running the indicator demos and tests included in this workspace.
 
 Prerequisites
