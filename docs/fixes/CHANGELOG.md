@@ -120,6 +120,72 @@ import { useState, useMemo, useEffect } from "react";
 
 ---
 
+### Multi-Confluence Signal System - Advanced Trading Indicators
+
+**Issue**: Advanced Trading page lacked comprehensive technical analysis signals and confluence detection for better trading decisions.
+
+**Root Cause**:
+- Missing advanced indicators (momentum, Ichimoku Cloud, pivot points, divergence detection)
+- No confluence scoring system to combine multiple signals
+- Limited visual signal display for BUY/SELL opportunities
+- No real-time indicator status table
+
+**Solution Implemented**:
+Added complete Multi-Confluence Signal System with 6 indicator analysis:
+
+```typescript
+// New Indicators Added
+- Momentum (MOM): Price change over specified period
+- Ichimoku Cloud: Conversion/Base lines, Leading Spans, Lagging Span
+- Pivot Points: Automatic detection of swing highs/lows
+- RSI Divergence: Bullish/bearish divergence detection
+- Confluence Scoring: 6-indicator combination system
+
+// Signal Generation Logic
+const buySignal = (bullishDivergence || trendShift === 'bullish' || 
+                   (oversold && rsiCrossOver30)) && bullishScore >= 3;
+
+const sellSignal = (bearishDivergence || trendShift === 'bearish' || 
+                    (overbought && rsiCrossUnder70)) && bearishScore >= 3;
+```
+
+**Key Features**:
+- **6 Indicator Analysis**: Trend, Momentum, Structure, Volume, Ichimoku, MACD
+- **Confluence Scoring**: Requires 3+ indicators for signal activation
+- **Real-time Signals**: BUY/SELL alerts with visual indicators
+- **Divergence Detection**: RSI divergence with pivot point analysis
+- **Trend Shift Alerts**: Moving average crossover signals
+- **Indicator Table**: Live status of all 6 indicators with bullish/bearish coloring
+
+**Impact**:
+- Advanced Trading page now provides comprehensive signal analysis
+- Real-time BUY/SELL signals based on confluence scoring
+- Visual indicator table shows current market conditions
+- Divergence and trend shift alerts for better timing
+- Professional-grade technical analysis integrated into React dashboard
+
+**Files Changed**:
+- Modified: `src/lib/indicators.ts` - Added momentum, Ichimoku, pivot, divergence functions
+- Modified: `src/utils/indicators.ts` - Exported new indicator functions
+- Created: `src/hooks/useConfluenceSignals.ts` - Confluence signal calculation hook
+- Created: `src/components/trading/ConfluenceSignalsPanel.tsx` - Signal display component
+- Modified: `src/pages/AdvancedTrading.tsx` - Integrated confluence signals panel
+
+**Testing**:
+- Verified all indicators calculate correctly with sample data
+- Confirmed confluence scoring works with 3+ indicator requirement
+- Tested BUY/SELL signal generation with various market conditions
+- Build passes without TypeScript errors
+- Component renders properly in AdvancedTrading page
+
+**Automation Status**: ✅ Fully automated
+- Signals update in real-time with price data
+- Confluence scoring happens automatically
+- No manual intervention required for signal generation
+- Self-contained indicator calculations
+
+---
+
 ## 2025-11-20
 
 ### WebSocket Using Wrong Kraken API Version
