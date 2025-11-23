@@ -82,6 +82,44 @@ export function safeVolumeFormat(value: any): string {
 
 ---
 
+### Missing useEffect Import - AdvancedTrading Component Crash
+
+**Issue**: AdvancedTrading component crashing with `ReferenceError: Can't find variable: useEffect` on page load.
+
+**Root Cause**:
+- `useEffect` hook used in AdvancedTrading.tsx for market store initialization
+- `useEffect` not included in React import statement
+- Component tried to use undefined `useEffect`, causing immediate crash
+
+**Solution Implemented**:
+Added `useEffect` to the React import statement:
+
+```typescript
+// Before (missing useEffect)
+import { useState, useMemo } from "react";
+
+// After (useEffect added)
+import { useState, useMemo, useEffect } from "react";
+```
+
+**Impact**:
+- AdvancedTrading component now loads without crashing
+- Market store initialization works properly on component mount
+- No more ReferenceError when accessing AdvancedTrading page
+
+**Files Changed**:
+- Modified: `src/pages/AdvancedTrading.tsx` - Added useEffect to React imports
+
+**Testing**:
+- Verified AdvancedTrading component loads without errors
+- Confirmed market store initialization executes on mount
+- Build passes without TypeScript errors
+
+**Automation Status**: ✅ Fixed
+- Import statement corrected, no future regression risk
+
+---
+
 ## 2025-11-20
 
 ### WebSocket Using Wrong Kraken API Version
