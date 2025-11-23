@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { KPICard } from "@/components/trading/KPICard";
 import { TradingNavigation } from "@/components/trading/TradingNavigation";
-import { MarketDataSidebar } from "@/components/trading/MarketDataSidebar";
+import { ConfluenceSignalsPanel } from "@/components/trading/ConfluenceSignalsPanel";
 import { AdvancedChartContainer } from "@/components/charts/AdvancedChartContainer";
 import { useKrakenOHLC } from "@/hooks/useKrakenOHLC";
 import { useRealtimePriceStream } from "@/hooks/useRealtimePriceStream";
@@ -241,34 +241,37 @@ export default function AdvancedTrading() {
         </section>
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
-          <div className="rounded-3xl border border-white/5 bg-black/40 p-6 shadow-xl shadow-cyan-500/10">
-            <div className="flex items-center justify-between pb-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.5em] text-muted-foreground">Signal Lattice</p>
-                <p className="text-xs text-muted-foreground">Adaptive indicators derived from live feed</p>
-              </div>
-              <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
-                Analyst View
-              </span>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {signalBands.map((band) => (
-                <div
-                  key={band.label}
-                  className={`rounded-2xl border border-white/5 bg-gradient-to-br ${band.gradient} p-4 backdrop-blur`}
-                >
-                  <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">{band.label}</p>
-                  <p className={`text-lg font-semibold ${band.accent}`}>{band.value}</p>
-                  <p className="text-xs text-muted-foreground">{band.hint}</p>
-                  <div className="mt-3 h-1.5 w-full rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-primary/80 via-primary to-transparent"
-                      style={{ width: "75%" }}
-                    />
-                  </div>
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-white/5 bg-black/40 p-6 shadow-xl shadow-cyan-500/10">
+              <div className="flex items-center justify-between pb-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.5em] text-muted-foreground">Signal Lattice</p>
+                  <p className="text-xs text-muted-foreground">Adaptive indicators derived from live feed</p>
                 </div>
-              ))}
+                <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
+                  Analyst View
+                </span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {signalBands.map((band) => (
+                  <div
+                    key={band.label}
+                    className={`rounded-2xl border border-white/5 bg-gradient-to-br ${band.gradient} p-4 backdrop-blur`}
+                  >
+                    <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">{band.label}</p>
+                    <p className={`text-lg font-semibold ${band.accent}`}>{band.value}</p>
+                    <p className="text-xs text-muted-foreground">{band.hint}</p>
+                    <div className="mt-3 h-1.5 w-full rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-primary/80 via-primary to-transparent"
+                        style={{ width: "75%" }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+            <ConfluenceSignalsPanel symbol={symbol} candles={candles} />
           </div>
           <div className="rounded-3xl border border-white/5 bg-black/40 p-4 shadow-xl shadow-purple-500/10">
             <div className="flex items-center justify-between pb-3">

@@ -53,7 +53,78 @@ export function calculateEMA(prices: number[], period: number): number[] {
     ema[i] = (prices[i] - ema[i - 1]) * multiplier + ema[i - 1];
   }
 
-  return ema;
+  return sma;
+}
+
+/*──────────────────────────────────────────────────────────────
+  MACD (Moving Average Convergence Divergence)
+──────────────────────────────────────────────────────────────*/
+export function calculateMACD(prices: number[], fastPeriod = 12, slowPeriod = 26, signalPeriod = 9): { macd: number[]; signal: number[]; histogram: number[] } {
+  prices = safeArray(prices).map((p) => safeNumber(p));
+
+  if (prices.length < slowPeriod) return { macd: [], signal: [], histogram: [] };
+
+  const fastEMA = calculateEMA(prices, fastPeriod);
+  const slowEMA = calculateEMA(prices, slowPeriod);
+
+  const macd: number[] = prices.map((_, i) => {
+    const a = fastEMA[i];
+    const b = slowEMA[i];
+    return (a === undefined || b === undefined) ? undefined : a - b;
+  });
+
+  const macdFiltered = macd.map(v => v === undefined ? 0 : v);
+  const signal = calculateEMA(macdFiltered, signalPeriod);
+
+  const histogram: number[] = macd.map((v, i) => {
+    return (v === undefined || signal[i] === undefined) ? undefined : v - signal[i];
+  });
+
+  return { macd, signal, histogram };
+}
+
+/*──────────────────────────────────────────────────────────────
+  Bollinger Bands
+──────────────────────────────────────────────────────────────*/
+export function calculateBollingerBands(prices: number[], period = 20, stdDevMult = 2): { middle: number[]; upper: number[]; lower: number[] } {
+  prices = safeArray(prices).map((p) => safeNumber(p));
+
+  if (prices.length < period) return { middle: [], upper: [], lower: [] };
+
+  const middle: number[] = [];
+  const upper: number[] = [];
+  const lower: number[] = [];
+
+  for (let i = period - 1; i < prices.length; i++) {
+    const slice = prices.slice(i - period + 1, i + 1);
+    const mean = slice.reduce((a, b) => a + b, 0) / period;
+    const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / period;
+    const stdDev = Math.sqrt(variance);
+
+    middle[i] = mean;
+    upper[i] = mean + stdDevMult * stdDev;
+    lower[i] = mean - stdDevMult * stdDev;
+  }
+
+  return { middle, upper, lower };
+}
+
+/*──────────────────────────────────────────────────────────────
+  SMA (Simple Moving Average)
+──────────────────────────────────────────────────────────────*/
+export function calculateSMA(values: number[], period: number): number[] {
+  values = safeArray(values).map((v) => safeNumber(v));
+
+  if (values.length < period) return [];
+
+  const sma: number[] = [];
+
+  for (let i = period - 1; i < values.length; i++) {
+    const slice = values.slice(i - period + 1, i + 1);
+    sma[i] = slice.reduce((a, b) => a + b, 0) / period;
+  }
+
+  return sma;
 }
 
 export function calculateEMASlope(ema: number[], lookback = 3): number {
@@ -346,4 +417,162 @@ export function generateSampleCandles(basePrice: number, count: number): Candle[
   }
 
   return output;
+}
+
+/*──────────────────────────────────────────────────────────────
+  Momentum
+──────────────────────────────────────────────────────────────*/
+export function calculateMomentum(prices: number[], period = 14): number[] {
+  prices = safeArray(prices).map((p) => safeNumber(p));
+
+  if (prices.length <= period) return [];
+
+  const momentum: number[] = [];
+
+  for (let i = period; i < prices.length; i++) {
+    momentum[i] = prices[i] - prices[i - period];
+  }
+
+  return momentum;
+}
+
+/*──────────────────────────────────────────────────────────────
+  Ichimoku Cloud
+──────────────────────────────────────────────────────────────*/
+export function calculateIchimoku(highs: number[], lows: number[], closes: number[],
+  conversionPeriods = 9, basePeriods = 26, laggingSpan2Periods = 52, displacement = 26):
+  { conversionLine: number[]; baseLine: number[]; leadSpanA: number[]; leadSpanB: number[]; laggingSpan: number[] } {
+
+  highs = safeArray(highs).map((p) => safeNumber(p));
+  lows = safeArray(lows).map((p) => safeNumber(p));
+  closes = safeArray(closes).map((p) => safeNumber(p));
+
+  if (highs.length < laggingSpan2Periods || lows.length < laggingSpan2Periods) {
+    return { conversionLine: [], baseLine: [], leadSpanA: [], leadSpanB: [], laggingSpan: [] };
+  }
+
+  const conversionLine: number[] = [];
+  const baseLine: number[] = [];
+  const leadSpanA: number[] = [];
+  const leadSpanB: number[] = [];
+  const laggingSpan: number[] = [];
+
+  // Calculate Conversion Line (Tenkan-sen)
+  for (let i = conversionPeriods - 1; i < highs.length; i++) {
+    const highSlice = highs.slice(i - conversionPeriods + 1, i + 1);
+    const lowSlice = lows.slice(i - conversionPeriods + 1, i + 1);
+    const high = Math.max(...highSlice);
+    const low = Math.min(...lowSlice);
+    conversionLine[i] = (high + low) / 2;
+  }
+
+  // Calculate Base Line (Kijun-sen)
+  for (let i = basePeriods - 1; i < highs.length; i++) {
+    const highSlice = highs.slice(i - basePeriods + 1, i + 1);
+    const lowSlice = lows.slice(i - basePeriods + 1, i + 1);
+    const high = Math.max(...highSlice);
+    const low = Math.min(...lowSlice);
+    baseLine[i] = (high + low) / 2;
+  }
+
+  // Calculate Leading Span A and B
+  for (let i = basePeriods - 1; i < highs.length; i++) {
+    if (conversionLine[i] !== undefined && baseLine[i] !== undefined) {
+      leadSpanA[i + displacement] = (conversionLine[i] + baseLine[i]) / 2;
+    }
+
+    const highSlice = highs.slice(i - laggingSpan2Periods + 1, i + 1);
+    const lowSlice = lows.slice(i - laggingSpan2Periods + 1, i + 1);
+    const high = Math.max(...highSlice);
+    const low = Math.min(...lowSlice);
+    leadSpanB[i + displacement] = (high + low) / 2;
+  }
+
+  // Calculate Lagging Span (Chikou Span)
+  for (let i = laggingSpan2Periods - 1; i < closes.length; i++) {
+    laggingSpan[i - laggingSpan2Periods + 1] = closes[i];
+  }
+
+  return { conversionLine, baseLine, leadSpanA, leadSpanB, laggingSpan };
+}
+
+/*──────────────────────────────────────────────────────────────
+  Pivot Points Detection
+──────────────────────────────────────────────────────────────*/
+export function detectPivotPoints(highs: number[], lows: number[], lookback = 5): { pivotHighs: number[]; pivotLows: number[] } {
+  highs = safeArray(highs).map((p) => safeNumber(p));
+  lows = safeArray(lows).map((p) => safeNumber(p));
+
+  const pivotHighs: number[] = [];
+  const pivotLows: number[] = [];
+
+  for (let i = lookback; i < highs.length - lookback; i++) {
+    let isPivotHigh = true;
+    let isPivotLow = true;
+
+    // Check if current high is higher than surrounding highs
+    for (let j = 1; j <= lookback; j++) {
+      if (highs[i] <= highs[i - j] || highs[i] <= highs[i + j]) {
+        isPivotHigh = false;
+        break;
+      }
+    }
+
+    // Check if current low is lower than surrounding lows
+    for (let j = 1; j <= lookback; j++) {
+      if (lows[i] >= lows[i - j] || lows[i] >= lows[i + j]) {
+        isPivotLow = false;
+        break;
+      }
+    }
+
+    pivotHighs[i] = isPivotHigh ? highs[i] : NaN;
+    pivotLows[i] = isPivotLow ? lows[i] : NaN;
+  }
+
+  return { pivotHighs, pivotLows };
+}
+
+/*──────────────────────────────────────────────────────────────
+  RSI Divergence Detection
+──────────────────────────────────────────────────────────────*/
+export function detectRSIDivergence(rsiValues: number[], prices: number[], pivotHighs: number[], pivotLows: number[]):
+  { bullishDivergence: boolean[]; bearishDivergence: boolean[] } {
+
+  rsiValues = safeArray(rsiValues).map((p) => safeNumber(p));
+  prices = safeArray(prices).map((p) => safeNumber(p));
+
+  const bullishDivergence: boolean[] = [];
+  const bearishDivergence: boolean[] = [];
+
+  let lastPivotHighPrice = NaN;
+  let lastPivotHighRSI = NaN;
+  let lastPivotLowPrice = NaN;
+  let lastPivotLowRSI = NaN;
+
+  for (let i = 0; i < prices.length; i++) {
+    // Check for pivot highs (potential bearish divergence)
+    if (!isNaN(pivotHighs[i])) {
+      if (!isNaN(lastPivotHighPrice) && !isNaN(lastPivotHighRSI)) {
+        const priceHigher = prices[i] > lastPivotHighPrice;
+        const rsiLower = rsiValues[i] < lastPivotHighRSI;
+        bearishDivergence[i] = priceHigher && rsiLower;
+      }
+      lastPivotHighPrice = prices[i];
+      lastPivotHighRSI = rsiValues[i];
+    }
+
+    // Check for pivot lows (potential bullish divergence)
+    if (!isNaN(pivotLows[i])) {
+      if (!isNaN(lastPivotLowPrice) && !isNaN(lastPivotLowRSI)) {
+        const priceLower = prices[i] < lastPivotLowPrice;
+        const rsiHigher = rsiValues[i] > lastPivotLowRSI;
+        bullishDivergence[i] = priceLower && rsiHigher;
+      }
+      lastPivotLowPrice = prices[i];
+      lastPivotLowRSI = rsiValues[i];
+    }
+  }
+
+  return { bullishDivergence, bearishDivergence };
 }
